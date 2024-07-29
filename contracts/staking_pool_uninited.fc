@@ -1,0 +1,17 @@
+#include "imports/stdlib.fc";
+
+const int exc::incorrect_sender = 50;
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    slice cs = in_msg_full.begin_parse();
+    cs~skip_bits(4);
+    slice sender_address = cs~load_msg_addr();
+
+    slice ds = get_data().begin_parse();
+    slice factory_address = ds~load_msg_addr();
+    
+    throw_unless(exc::incorrect_sender, equal_slices(factory_address, sender_address));
+    
+    set_data(in_msg_body~load_ref());
+    set_code(in_msg_body~load_ref());
+}
