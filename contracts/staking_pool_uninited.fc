@@ -2,6 +2,7 @@
 
 const int exc::incorrect_sender = 50;
 
+;; storage: factory_address:MsgAddressStd pool_id:Uint32
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice cs = in_msg_full.begin_parse();
     cs~skip_bits(4);

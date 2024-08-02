@@ -1,22 +1,22 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 
-export type StakedJettonWalletConfig = {};
+export type StakeWalletConfig = {};
 
-export function stakedJettonWalletConfigToCell(config: StakedJettonWalletConfig): Cell {
+export function stakeWalletConfigToCell(config: StakeWalletConfig): Cell {
     return beginCell().endCell();
 }
 
-export class StakedJettonWallet implements Contract {
+export class StakeWallet implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
 
     static createFromAddress(address: Address) {
-        return new StakedJettonWallet(address);
+        return new StakeWallet(address);
     }
 
-    static createFromConfig(config: StakedJettonWalletConfig, code: Cell, workchain = 0) {
-        const data = stakedJettonWalletConfigToCell(config);
+    static createFromConfig(config: StakeWalletConfig, code: Cell, workchain = 0) {
+        const data = stakeWalletConfigToCell(config);
         const init = { code, data };
-        return new StakedJettonWallet(contractAddress(workchain, init), init);
+        return new StakeWallet(contractAddress(workchain, init), init);
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) {

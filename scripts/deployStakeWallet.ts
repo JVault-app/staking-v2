@@ -1,9 +1,9 @@
 import { toNano } from '@ton/core';
-import { StakedJettonWallet } from '../wrappers/StakedJettonWallet';
+import { StakeWallet } from '../wrappers/StakeWallet';
 import { compile, NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-    const stakedJettonWallet = provider.open(StakedJettonWallet.createFromConfig({}, await compile('StakedJettonWallet')));
+    const stakedJettonWallet = provider.open(StakeWallet.createFromConfig({}, await compile('StakeWallet')));
 
     await stakedJettonWallet.sendDeploy(provider.sender(), toNano('0.05'));
 
