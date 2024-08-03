@@ -62,17 +62,22 @@ cell  preload_ref_index(slice s, int n) asm "PLDREFVAR";
 }
 
 
-cell calculate_stake_wallet_state_init(slice owner_address, int lock_period, cell stake_wallet_code) inline {
+cell calculate_stake_wallet_state_init(slice pool_address, slice minter_address,
+                                       slice owner_address, int lock_period, cell stake_wallet_code) inline {
     return begin_cell()
                 .store_uint(0, 2)
                 .store_maybe_ref(stake_wallet_code)
                 .store_maybe_ref(
                     begin_cell()
-                        .store_slice(my_address())
+                        .store_slice(pool_address)
                         .store_slice(owner_address)
-                        .store_uint(lock_period, 32)
-                        .store_uint(0, 10)
-                        .store_int(true, 1)
+                        .store_slice(minter_address)
+                        .store_ref(
+                            begin_cell()
+                                .store_uint(lock_period, 32)
+                                .store_uint(1, 11)
+                            .end_cell()
+                        )
                     .end_cell()
                 )
                 .store_uint(0, 1)
@@ -128,8 +133,9 @@ slice get_address_by_state_init(cell state_init) inline {
     throw_unless(exc::wrong_chain, wc == WORKCHAIN);
 }
 
-() force_stake_wallet(slice sender_address, slice stake_owner_address, int lock_period, cell stake_wallet_code) impure inline {
-    cell tmp = calculate_stake_wallet_state_init(stake_owner_address, lock_period, stake_wallet_code);
+() force_stake_wallet(slice sender_address, slice pool_address, slice minter_address, 
+                      slice stake_owner_address, int lock_period, cell stake_wallet_code) impure inline {
+    cell tmp = calculate_stake_wallet_state_init(pool_address, minter_address, stake_owner_address, lock_period, stake_wallet_code);
     throw_unless(exc::incorrect_sender, equal_slices(get_address_by_state_init(tmp), sender_address));
 }
 

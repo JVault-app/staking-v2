@@ -1,34 +1,32 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { Cell, toNano } from '@ton/core';
-import { StakingPool } from '../wrappers/StakingPool';
-import { StakeWallet } from '../wrappers/StakeWallet';
+import { JettonMinter } from '../wrappers/JettonMinter';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 
-describe('StakingPool', () => {
+describe('JettonMinter', () => {
     let code: Cell;
 
     beforeAll(async () => {
-        code = await compile('StakingPool');
+        code = await compile('JettonMinter');
     });
 
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
-    let stakingPool: SandboxContract<StakingPool>;
-    let stakeWallet: SandboxContract<StakeWallet>;
+    let jettonMinter: SandboxContract<JettonMinter>;
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
 
-        stakingPool = blockchain.openContract(StakingPool.createFromConfig({}, code));
+        jettonMinter = blockchain.openContract(JettonMinter.createFromConfig({}, code));
 
         deployer = await blockchain.treasury('deployer');
 
-        const deployResult = await stakingPool.sendDeploy(deployer.getSender(), toNano('0.05'));
+        const deployResult = await jettonMinter.sendDeploy(deployer.getSender(), toNano('0.05'));
 
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
-            to: stakingPool.address,
+            to: jettonMinter.address,
             deploy: true,
             success: true,
         });
@@ -36,6 +34,6 @@ describe('StakingPool', () => {
 
     it('should deploy', async () => {
         // the check is done inside beforeEach
-        // blockchain and stakingPool are ready to use
+        // blockchain and jettonMinter are ready to use
     });
 });
