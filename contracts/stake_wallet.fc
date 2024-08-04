@@ -328,6 +328,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
             if (success2) {
                 jettons_to_cancel += requested_jettons_slice~load_coins();
             }
+            (request_time, _, success) = requests_to_cancel.udict_get_next?(32, request_time);
         }
 
         send_update_request(0, jettons_to_cancel, 0, query_id, 0, mode::carry_remaining_gas);

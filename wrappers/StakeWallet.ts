@@ -178,6 +178,18 @@ export class StakeWallet implements Contract {
         });
     }
 
+    async sendCancelUnstakeRequest(provider: ContractProvider, via: Sender, requestsToCancel: Dictionary<number, boolean>, queryId?: number) {
+        await provider.internal(via, {
+            value: Gas.CANCEL_UNSTAKE,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                        .storeUint(OpCodes.CANCEL_UNSTAKE_REQUEST, 32)
+                        .storeUint(queryId ?? 0, 64)
+                        .storeDict(requestsToCancel, Dictionary.Keys.Uint(32), Dictionary.Values.Bool())
+                .endCell()
+        });
+    }
+
     static transferMessage(jetton_amount: bigint, 
                            toAddress: Address,
                            responseAddress: Address,

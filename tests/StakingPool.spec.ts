@@ -248,11 +248,14 @@ describe('StakingPool', () => {
         expect(user1LockBalance).toEqual(toNano(1000) - 45n + jettonsToFreeUnstake + jettonsToForceUnstake - unstakeCommission);
         stakingPoolConfig = await stakingPool.getStorageData();
         expect(stakingPoolConfig.collectedCommissions).toEqual(unstakeCommission);
-        
-        blockchain.now!! += 100;  // cur_rewards = 255 + 50 = 305
+        let requestsToCancel: Dictionary<number, boolean> = Dictionary.empty();
+        requestsToCancel.set(blockchain.now!!, false);
+        transactionRes = await stakeWallet1_1.sendCancelUnstakeRequest(user1.getSender(), requestsToCancel);
+
+        blockchain.now!! += 100;  // cur_rewards = 255 + 66 = 321
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
         let user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
-        expect(user1RewardsBalance).toEqual(305n);
+        expect(user1RewardsBalance).toEqual(321n);
     });
 
     it('should make jetton transfer', async () => {
