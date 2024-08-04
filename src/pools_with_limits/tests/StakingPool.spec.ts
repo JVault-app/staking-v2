@@ -46,7 +46,7 @@ describe('StakingPool', () => {
     let poolLockWallet: SandboxContract<JettonWallet>;
     let user1LockWallet: SandboxContract<JettonWallet>;
     let user2LockWallet: SandboxContract<JettonWallet>;
-    let poolCreatorWallet: SandboxContract<JettonWallet>;
+    let creatorLockWallet: SandboxContract<JettonWallet>;
 
     let jettonMinterDefault2: SandboxContract<JettonMinterDefault>;
     let poolRewardsWallet: SandboxContract<JettonWallet>;
@@ -80,7 +80,7 @@ describe('StakingPool', () => {
         await jettonMinterDefault.sendMint(poolAdmin.getSender(), user2.address, toNano(1000), toNano("0.2"), toNano("0.5"));
         user1LockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user1.address)));
         user2LockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user2.address)));
-        // CreatorLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(poolCreator.address)));
+        creatorLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(poolCreator.address)));
         poolLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(stakingPool.address)));
 
         jettonMinterDefault2 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(0, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
@@ -97,9 +97,9 @@ describe('StakingPool', () => {
         let minterAddr1 = randomAddress(0);
         let minterAddr2 = randomAddress(0);
         let minterAddr3 = randomAddress(0);
-        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 100n, rewardMultiplier: 1 * Deviders.REWARDS_DEVIDER, minterAddress: minterAddr1});
-        lockPeriods.set(120, {curTvl: 0n, tvlLimit: 50n, rewardMultiplier: 2 * Deviders.REWARDS_DEVIDER, minterAddress: minterAddr2});
-        lockPeriods.set(60 * 60 * 24, {curTvl: 0n, tvlLimit: 100000n, rewardMultiplier: 10, minterAddress: minterAddr3});
+        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DEVIDER, minterAddress: minterAddr1});
+        lockPeriods.set(120, {curTvl: 0n, tvlLimit: 500n, rewardMultiplier: 2 * Deviders.REWARDS_DEVIDER, minterAddress: minterAddr2});
+        lockPeriods.set(60 * 60 * 24, {curTvl: 0n, tvlLimit: 1000000n, rewardMultiplier: 10, minterAddress: minterAddr3});
         let whitelist: AddrList = Dictionary.empty();
         whitelist.set(user1.address, false);
         whitelist.set(user2.address, false);
@@ -117,6 +117,7 @@ describe('StakingPool', () => {
             rewardJettons: Dictionary.empty(),
             lockPeriods: lockPeriods,
             whitelist: whitelist,
+            depositCommission: BigInt(0.2 * Number(Deviders.COMMISSION_DEVIDER)),
             unstakeCommission: BigInt(0.1 * Number(Deviders.COMMISSION_DEVIDER)),
             unstakeFee: toNano("0.3"),
             collectedCommissions: 0n,
@@ -162,8 +163,9 @@ describe('StakingPool', () => {
         expect(adminRewardsBalance).toEqual(rewardsCommission);
 
         // staking jettons 
-        let jettonsToStake1 = 40n;
+        let jettonsToStake1 = 400n;
         let lockPeriod1 = 60;
+        let commission1 = 80n;
         stakeWallet1_1 = blockchain.openContract(await StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user1.address, lockPeriod1))!!));
         transactionRes = await user1LockWallet.sendTransfer(
             user1.getSender(), jettonsToStake1, stakingPool.address, user1.address, Gas.STAKE_JETTONS,
@@ -177,8 +179,9 @@ describe('StakingPool', () => {
         });
 
         blockchain.now += distributionPeriod / 10;
-        let jettonsToStake2 = 5n;
+        let jettonsToStake2 = 50n;
         let lockPeriod2 = 120;
+        let commission2 = 10n;
         stakeWallet1_2 = blockchain.openContract(await StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user1.address, lockPeriod2))!!));
         transactionRes = await user1LockWallet.sendTransfer(
             user1.getSender(), jettonsToStake2, stakingPool.address, user1.address, Gas.STAKE_JETTONS,
@@ -195,23 +198,32 @@ describe('StakingPool', () => {
         expect(poolLockBalance).toEqual(jettonsToStake1 + jettonsToStake2);
         stakeWalletConfig1_1 = await stakeWallet1_1.getStorageData();
         expect(stakeWalletConfig1_1.isActive).toBeTruthy();
-        expect(stakeWalletConfig1_1.jettonBalance).toEqual(jettonsToStake1);
+        expect(stakeWalletConfig1_1.jettonBalance).toEqual(jettonsToStake1 - commission1);
         stakeWalletConfig1_2 = await stakeWallet1_2.getStorageData();
         expect(stakeWalletConfig1_2.isActive).toBeTruthy();
-        expect(stakeWalletConfig1_2.jettonBalance).toEqual(jettonsToStake2);
+        expect(stakeWalletConfig1_2.jettonBalance).toEqual(jettonsToStake2 - commission2);
 
         // check that everything is ok
         stakingPoolConfig = await stakingPool.getStorageData();
         let tmp = stakingPoolConfig.rewardJettons.get(poolRewardsWallet.address);
-        expect(tmp?.distributedRewards).toEqual(Deviders.DISTRIBUTED_REWARDS_DEVIDER * rewardsToAdd / (10n * jettonsToStake1));
+        expect(tmp?.distributedRewards).toEqual(Deviders.DISTRIBUTED_REWARDS_DEVIDER * rewardsToAdd / (10n * (jettonsToStake1 - commission1)));
         expect(tmp?.rewardsDeposits.get(0)).toEqual({farmingSpeed: Deviders.FARMING_SPEED_DEVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
-        expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 + jettonsToStake2);
-        expect(stakingPoolConfig.tvlWithMultipliers).toEqual(jettonsToStake1 + jettonsToStake2 * 2n);
+        expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 + jettonsToStake2 - commission1 - commission2);
+        expect(stakingPoolConfig.tvlWithMultipliers).toEqual(jettonsToStake1 - commission1 + (jettonsToStake2 - commission2) * 2n);
+        expect(stakingPoolConfig.collectedCommissions).toEqual(commission1 + commission2);
     });
 
     it('should deploy, add rewards & receive two deposits', async () => {
         // the check is done inside beforeEach
         // blockchain and stakingPool are ready to use
+    });
+
+    it('should send commissions', async () => {
+        let transactionRes = await stakingPool.sendClaimCommissions(poolCreator.getSender());
+        let creatorLockBalance = await creatorLockWallet.getJettonBalance()
+        expect(creatorLockBalance).toEqual(90n);
+        stakingPoolConfig = await stakingPool.getStorageData();
+        expect(stakingPoolConfig.collectedCommissions).toEqual(0n);
     });
 
     it('should send rewards', async () => {
@@ -230,7 +242,7 @@ describe('StakingPool', () => {
     
     it('should send unstaked jettons', async () => {
         blockchain.now!! += 100;  // cur_rewards = 100 + 80 = 180
-        let jettonsToFreeUnstake = 10n;
+        let jettonsToFreeUnstake = 80n;
         let transactionRes = await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), jettonsToFreeUnstake);
         expect(transactionRes.transactions).toHaveTransaction({
             from: stakeWallet1_1.address,
@@ -240,14 +252,14 @@ describe('StakingPool', () => {
 
         blockchain.now!! += 100;  // cur_rewards = 180 + 75 = 255
         await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), jettonsToFreeUnstake);
-        let jettonsToForceUnstake = 10n;
+        let jettonsToForceUnstake = 80n;
         let unstakeCommission = jettonsToForceUnstake * stakingPoolConfig.unstakeCommission / Deviders.COMMISSION_DEVIDER;
         transactionRes = await stakeWallet1_1.sendUnstakeJettons(user1.getSender(), jettonsToFreeUnstake + jettonsToForceUnstake, true, stakingPoolConfig.unstakeFee);
         // printTransactionFees(transactionRes.transactions);
         let user1LockBalance = await user1LockWallet.getJettonBalance();
-        expect(user1LockBalance).toEqual(toNano(1000) - 45n + jettonsToFreeUnstake + jettonsToForceUnstake - unstakeCommission);
+        expect(user1LockBalance).toEqual(toNano(1000) - 450n + jettonsToFreeUnstake + jettonsToForceUnstake - unstakeCommission);
         stakingPoolConfig = await stakingPool.getStorageData();
-        expect(stakingPoolConfig.collectedCommissions).toEqual(unstakeCommission);
+        expect(stakingPoolConfig.collectedCommissions).toEqual(unstakeCommission + 90n);  // unstake commission + deposit commission
         let requestsToCancel: Dictionary<number, boolean> = Dictionary.empty();
         requestsToCancel.set(blockchain.now!!, false);
         transactionRes = await stakeWallet1_1.sendCancelUnstakeRequest(user1.getSender(), requestsToCancel);
@@ -261,7 +273,7 @@ describe('StakingPool', () => {
     it('should make jetton transfer', async () => {
         blockchain.now!! += 100;  // cur_rewards_1 = 100 + 80 = 180, cur_rewards_2 = 0
         let transactionRes = await stakeWallet1_1.sendTransfer(
-            user1.getSender(), 10n, user2.address, user1.address, toNano(1),
+            user1.getSender(), 80n, user2.address, user1.address, toNano(1),
             beginCell().storeUint(0, 32).endCell()
         );
         stakeWallet2_1 = blockchain.openContract(await StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user2.address, 60))!!));
@@ -273,8 +285,8 @@ describe('StakingPool', () => {
         stakeWalletConfig2_1 = await stakeWallet2_1.getStorageData();
         stakeWalletConfig1_1 = await stakeWallet1_1.getStorageData();
         expect(stakeWalletConfig1_1.isActive && stakeWalletConfig2_1.isActive).toBeTruthy();
-        expect(stakeWalletConfig1_1.jettonBalance).toEqual(30n);
-        expect(stakeWalletConfig2_1.jettonBalance).toEqual(10n);
+        expect(stakeWalletConfig1_1.jettonBalance).toEqual(240n);
+        expect(stakeWalletConfig2_1.jettonBalance).toEqual(80n);
 
         blockchain.now!! += 100;  // cur_rewards_1 = 180 + 60 = 240, cur_rewards_2 = 20
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
@@ -284,5 +296,4 @@ describe('StakingPool', () => {
         let user2RewardsBalance = await user2RewardsWallet.getJettonBalance();
         expect(user2RewardsBalance).toEqual(20n);
     });
-
 });

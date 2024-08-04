@@ -69,6 +69,7 @@ export type StakingPoolConfig = {
     rewardJettons: Dictionary<Address, RewardJettonsValue>;
     lockPeriods: Dictionary<number, LockPeriodsValue>;
     whitelist: AddrList;
+    depositCommission: bigint;
     unstakeCommission: bigint;
     unstakeFee: bigint;
     collectedCommissions: bigint;
@@ -100,6 +101,7 @@ export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
                         .storeDict(config.rewardJettons, Dictionary.Keys.Address(), rewardJettonsValueParser())
                         .storeDict(config.lockPeriods, Dictionary.Keys.Uint(32), lockPeriodsValueParser())
                         .storeDict(config.whitelist, Dictionary.Keys.Address(), Dictionary.Values.Bool())
+                        .storeUint(config.depositCommission, 16)
                         .storeUint(config.unstakeCommission, 16)
                         .storeCoins(config.unstakeFee)
                         .storeCoins(config.collectedCommissions)
@@ -226,6 +228,7 @@ export class StakingPool implements Contract {
             rewardJettons: stack.readCellOpt(),
             lockPeriods: stack.readCellOpt(),
             whitelist: stack.readCellOpt(),
+            depositCommission: stack.readBigNumber(),
             unstakeCommission: stack.readBigNumber(),
             unstakeFee: stack.readBigNumber(),
             collectedCommissions: stack.readBigNumber(),

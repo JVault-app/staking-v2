@@ -92,7 +92,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
 
 (int) send_update_request_with_forward(int jetton_balance, cell rewards_dict, slice forward_address, int query_id, int msg_value, int sending_mode) impure inline {
     storage::is_active = false;
-    cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 4 + 267 = 912. Refs = 1.
+    cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 4 + 4 + 267 = 916. Refs = 1.
                         .store_uint(op::request_update_rewards, 32)
                         .store_uint(query_id, 64)
                         .store_slice(storage::owner_address)
@@ -100,6 +100,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                         .store_coins(jetton_balance)
                         .store_int(0, 121)
                         .store_dict(rewards_dict)
+                        .store_coins(0)
                         .store_coins(0)
                         .store_slice(forward_address)
                     .end_cell();
@@ -140,6 +141,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
         storage::whitelist          = in_msg_body~load_dict();
 
         int received_jettons        = in_msg_body~load_coins();
+        int deposit_commission      = in_msg_body~load_coins();
 
         if ((storage::jetton_balance + received_jettons + storage::total_requested_jettons > storage::max_deposit) | (~ storage::is_active)) {
             cell cancel_payload = begin_cell()
@@ -148,6 +150,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                                 .store_slice(storage::owner_address)
                                 .store_uint(storage::lock_period, 32)
                                 .store_coins(received_jettons)
+                                .store_coins(deposit_commission)
                             .end_cell();
             send_cell_message(sender_address, 0, cancel_payload, mode::carry_remaining_gas);
             return ();
@@ -181,7 +184,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
             send_excess(response_address, query_id, 0, mode::carry_remaining_balance);
         }
         else {  
-            send_update_request(0, received_jettons, 0, query_id, 0, mode::carry_remaining_gas);
+            send_update_request(0, received_jettons, deposit_commission, query_id, 0, mode::carry_remaining_gas);
         }
 
         storage::jetton_balance += received_jettons;
@@ -354,7 +357,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
         int forward_ton_amount = in_msg_body~load_coins();
         throw_unless(exc::out_of_gas, msg_value >= forward_ton_amount + gas::send_staked_jettons);
                 
-        cell transfer_payload = begin_cell()
+        cell transfer_payload = begin_cell()  ;; Bits = 32 + 64 + 124 + 124 + 16 + 124 + 1 + 124 + 4 + 267 = 880
                                     .store_uint(op::receive_jettons, 32)
                                     .store_uint(query_id, 64)
                                     .store_coins(storage::min_deposit)
@@ -363,6 +366,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                                     .store_coins(storage::unstake_fee)
                                     .store_dict(storage::whitelist)
                                     .store_coins(jetton_amount)
+                                    .store_coins(0)
                                     .store_slice(storage::owner_address)
                                     .store_ref(
                                         begin_cell()

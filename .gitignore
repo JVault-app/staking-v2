@@ -8,7 +8,7 @@ src/pools_without_limits/node_modules
 src/pools_without_limits/temp
 src/pools_without_limits/build
 src/pools_without_limits/dist
-src/pools_without_limits/.DS_Store
+*.DS_Store
 
 # VS Code
 src/*/.vscode/*
@@ -16,7 +16,7 @@ src/*/.history/
 src/*.vsix
 
 # IDEA files
-src/*.idea
+*.idea
 
 # VIM
 Session.vim
