@@ -1,6 +1,6 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano } from '@ton/core';
 import { Maybe } from '@ton/core/dist/utils/maybe';
-import { OpCodes } from './imports/constants';
+import { Gas, OpCodes } from './imports/constants';
 
 export type JettonWalletConfig = {};
 
@@ -38,35 +38,37 @@ export class JettonWallet implements Contract {
         return res.stack.readBigNumber();
     }
 
-    static transferMessage(jetton_amount: bigint, to: Address,
-                           responseAddress: Address,
-                           customPayload: Maybe<Cell>,
-                           forward_ton_amount: bigint,
-                           forwardPayload: Maybe<Cell>) {
+    static transferMessage(jetton_amount: bigint, 
+                            toAddress: Address,
+                            responseAddress: Address,
+                            forwardTonAmount: bigint,
+                            forwardPayload: Maybe<Cell>,
+                            queryId?: number) {
+                                
         return beginCell()
-                .storeUint(OpCodes.TRANSFER_JETTON, 32)
-                .storeUint(0, 64)
-                .storeCoins(jetton_amount).storeAddress(to)
-                .storeAddress(responseAddress)
-                .storeMaybeRef(customPayload)
-                .storeCoins(forward_ton_amount)
-                .storeMaybeRef(forwardPayload)
-               .endCell();
+                    .storeUint(OpCodes.TRANSFER_JETTON, 32)
+                    .storeUint(queryId ?? 0, 64)
+                    .storeCoins(jetton_amount)
+                    .storeAddress(toAddress)
+                    .storeAddress(responseAddress)
+                    .storeBit(0)
+                    .storeCoins(forwardTonAmount)
+                    .storeMaybeRef(forwardPayload)
+                .endCell();
     }
 
-    async sendTransfer(provider: ContractProvider, via: Sender,
-                              value: bigint,
-                              jetton_amount: bigint, to: Address,
-                              responseAddress:Address,
-                              customPayload: Maybe<Cell>,
-                              forward_ton_amount: bigint,
-                              forwardPayload?: Maybe<Cell>) {
+    async sendTransfer(provider: ContractProvider,
+                        via: Sender,
+                        jettonAmount: bigint, 
+                        toAddress: Address,
+                        responseAddress:Address,
+                        forwardTonAmount: bigint,
+                        forwardPayload?: Maybe<Cell>) {
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: JettonWallet.transferMessage(jetton_amount, to, responseAddress, customPayload, forward_ton_amount, forwardPayload),
-            value:value
+            body: JettonWallet.transferMessage(jettonAmount, toAddress, responseAddress, forwardTonAmount, forwardPayload),
+            value: Gas.JETTON_TRANSFER + forwardTonAmount
         });
-
     }
     /*
       burn#595f07bc query_id:uint64 amount:(VarUInteger 16)

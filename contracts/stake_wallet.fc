@@ -15,7 +15,7 @@ global int   storage::total_requested_jettons;  ;; Coins. Total amount of jetton
 
 global int   storage::is_active;                ;; Bool. Does this wallet allow actions?
 
-global int   storage::unstake_commission;       ;; Uint32. Commission rate for instant unstakes
+global int   storage::unstake_commission;       ;; Uint16. Commission rate for instant unstakes
 global int   storage::unstake_fee;              ;; Coins. Const TON fee for instant withdrawal
         
 global int   storage::min_deposit;              ;; Coins. Minimal stake amount
@@ -39,7 +39,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
     storage::is_active               = ds2~load_int(1);
 
     if (ds.slice_bits()) {
-        storage::unstake_commission      = ds2~load_uint(32);
+        storage::unstake_commission      = ds2~load_uint(16);
         storage::unstake_fee             = ds2~load_coins();
         storage::min_deposit             = ds2~load_coins();
         storage::max_deposit             = ds2~load_coins();
@@ -61,7 +61,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                     .store_dict(storage::unstake_requests)
                     .store_coins(storage::total_requested_jettons)
                     .store_int(storage::is_active, 1)
-                    .store_uint(storage::unstake_commission, 32)
+                    .store_uint(storage::unstake_commission, 16)
                     .store_coins(storage::unstake_fee)
                     .store_coins(storage::min_deposit)
                     .store_coins(storage::max_deposit)
@@ -133,7 +133,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
         ;; not in state_init so this variables can be changed after deployment
         storage::min_deposit        = in_msg_body~load_coins();
         storage::max_deposit        = in_msg_body~load_coins();
-        storage::unstake_commission = in_msg_body~load_uint(32);
+        storage::unstake_commission = in_msg_body~load_uint(16);
         storage::unstake_fee        = in_msg_body~load_coins();
         storage::whitelist          = in_msg_body~load_dict();
 
@@ -353,7 +353,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                                     .store_uint(query_id, 64)
                                     .store_coins(storage::min_deposit)
                                     .store_coins(storage::max_deposit)
-                                    .store_uint(storage::unstake_commission, 32)
+                                    .store_uint(storage::unstake_commission, 16)
                                     .store_coins(storage::unstake_fee)
                                     .store_dict(storage::whitelist)
                                     .store_coins(jetton_amount)

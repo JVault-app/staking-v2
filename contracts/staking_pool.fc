@@ -19,7 +19,7 @@ global cell  storage::lock_periods;          ;; HashmapE. lock_period (uint32) -
 
 global cell  storage::whitelist;             ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
 
-global int   storage::unstake_commission;    ;; Uint32. Commission rate for instant unstakes
+global int   storage::unstake_commission;    ;; Uint16. Commission rate for instant unstakes
 global int   storage::unstake_fee;           ;; Coins. Const JVault's TON fee
 global int   storage::collected_commissions; ;; Coins. Commissions collected from instant unstakes  
 
@@ -34,7 +34,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     storage::lock_wallet_address   = ds~load_msg_addr();
     storage::stake_wallet_code     = ds~load_ref();
 
-    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 1 + 1 + 32 + 124 + 124 + 16 = 795. Refs = 3.
+    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 1 + 1 + 16 + 124 + 124 + 16 = 779. Refs = 3.
     storage::tvl                   = ds2~load_coins();
     storage::tvl_with_multipliers  = ds2~load_coins();
     storage::min_deposit           = ds2~load_coins();
@@ -42,7 +42,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     storage::reward_jettons        = ds2~load_dict();
     storage::lock_periods          = ds2~load_dict();
     storage::whitelist             = ds2~load_dict();
-    storage::unstake_commission    = ds2~load_uint(32);
+    storage::unstake_commission    = ds2~load_uint(16);
     storage::unstake_fee           = ds2~load_coins();
     storage::collected_commissions = ds2~load_coins();
     storage::rewards_commission    = ds2~load_uint(16);
@@ -65,7 +65,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                     .store_dict(storage::reward_jettons)
                     .store_dict(storage::lock_periods)
                     .store_dict(storage::whitelist)
-                    .store_uint(storage::unstake_commission, 32)
+                    .store_uint(storage::unstake_commission, 16)
                     .store_coins(storage::unstake_fee)
                     .store_coins(storage::collected_commissions)
                     .store_uint(storage::rewards_commission, 16)
@@ -102,7 +102,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
         int   transferred_jettons = in_msg_body~load_coins();
         slice from_address        = in_msg_body~load_msg_addr();
         slice forward_payload     = in_msg_body~load_ref().begin_parse();
-        try {
+        ;; try {
             int inner_op = forward_payload~load_uint(32);
 
             if (inner_op == op::stake_jettons) {
@@ -133,7 +133,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                                     .store_uint(query_id, 64)
                                     .store_coins(storage::min_deposit)
                                     .store_coins(storage::max_deposit)
-                                    .store_uint(storage::unstake_commission, 32)
+                                    .store_uint(storage::unstake_commission, 16)
                                     .store_coins(storage::unstake_fee)
                                     .store_coins(transferred_jettons)
                                 .end_cell();
@@ -146,7 +146,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
             } 
 
             elseif (inner_op == op::add_rewards) {
-                throw_unless(exc::out_of_gas, msg_value > gas::add_rewards);
+                throw_unless(exc::out_of_gas, msg_value >= gas::add_rewards);
                 throw_unless(exc::incorrect_sender, equal_slices(from_address, storage::creator_address));
                 (slice rewards_info_slice, int success) = storage::reward_jettons.dict_get?(267, sender_address);
                 throw_unless(exc::incorrect_jetton, success);
@@ -154,17 +154,18 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                 
                 int rewards_to_add = muldiv(transferred_jettons, commission_devider, commission_devider + storage::rewards_commission);
                 int commission = transferred_jettons - rewards_to_add;
-
+                ;; send_message_with_comment(storage::creator_address, rewards_to_add / ONE_TON, "dw", mode::simple);
+                ;; return ()
                 int start_time = forward_payload~load_uint(32);
                 int end_time = forward_payload~load_uint(32);
-                throw_unless(exc::incorrect_distribution_period, (now() < start_time) & (start_time < end_time));
+                throw_unless(exc::incorrect_distribution_period, (now() <= start_time) & (start_time < end_time));
                 int farming_speed = muldiv(rewards_to_add, farming_speed_devider, end_time - start_time);
                 
                 int distributed_rewards = rewards_info_slice~load_uint(256);
                 cell rewards_deposits = rewards_info_slice~load_dict();
-                (int max_index, _, int success) = rewards_deposits.udict_get_max?(16);
+                (int max_index, _, int success) = rewards_deposits.udict_get_max?(32);
                 max_index = success ? max_index + 1 : 0;
-                rewards_deposits~udict_set_builder(16, max_index, begin_cell().store_coins(farming_speed).store_uint(start_time, 32).store_uint(end_time, 32));
+                rewards_deposits~udict_set_builder(32, max_index, begin_cell().store_coins(farming_speed).store_uint(start_time, 32).store_uint(end_time, 32));
                 storage::reward_jettons~dict_set_builder(267, sender_address, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
 
                 send_jettons(query_id, commission, storage::admin_address, from_address, sender_address, 0, mode::carry_remaining_gas, 
@@ -175,22 +176,22 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
             }
 
             throw(exc::unsupported_op);
-        } catch (_, n) {
-            send_jettons(query_id, transferred_jettons, from_address, from_address, sender_address, 0, mode::carry_remaining_gas,
-                         1, begin_cell().store_uint(0, 32).store_slice("Error. Code ").store_number10(n).end_cell());  
-            return ();
-        }
+        ;; } catch (_, n) {
+        ;;     send_jettons(query_id, transferred_jettons, from_address, from_address, sender_address, 0, mode::carry_remaining_gas,
+        ;;                  1, begin_cell().store_uint(0, 32).store_slice("Error. Code ").store_number10(n).end_cell());  
+        ;;     return ();
+        ;; }
     }
 
     if (op == op::add_reward_jettons) {
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::creator_address));
         
         cell wallets_dict = in_msg_body~load_dict();
-        (int key, slice reward_jetton_wallet, int success) = wallets_dict.udict_get_min?(16);
+        (slice reward_jetton_wallet, _, int success) = wallets_dict.dict_get_min?(267);
         while (success) {
             force_same_workchain(reward_jetton_wallet);
             storage::reward_jettons~dict_add_builder?(267, reward_jetton_wallet, begin_cell().store_int(0, 257));
-            (key, reward_jetton_wallet, success) = wallets_dict.udict_get_next?(16, key);
+            (reward_jetton_wallet, _, success) = wallets_dict.dict_get_next?(267, reward_jetton_wallet);
         }
 
         save_data();
@@ -199,7 +200,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 
     if (op == op::claim_commissions) {
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::creator_address));
-        throw_unless(exc::out_of_gas, msg_value > gas::jetton_transfer);
+        throw_unless(exc::out_of_gas, msg_value >= gas::jetton_transfer);
 
         send_jettons(query_id, storage::collected_commissions, sender_address, sender_address, storage::lock_wallet_address, 0,
                      mode::carry_remaining_gas, 1, begin_cell().store_uint(0, 32).store_slice("Unstake commissions claimed").end_cell());
@@ -253,16 +254,16 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     }
 
     if (op == op::request_update_rewards) {
-        int  prev_user_jettons = in_msg_body~load_coins();
-        int  tvl_change        = in_msg_body~load_int(121);
-        cell user_rewards_dict = in_msg_body~load_dict();
+        int  user_jetton_balance = in_msg_body~load_coins();
+        int  tvl_change          = in_msg_body~load_int(121);
+        cell user_rewards_dict   = in_msg_body~load_dict();
         
         (slice reward_jetton, slice rewards_info_slice, int success) = storage::reward_jettons.dict_get_min?(267);
         while (success) {
             int distributed_rewards = rewards_info_slice~load_uint(256);
             cell rewards_deposits = rewards_info_slice~load_dict();
 
-            (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(16);
+            (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
             while (success2) {
                 int farming_speed = rewards_deposit_slice~load_coins();
                 int start_time = rewards_deposit_slice~load_uint(32);
@@ -274,14 +275,14 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                         time_now = end_time;
                     }
                     distributed_rewards += get_distributed_rewards(farming_speed, start_time, time_now);
-                    rewards_deposits~udict_set_builder(16, index, begin_cell().store_coins(farming_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                    rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(farming_speed).store_uint(time_now, 32).store_uint(end_time, 32));
                 }
-                (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(16, index);
+                (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
             }
 
             (slice user_rewards_slice, int success3) = user_rewards_dict.dict_get?(267, reward_jetton);
             (int user_distributed_rewards, int user_unclaimed_rewards) = success3 ? (user_rewards_slice~load_uint(256), user_rewards_slice~load_coins()) : (0, 0);
-            user_unclaimed_rewards += muldiv(distributed_rewards - user_distributed_rewards, prev_user_jettons, distributed_rewards_devider);
+            user_unclaimed_rewards += muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_devider);
 
             storage::reward_jettons~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
             user_rewards_dict~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(user_unclaimed_rewards));
@@ -340,7 +341,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                 int distributed_rewards = rewards_info_slice~load_uint(256);
                 cell rewards_deposits = rewards_info_slice~load_dict();
 
-                (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(16);
+                (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
                 while (success2) {
                     int farming_speed = rewards_deposit_slice~load_coins();
                     int start_time = rewards_deposit_slice~load_uint(32);
@@ -354,7 +355,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                             should_update_rewards2 = true;
                         }
                         distributed_rewards += get_distributed_rewards(farming_speed, start_time, time_now);
-                        rewards_deposits~udict_set_builder(16, index, begin_cell().store_coins(farming_speed).store_uint(start_time, 32).store_uint(end_time, 32));
+                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(farming_speed).store_uint(start_time, 32).store_uint(end_time, 32));
                     }
                 }
                 

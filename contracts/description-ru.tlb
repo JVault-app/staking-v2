@@ -104,7 +104,7 @@ whitelist$_ _:(HashmapE 267 Bit) = Whitelist;  // user_address (MsgAddressStd) -
 
 // Staking pool storage
 reward_jettons$_
-    _:(HashmapE 267 [distributed_rewards: uint256 rewards_deposits:(HashmapE 16 [farming_speed:Coins start_time:uint32 end_time:uint32])])
+    _:(HashmapE 267 [distributed_rewards: uint256 rewards_deposits:(HashmapE 32 [farming_speed:Coins start_time:uint32 end_time:uint32])])
 = RewardJettons;  // key is pool's jetton wallet address
 lock_periods$_ _:(HashmapE 32 [cur_tvl:Coins tvl_limit:Coins reward_multiplier:uint16 minter_address:MsgAddressStd ]) = LockPeriods;
 
@@ -122,7 +122,7 @@ staking_pool_storage$_
         reward_jettons:RewardJettons
         lock_periods:LockPeriods
         whitelist:Whitelist
-        unstake_commission:uint32
+        unstake_commission:uint16
         unstake_fee:Coins
         collected_commissions:Coins
         rewards_commission:uint16
@@ -145,7 +145,7 @@ stake_wallet_storage$_
         total_requested_jettons:Coins
         is_active:Bool
         _:(Optional [
-            unstake_commission:uint32
+            unstake_commission:uint16
             unstake_fee:Coins
             min_deposit:Coins
             max_deposit:Coins
@@ -178,7 +178,7 @@ add_rewards_transfer_msg$_ _:(JettonTransferMsg AddRewardsPayload) = InternalMsg
 
 // Если проверка неуспешная, то жетоны возвращаются отправителю. Иначе в стейкинг-пуле обновляется словарь reward_jettons
 // (для соответствующего jetton_wallet в словарь rewards_deposits добавляется новый элемент, у которого
-// farming_speed = transferred_jettons * farming_speed_devider / (end_time - start_time)
+// farming_speed = transferred_jettons * farming_speed_devider / (end_time - start_time))
 // Далее на адрес администратора стейкинг-пула отправляется комиссия и цепочка транзакций на этом заканчивается.
 rewards_commission_transfer_msg$_ _:(JettonTransferMsg Cell) = InternalMsgBody;
 
@@ -202,7 +202,7 @@ receive_jettons_msg#d68a4ac1
     query_id:uint64
     min_deposit:Coins
     max_deposit:Coins
-    unstake_commission:uint32
+    unstake_commission:uint16
     unstake_fee:Coins
     transferred_jettons:Coins
 = InternalMsgBody;
@@ -377,7 +377,7 @@ internal_transfer_msg#d68a4ac1
     query_id:uint64
     min_deposit:Coins
     max_deposit:Coins
-    unstake_commission:uint32
+    unstake_commission:uint16
     unstake_fee:Coins
     whitelist:Whitelist
     jetton_amount:Coins

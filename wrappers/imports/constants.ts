@@ -1,3 +1,5 @@
+import { Address, Dictionary } from "@ton/core";
+
 export const OpCodes = {
     GET_STATIC_DATA:         0X2FCB26A2,
     REPORT_STATIC_DATA:      0X8B771735,
@@ -36,3 +38,30 @@ export const OpCodes = {
     DEPLOY_NEW_POOL:       0XDA861F17,
     SEND_COMMISSIONS:      0XB96ADAEA
 };
+
+export const Gas = {
+    MIN_RESERVE:            20000000n,   // 0.02  TON
+    DEPLOY_POOL:            120000000n,  // 0.12  TON
+    NOTIFICATION:           10000000n,   // 0.01  TON
+    JETTON_TRANSFER:        55000000n,   // 0.055 TON
+    BURN_JETTONS:           50000000n,   // 0.05  TON
+    STAKE_JETTONS:          155000000n,  // 0.155 TON
+    UNSTAKE_JETTONS:        155000000n,  // 0.155 TON
+    CANCEL_UNSTAKE:         110000000n,  // 0.11  TON
+    SEND_COMMISSIONS:       120000000n,  // 0.12  TON
+    SIMPLE_UPDATE_REQUEST:  100000000n,  // 0.1   TON
+    ADD_REWARDS:            65000000n,   // 0.065 TON
+    APPROVE_TRANSFER:       20000000n,   // 0.02  TON
+    SAVE_UPDATED_REWARDS:   10000000n,   // 0.01  TON
+    MIN_EXCESS:             10000000n,   // 0.01  TON
+    SEND_STAKED_JETTONS:    70000000n,   // 0.07  TON
+}
+
+export type AddrList = Dictionary<Address, Boolean>;
+
+export const Deviders = {
+    COMMISSION_DEVIDER: 100000n,
+    REWARDS_DEVIDER: 1000n,
+    FARMING_SPEED_DEVIDER: BigInt(24 * 60 * 60),
+    DISTRIBUTED_REWARDS_DEVIDER: 100000000000000000000000000000000000000n,
+}
