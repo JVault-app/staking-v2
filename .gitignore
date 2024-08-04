@@ -1,17 +1,22 @@
-node_modules
-temp
-build
-dist
-.DS_Store
-grant-ru.md
+src/pools_with_limits/node_modules
+src/pools_with_limits/temp
+src/pools_with_limits/build
+src/pools_with_limits/dist
+src/pools_with_limits/.DS_Store
+
+src/pools_without_limits/node_modules
+src/pools_without_limits/temp
+src/pools_without_limits/build
+src/pools_without_limits/dist
+src/pools_without_limits/.DS_Store
 
 # VS Code
-.vscode/*
-.history/
-*.vsix
+src/*/.vscode/*
+src/*/.history/
+src/*.vsix
 
 # IDEA files
-.idea
+src/*.idea
 
 # VIM
 Session.vim
