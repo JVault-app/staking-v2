@@ -70,8 +70,8 @@ cell calculate_stake_wallet_state_init(slice pool_address, slice minter_address,
                 .store_maybe_ref(
                     begin_cell()
                         .store_slice(pool_address)
-                        .store_slice(owner_address)
                         .store_slice(minter_address)
+                        .store_slice(owner_address)
                         .store_ref(
                             begin_cell()
                                 .store_uint(lock_period, 32)

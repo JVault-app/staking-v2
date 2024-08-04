@@ -1,4 +1,4 @@
-import { Address, beginCell, Builder, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, Slice, toNano } from '@ton/core';
+import { Address, beginCell, Builder, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, Slice, toNano, TupleBuilder, TupleItemInt } from '@ton/core';
 import { AddrList, Gas, OpCodes } from './imports/constants';
 import { UserRewardsDictValue, userRewardsDictValueParser } from './StakeWallet';
 import { Maybe } from '@ton/core/dist/utils/maybe';
@@ -243,5 +243,10 @@ export class StakingPool implements Contract {
         }
         let k: StakingPoolConfig = res;
         return k;
+    }
+
+    async getWalletAddress(provider: ContractProvider, ownerAddress: Address, lockPeriod: number): Promise<Maybe<Address>> {
+        let { stack } = await provider.get('get_stake_wallet_address', [{ type: 'slice', cell: beginCell().storeAddress(ownerAddress).endCell() }, { type: 'int', value: BigInt(lockPeriod) }]);
+        return stack.readAddressOpt();
     }
 }

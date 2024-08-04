@@ -37,11 +37,18 @@ export type StakeWalletConfig = {
     whitelist: Dictionary<Address, boolean>;
 };
 
-export function stakeWalletConfigToCell(config: StakeWalletConfig): Cell {
+export type StakeWalletUninitedConfig = {
+    stakingPoolAddress: Address;
+    ownerAddress: Address;
+    minterAddress: Address;
+    lockPeriod: bigint;
+}
+
+export function stakeWalletConfigToCell(config: StakeWalletUninitedConfig | StakeWalletConfig): Cell {
     return beginCell()
             .storeAddress(config.stakingPoolAddress)
-            .storeAddress(config.ownerAddress)
             .storeAddress(config.minterAddress)
+            .storeAddress(config.ownerAddress)
             .storeRef(
                 beginCell()
                     .storeUint(config.lockPeriod, 32)
@@ -58,7 +65,7 @@ export class StakeWallet implements Contract {
         return new StakeWallet(address);
     }
 
-    static createFromConfig(config: StakeWalletConfig, code: Cell, workchain = 0) {
+    static createFromConfig(config: StakeWalletUninitedConfig | StakeWalletConfig, code: Cell, workchain = 0) {
         const data = stakeWalletConfigToCell(config);
         const init = { code, data };
         return new StakeWallet(contractAddress(workchain, init), init);
@@ -163,7 +170,7 @@ export class StakeWallet implements Contract {
             value: requiredGas,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
-                        .storeUint(OpCodes.UNSTAKE_REQUEST, 32)
+                        .storeUint(OpCodes.UNSTAKE_JETTONS, 32)
                         .storeUint(queryId ?? 0, 64)
                         .storeCoins(jettonsToUnstake)
                         .storeBit(forceUnstake ?? false)

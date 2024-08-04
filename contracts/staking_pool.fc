@@ -77,7 +77,12 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 
 
 (int) get_distributed_rewards(int farming_speed, int start_time, int time_now) inline {
-    return muldiv(muldiv(farming_speed, farming_speed_devider, distributed_rewards_devider), time_now - start_time, storage::tvl_with_multipliers);
+    return (storage::tvl_with_multipliers ?
+            muldiv(
+                muldiv(farming_speed, distributed_rewards_devider, farming_speed_devider), 
+                time_now - start_time,
+                storage::tvl_with_multipliers
+            ) : 0);
 }
 
 
@@ -121,7 +126,6 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                 throw_unless(exc::incorrect_lock_period, success);
                 int cur_tvl = period_info_slice~load_coins() + transferred_jettons;
                 (slice tmp, int tvl_limit) = period_info_slice.load_coins();
-                tmp~load_coins();
                 tmp~skip_bits(16);
                 slice minter_address = tmp~load_msg_addr();
                 
@@ -135,6 +139,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                                     .store_coins(storage::max_deposit)
                                     .store_uint(storage::unstake_commission, 16)
                                     .store_coins(storage::unstake_fee)
+                                    .store_dict(storage::whitelist)
                                     .store_coins(transferred_jettons)
                                 .end_cell();
                 cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, from_address, lock_period, storage::stake_wallet_code);
@@ -238,7 +243,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     int reward_multiplier = tmp~load_uint(16);
     slice minter_address = tmp~load_msg_addr();
 
-    force_stake_wallet(sender_address, my_address(), minter_address, stake_owner_address,lock_period, storage::stake_wallet_code);
+    force_stake_wallet(sender_address, my_address(), minter_address, stake_owner_address, lock_period, storage::stake_wallet_code);
     
     ;; accept_message();  ;; accept message to prevent out of gas errors
 
@@ -259,6 +264,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
         cell user_rewards_dict   = in_msg_body~load_dict();
         
         (slice reward_jetton, slice rewards_info_slice, int success) = storage::reward_jettons.dict_get_min?(267);
+        
         while (success) {
             int distributed_rewards = rewards_info_slice~load_uint(256);
             cell rewards_deposits = rewards_info_slice~load_dict();
@@ -317,7 +323,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
         required_gas += get_compute_fee(WORKCHAIN, gas_consumed() + 4000);
         msg_value = max(msg_value - required_gas, gas::save_updated_rewards);
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
-        send_builder_message(sender_address, gas::save_updated_rewards, payload, mode::simple);
+        send_builder_message(sender_address, msg_value, payload, mode::simple);
         
         save_data();
         return ();
@@ -355,8 +361,9 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                             should_update_rewards2 = true;
                         }
                         distributed_rewards += get_distributed_rewards(farming_speed, start_time, time_now);
-                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(farming_speed).store_uint(start_time, 32).store_uint(end_time, 32));
+                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(farming_speed).store_uint(time_now, 32).store_uint(end_time, 32));
                     }
+                    (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
                 }
                 
                 (slice user_rewards_slice, int success3) = user_rewards_dict~dict_set_get_builder?(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(0));
@@ -408,9 +415,9 @@ slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
     }
     period_info_slice~load_coins();
     period_info_slice~load_coins();
-    period_info_slice~skip_bits(32);
+    period_info_slice~skip_bits(16);
     slice minter_address = period_info_slice~load_msg_addr();
-    cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, owner_address,lock_period, storage::stake_wallet_code);
+    cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, owner_address, lock_period, storage::stake_wallet_code);
     return get_address_by_state_init(state_init);
 }
 

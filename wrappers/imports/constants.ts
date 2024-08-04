@@ -54,14 +54,14 @@ export const Gas = {
     APPROVE_TRANSFER:       20000000n,   // 0.02  TON
     SAVE_UPDATED_REWARDS:   10000000n,   // 0.01  TON
     MIN_EXCESS:             10000000n,   // 0.01  TON
-    SEND_STAKED_JETTONS:    70000000n,   // 0.07  TON
+    SEND_STAKED_JETTONS:    250000000n,  // 0.25  TON
 }
 
 export type AddrList = Dictionary<Address, Boolean>;
 
 export const Deviders = {
     COMMISSION_DEVIDER: 100000n,
-    REWARDS_DEVIDER: 1000n,
+    REWARDS_DEVIDER: 1000,
     FARMING_SPEED_DEVIDER: BigInt(24 * 60 * 60),
     DISTRIBUTED_REWARDS_DEVIDER: 100000000000000000000000000000000000000n,
 }
