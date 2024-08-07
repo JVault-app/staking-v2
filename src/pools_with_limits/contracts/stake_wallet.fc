@@ -249,7 +249,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                             .store_uint(storage::lock_period, 32)
                             .store_coins(storage::jetton_balance)
                             .store_dict(storage::rewards_dict)
-                            .store_slice(in_msg_body)                 ;; in_msg_body = HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
+                            .store_slice(in_msg_body)   ;; in_msg_body = HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
                         .end_cell();
         send_cell_message(storage::staking_pool_address, 0, payload, mode::carry_remaining_gas);
         
