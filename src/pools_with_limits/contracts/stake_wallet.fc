@@ -346,6 +346,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
         throw_unless(exc::has_pending_request, storage::is_active);
         int jetton_amount = in_msg_body~load_coins();
         throw_unless(exc::not_enough_jettons, jetton_amount <= storage::jetton_balance);
+        throw_unless(exc::less_than_min_deposit, jetton_amount >= storage::min_deposit);
 
         slice recipient = in_msg_body~load_msg_addr();
         ifnot (null?(storage::whitelist)) {
@@ -380,6 +381,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
                                 .end_cell();
         cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, storage::minter_address, recipient, storage::lock_period, my_code());
         send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::carry_remaining_gas);
+        
         
         storage::jetton_balance -= jetton_amount;
         storage::is_active = false;

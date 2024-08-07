@@ -8,16 +8,30 @@ export type LockPeriodsValue = {
     curTvl: bigint
     tvlLimit: bigint
     rewardMultiplier: number
+    depositCommission: number
+    unstakeCommission: number
     minterAddress: Address
 };
 
 function lockPeriodsValueParser(): DictionaryValue<LockPeriodsValue> {
     return {
         serialize: (src, buidler) => {
-            buidler.storeCoins(src.curTvl).storeCoins(src.tvlLimit).storeUint(src.rewardMultiplier, 16).storeAddress(src.minterAddress).endCell();
+            buidler
+                .storeCoins(src.curTvl)
+                .storeCoins(src.tvlLimit)
+                .storeUint(src.rewardMultiplier, 16)
+                .storeUint(src.depositCommission, 16)
+                .storeUint(src.unstakeCommission, 16)
+                .storeAddress(src.minterAddress)
+            .endCell();
         },
         parse: (src) => {
-            return {curTvl: src.loadCoins(), tvlLimit: src.loadCoins(), rewardMultiplier: src.loadUint(16), minterAddress: src.loadAddress()};
+            return {curTvl: src.loadCoins(), 
+                    tvlLimit: src.loadCoins(), 
+                    rewardMultiplier: src.loadUint(16),
+                    depositCommission: src.loadUint(16),
+                    unstakeCommission: src.loadUint(16), 
+                    minterAddress: src.loadAddress()};
         }
     }
 }
@@ -56,6 +70,7 @@ function rewardJettonsValueParser(): DictionaryValue<RewardJettonsValue> {
 }
 
 export type StakingPoolConfig = {
+    init: boolean;
     poolId: bigint;
     factoryAddress: Address;
     adminAddress: Address;
@@ -69,8 +84,6 @@ export type StakingPoolConfig = {
     rewardJettons: Dictionary<Address, RewardJettonsValue>;
     lockPeriods: Dictionary<number, LockPeriodsValue>;
     whitelist: AddrList;
-    depositCommission: bigint;
-    unstakeCommission: bigint;
     unstakeFee: bigint;
     collectedCommissions: bigint;
     rewardsCommission: bigint;
@@ -87,6 +100,7 @@ export function stakingPoolConfigToCell(config: StakingPoolUninitedConfig | Stak
 
 export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
     return beginCell()
+                .storeBit(config.init)
                 .storeUint(config.poolId, 32)
                 .storeAddress(config.adminAddress)
                 .storeAddress(config.creatorAddress)
@@ -101,8 +115,6 @@ export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
                         .storeDict(config.rewardJettons, Dictionary.Keys.Address(), rewardJettonsValueParser())
                         .storeDict(config.lockPeriods, Dictionary.Keys.Uint(32), lockPeriodsValueParser())
                         .storeDict(config.whitelist, Dictionary.Keys.Address(), Dictionary.Values.Bool())
-                        .storeUint(config.depositCommission, 16)
-                        .storeUint(config.unstakeCommission, 16)
                         .storeCoins(config.unstakeFee)
                         .storeCoins(config.collectedCommissions)
                         .storeUint(config.rewardsCommission, 16)
@@ -128,7 +140,7 @@ export class StakingPool implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().storeRef(stakingPoolInitedData(poolInitedConfig)).storeRef(poolInitedCode).endCell(),
+            body: beginCell().storeAddress(poolInitedConfig.lockWalletAddress).storeRef(stakingPoolInitedData(poolInitedConfig)).storeRef(poolInitedCode).endCell(),
         });
     }
     
@@ -216,20 +228,19 @@ export class StakingPool implements Contract {
     async getStorageData(provider: ContractProvider): Promise<StakingPoolConfig> {
         let { stack } = await provider.get('get_storage_data', []);
         let res: any = {
+            init: stack.readBoolean(),
             poolId: stack.readBigNumber(),
             adminAddress: stack.readAddress(),
             creatorAddress: stack.readAddress(),
             stakeWalletCode: stack.readCell(),
             lockWalletAddress: stack.readAddress(),
-            minDeposit: stack.readBigNumber(),
-            maxDeposit: stack.readBigNumber(),
             tvl: stack.readBigNumber(),
             tvlWithMultipliers: stack.readBigNumber(),
+            minDeposit: stack.readBigNumber(),
+            maxDeposit: stack.readBigNumber(),
             rewardJettons: stack.readCellOpt(),
             lockPeriods: stack.readCellOpt(),
             whitelist: stack.readCellOpt(),
-            depositCommission: stack.readBigNumber(),
-            unstakeCommission: stack.readBigNumber(),
             unstakeFee: stack.readBigNumber(),
             collectedCommissions: stack.readBigNumber(),
             rewardsCommission: stack.readBigNumber()

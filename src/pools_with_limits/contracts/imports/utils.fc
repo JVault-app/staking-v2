@@ -61,27 +61,29 @@ cell  preload_ref_index(slice s, int n) asm "PLDREFVAR";
     return send_message(msg, sending_mode);
 }
 
+cell pack_state_init(cell code, cell data) inline {
+    return begin_cell()
+                .store_uint(0, 2)
+                .store_maybe_ref(code)
+                .store_maybe_ref(data)
+                .store_uint(0, 1)
+            .end_cell();
+}
 
 cell calculate_stake_wallet_state_init(slice pool_address, slice minter_address,
                                        slice owner_address, int lock_period, cell stake_wallet_code) inline {
-    return begin_cell()
-                .store_uint(0, 2)
-                .store_maybe_ref(stake_wallet_code)
-                .store_maybe_ref(
-                    begin_cell()
-                        .store_slice(pool_address)
-                        .store_slice(minter_address)
-                        .store_slice(owner_address)
-                        .store_ref(
-                            begin_cell()
-                                .store_uint(lock_period, 32)
-                                .store_uint(1, 11)
-                            .end_cell()
-                        )
-                    .end_cell()
-                )
-                .store_uint(0, 1)
-            .end_cell();
+    cell data = begin_cell()
+                    .store_slice(pool_address)
+                    .store_slice(minter_address)
+                    .store_slice(owner_address)
+                    .store_ref(
+                        begin_cell()
+                            .store_uint(lock_period, 32)
+                            .store_uint(1, 11)
+                        .end_cell()
+                    )
+                .end_cell();
+    return pack_state_init(stake_wallet_code, data);
 }
 
 slice get_address_by_state_init(cell state_init) inline { 

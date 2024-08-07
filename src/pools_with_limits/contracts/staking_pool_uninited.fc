@@ -1,6 +1,7 @@
 #include "imports/stdlib.fc";
+#include "imports/constants.fc";
+#include "imports/utils.fc";
 
-const int exc::incorrect_sender = 50;
 
 ;; storage: factory_address:MsgAddressStd pool_id:Uint32
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -13,6 +14,15 @@ const int exc::incorrect_sender = 50;
     
     throw_unless(exc::incorrect_sender, equal_slices(factory_address, sender_address));
     
+    slice lock_jetton_minter = in_msg_body~load_msg_addr();
+    cell get_wallet_payload = begin_cell()
+                                .store_uint(op::provide_wallet_address, 32)
+                                .store_uint(0, 64)
+                                .store_slice(my_address())
+                                .store_uint(0, 1)
+                            .end_cell();
+    send_cell_message(lock_jetton_minter, 0, get_wallet_payload, mode::carry_remaining_gas);
+
     set_data(in_msg_body~load_ref());
     set_code(in_msg_body~load_ref());
 }

@@ -3,24 +3,23 @@
 #include "imports/utils.fc";
 
 
+global int   storage::init?;                 ;; Int1. Is lock wallet address set?
 global int   storage::pool_id;               ;; Uint32. Unique index for each pool factory;
 global slice storage::admin_address;         ;; MsgAddressStd. Address that will receive commissions;
 global slice storage::creator_address;       ;; MsgAddressStd. Address of this staking pool creator
 global slice storage::lock_wallet_address;   ;; MsgAddressStd. Address of jetton wallet for staking jetton
 global cell  storage::stake_wallet_code;     ;; Cell. Stake wallet code
 
-global int   storage::min_deposit;           ;; Coins. Min staking deposit
-global int   storage::max_deposit;           ;; Coins. Max staking deposit
 global int   storage::tvl;                   ;; Coins. Current TVL
 global int   storage::tvl_with_multipliers;  ;; Coins. Current TVL with multipliers taken into account
+global int   storage::min_deposit;           ;; Coins. Min staking deposit
+global int   storage::max_deposit;           ;; Coins. Max staking deposit
 
 global cell  storage::reward_jettons;        ;; HashmapE. jetton_wallet_address (MsgAddressStd) -> distributed_rewards (uint256), HashmapE(index (uint32) -> farming_speed (coins), start_time (uint32), end_time (uint32))
-global cell  storage::lock_periods;          ;; HashmapE. lock_period (uint32) -> cur_tvl (Coins), tvl_limit (Coins), reward_multiplier (uint16), minter_address (MsgAddressStd)
+global cell  storage::lock_periods;          ;; HashmapE. lock_period (uint32) -> cur_tvl (Coins), tvl_limit (Coins), reward_multiplier (uint16), deposit_commission (uint16), unstake_commission (uint16), minter_address (MsgAddressStd)
 
 global cell  storage::whitelist;             ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
 
-global int   storage::deposit_commission;    ;; Uint16. Commission rate for all deposits
-global int   storage::unstake_commission;    ;; Uint16. Commission rate for instant unstakes
 global int   storage::unstake_fee;           ;; Coins. Const JVault's TON fee
 global int   storage::collected_commissions; ;; Coins. Commissions collected from instant unstakes  
 
@@ -29,6 +28,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 
 () load_data() impure inline {
     slice ds = get_data().begin_parse();  ;; Bits = 32 + 267 + 267 + 1 + 267 = 834. Refs = 2.
+    storage::init?                 = ds~load_int(1);
     storage::pool_id               = ds~load_uint(32);
     storage::admin_address         = ds~load_msg_addr();
     storage::creator_address       = ds~load_msg_addr();
@@ -43,8 +43,6 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     storage::reward_jettons        = ds2~load_dict();
     storage::lock_periods          = ds2~load_dict();
     storage::whitelist             = ds2~load_dict();
-    storage::deposit_commission    = ds2~load_uint(16);
-    storage::unstake_commission    = ds2~load_uint(16);
     storage::unstake_fee           = ds2~load_coins();
     storage::collected_commissions = ds2~load_coins();
     storage::rewards_commission    = ds2~load_uint(16);
@@ -53,6 +51,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 () save_data() impure inline {
     set_data(
         begin_cell()
+            .store_int(storage::init?, 1)
             .store_uint(storage::pool_id, 32)
             .store_slice(storage::admin_address)
             .store_slice(storage::creator_address)
@@ -67,8 +66,6 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                     .store_dict(storage::reward_jettons)
                     .store_dict(storage::lock_periods)
                     .store_dict(storage::whitelist)
-                    .store_uint(storage::deposit_commission, 16)
-                    .store_uint(storage::unstake_commission, 16)
                     .store_coins(storage::unstake_fee)
                     .store_coins(storage::collected_commissions)
                     .store_uint(storage::rewards_commission, 16)
@@ -120,21 +117,25 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                     (_, int success) = storage::whitelist.dict_get?(267, from_address);
                     throw_unless(exc::incorrect_sender, success);
                 }
+                
+                int lock_period = forward_payload~load_uint(32);
 
-                int commission = muldiv(transferred_jettons, storage::deposit_commission, commission_devider);
+                (slice period_info_slice, int success) = storage::lock_periods.udict_get?(32, lock_period);
+                throw_unless(exc::incorrect_lock_period, success);
+                int cur_tvl = period_info_slice~load_coins();
+                (slice tmp, int tvl_limit) = period_info_slice.load_coins();
+                tmp~skip_bits(16);
+                int   deposit_commission = tmp~load_uint(16);
+                int   unstake_commission = tmp~load_uint(16);
+                slice minter_address     = tmp~load_msg_addr();
+                
+                int commission = muldiv(transferred_jettons, deposit_commission, commission_devider);
                 throw_if(exc::less_than_min_deposit, transferred_jettons < storage::min_deposit);               ;; min deposit doesn't take into account deposit commission rate
                 throw_if(exc::more_than_max_deposit, transferred_jettons - commission > storage::max_deposit);  ;; max deposit takes into account deposit commission rate
 
-                int lock_period = forward_payload~load_uint(32);
-                
-                (slice period_info_slice, int success) = storage::lock_periods.udict_get?(32, lock_period);
-                throw_unless(exc::incorrect_lock_period, success);
-                int cur_tvl = period_info_slice~load_coins() + transferred_jettons - commission;
-                (slice tmp, int tvl_limit) = period_info_slice.load_coins();
-                tmp~skip_bits(16);
-                slice minter_address = tmp~load_msg_addr();
-                
+                cur_tvl += transferred_jettons - commission;
                 throw_unless(exc::tvl_limit_exceeded, cur_tvl <= tvl_limit);
+                
                 storage::lock_periods~udict_set_builder(32, lock_period, begin_cell().store_coins(cur_tvl).store_slice(period_info_slice));
 
                 cell payload = begin_cell()
@@ -142,7 +143,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                                     .store_uint(query_id, 64)
                                     .store_coins(storage::min_deposit)
                                     .store_coins(storage::max_deposit)
-                                    .store_uint(storage::unstake_commission, 16)
+                                    .store_uint(unstake_commission, 16)
                                     .store_coins(storage::unstake_fee)
                                     .store_dict(storage::whitelist)
                                     .store_coins(transferred_jettons - commission)
@@ -218,7 +219,18 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
         return ();
     }
 
-    if (op == op::get_storage_data) {
+    if (op == op::take_wallet_address) {  ;; change jetton wallet address (used only once)
+        throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::lock_wallet_address) |
+                                            equal_slices(sender_address, storage::creator_address));
+        throw_if(exc::already_inited, storage::init?);
+
+        storage::lock_wallet_address = in_msg_body~load_msg_addr();
+        storage::init? = true;
+        save_data();
+        return ();
+    }
+
+    if (op == op::get_storage_data) {  ;; report storage data (for other protocols)
         slice to_address = in_msg_body~load_msg_addr();
         var msg = begin_cell()
                     .store_uint(0x10, 6)
@@ -241,10 +253,12 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     int lock_period = in_msg_body~load_uint(32);
 
     (slice period_info_slice, _) = storage::lock_periods.udict_get?(32, lock_period);
-    int period_tvl  = period_info_slice~load_coins();
+    int period_tvl = period_info_slice~load_coins();
     (slice tmp, _) = period_info_slice.load_coins();
-    int reward_multiplier = tmp~load_uint(16);
-    slice minter_address = tmp~load_msg_addr();
+    int   reward_multiplier  = tmp~load_uint(16);
+    int   deposit_commission = tmp~load_uint(16);
+    int   unstake_commission = tmp~load_uint(16);
+    slice minter_address     = tmp~load_msg_addr();
 
     force_stake_wallet(sender_address, my_address(), minter_address, stake_owner_address, lock_period, storage::stake_wallet_code);
     
@@ -418,30 +432,29 @@ slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
     }
     period_info_slice~load_coins();
     period_info_slice~load_coins();
-    period_info_slice~skip_bits(16);
+    period_info_slice~skip_bits(48);
     slice minter_address = period_info_slice~load_msg_addr();
     cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, owner_address, lock_period, storage::stake_wallet_code);
     return get_address_by_state_init(state_init);
 }
 
 
-(int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int, int, int) get_storage_data() method_id {
+(int, int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int) get_storage_data() method_id {
     load_data();
     return (
+        storage::init?,
         storage::pool_id,
         storage::admin_address,
         storage::creator_address,
         storage::stake_wallet_code,
         storage::lock_wallet_address,
-        storage::min_deposit,
-        storage::max_deposit,
         storage::tvl,
         storage::tvl_with_multipliers,
+        storage::min_deposit,
+        storage::max_deposit,
         storage::reward_jettons,
         storage::lock_periods,
         storage::whitelist,
-        storage::deposit_commission,
-        storage::unstake_commission,
         storage::unstake_fee,
         storage::collected_commissions,
         storage::rewards_commission

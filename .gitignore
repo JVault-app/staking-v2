@@ -9,7 +9,7 @@ src/pools_without_limits/temp
 src/pools_without_limits/build
 src/pools_without_limits/dist
 *.DS_Store
-
+.DS_Store
 # VS Code
 src/*/.vscode/*
 src/*/.history/

@@ -99,19 +99,20 @@ describe('StakingPool', () => {
         let minterAddr1 = randomAddress(0);
         let minterAddr2 = randomAddress(0);
         let minterAddr3 = randomAddress(0);
-        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DEVIDER, minterAddress: minterAddr1});
-        lockPeriods.set(120, {curTvl: 0n, tvlLimit: 500n, rewardMultiplier: 2 * Deviders.REWARDS_DEVIDER, minterAddress: minterAddr2});
-        lockPeriods.set(60 * 60 * 24, {curTvl: 0n, tvlLimit: 1000000n, rewardMultiplier: 10, minterAddress: minterAddr3});
+        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DEVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DEVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DEVIDER)), minterAddress: minterAddr1});
+        lockPeriods.set(120, {curTvl: 0n, tvlLimit: 500n, rewardMultiplier: 2 * Deviders.REWARDS_DEVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DEVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DEVIDER)), minterAddress: minterAddr2});
+        lockPeriods.set(60 * 60 * 24, {curTvl: 0n, tvlLimit: 1000000n, rewardMultiplier: 10, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DEVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DEVIDER)), minterAddress: minterAddr3});
         let whitelist: AddrList = Dictionary.empty();
         whitelist.set(user1.address, false);
         whitelist.set(user2.address, false);
         stakingPoolConfig = {
+            init: false,
             poolId: 1n,
             factoryAddress: poolAdmin.address,
             adminAddress: poolAdmin.address,
             creatorAddress: poolCreator.address,
             stakeWalletCode: stakeWalletCode,
-            lockWalletAddress: poolLockWallet.address,
+            lockWalletAddress: jettonMinterDefault.address,
             minDeposit: 2n,
             maxDeposit: 500n,
             tvl: 0n,
@@ -119,8 +120,6 @@ describe('StakingPool', () => {
             rewardJettons: Dictionary.empty(),
             lockPeriods: lockPeriods,
             whitelist: whitelist,
-            depositCommission: BigInt(0.2 * Number(Deviders.COMMISSION_DEVIDER)),
-            unstakeCommission: BigInt(0.1 * Number(Deviders.COMMISSION_DEVIDER)),
             unstakeFee: toNano("0.3"),
             collectedCommissions: 0n,
             rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DEVIDER)),
@@ -420,7 +419,7 @@ describe('StakingPool', () => {
         blockchain.now!! += 100;  // cur_rewards = 180 + 75 = 255
         await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), jettonsToFreeUnstake);
         let jettonsToForceUnstake = 80n;
-        let unstakeCommission = jettonsToForceUnstake * stakingPoolConfig.unstakeCommission / Deviders.COMMISSION_DEVIDER;
+        let unstakeCommission = jettonsToForceUnstake * BigInt((stakingPoolConfig.lockPeriods.get(Number(stakeWalletConfig1_1.lockPeriod!!))!!).unstakeCommission) / Deviders.COMMISSION_DEVIDER;
 
         // Transactions Chain (in order)
         transactionRes = await stakeWallet1_1.sendUnstakeJettons(user1.getSender(), jettonsToFreeUnstake + jettonsToForceUnstake, true, stakingPoolConfig.unstakeFee); // 0
