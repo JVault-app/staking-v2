@@ -5,7 +5,6 @@ const int exc::less_than_min_deposit = 41;
 const int exc::more_than_max_deposit = 42;
 const int exc::incorrect_jetton = 43;
 const int exc::tvl_limit_exceeded = 44;
-const int exc::incorrect_input = 45;
 const int exc::not_enough_jettons = 46;
 const int exc::incorrect_lock_period = 47;
 const int exc::staking_not_started = 48;
@@ -18,14 +17,19 @@ const int exc::int_out_of_range = 55;
 const int exc::has_pending_request = 56;
 const int exc::user_not_in_wl = 57;
 const int exc::incorrect_distribution_period = 58;
+const int exc::already_inited = 59;
+
+const int exc::incorrect_input = 45;
+const int exc::incorrect_lock_periods = 61;
+
+const int exc::discovery_fee_not_matched = 75;
 
 const int exc::wrong_chain = 333;
 const int exc::unsupported_op = 0xffff;
 
 
-{- GAS -}
+{- GAS (TODO) -}
 const int gas::min_reserve           = 20000000;   ;; 0.02  TON
-const int gas::deploy_pool           = 120000000;  ;; 0.12  TON
 const int gas::notification          = 10000000;   ;; 0.01  TON
 const int gas::jetton_transfer       = 55000000;   ;; 0.055 TON
 const int gas::burn_jettons          = 50000000;   ;; 0.05  TON
@@ -42,6 +46,9 @@ const int gas::save_updated_rewards  = 10000000;   ;; 0.01  TON
 const int gas::min_excess            = 10000000;   ;; 0.01  TON
 const int gas::send_staked_jettons   = 25000000;   ;; 0.25  TON 
 
+const int gas::deploy_pool           = 20000000;  ;; 0.02  TON
+const int gas::deploy_minter         = 20000000;   ;; 0.02  TON
+
 
 {- OP-CODES -}
 
@@ -50,6 +57,8 @@ const int op::get_static_data        = 0x2fcb26a2;
 const int op::report_static_data     = 0x8b771735;
 const int op::get_storage_data       = 0x5b88e5cc;
 const int op::report_storage_data    = 0xaab4a8ef;
+const int op::withdraw_ton           = 0x37726bdb;
+const int op::withdraw_jetton        = 0x11c09682;
 const int op::excesses               = 0xd53276db;
 
 ;; Jettons
@@ -79,9 +88,13 @@ const int op::cancel_unstake_request = 0xa4910f1a;
 const int op::update_rewards         = 0xae9307ce;
 const int op::confirm_transfer       = 0xbc85eb11;
 
-;; Pools admin
+;; Pool factory
+const int op::update_pool_code       = 0x50ae945a;
 const int op::deploy_new_pool        = 0xda861f17;
 const int op::send_commissions       = 0xb96adaea;
+const int op::set_code               = 0xe2d2d211;
+const int op::change_creation_fee    = 0x66d5528b;
+const int op::change_content         = 0x0ec29200;
 
 
 {- MESSAGE MODES -}

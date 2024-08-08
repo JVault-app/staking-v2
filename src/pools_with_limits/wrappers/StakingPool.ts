@@ -70,7 +70,8 @@ function rewardJettonsValueParser(): DictionaryValue<RewardJettonsValue> {
 }
 
 export type StakingPoolConfig = {
-    init: boolean;
+    inited: boolean;
+    content?: Cell;
     poolId: bigint;
     factoryAddress: Address;
     adminAddress: Address;
@@ -81,9 +82,9 @@ export type StakingPoolConfig = {
     maxDeposit: bigint;
     tvl: bigint;
     tvlWithMultipliers: bigint;
-    rewardJettons: Dictionary<Address, RewardJettonsValue>;
+    rewardJettons: Dictionary<Address, RewardJettonsValue> | null;
     lockPeriods: Dictionary<number, LockPeriodsValue>;
-    whitelist: AddrList;
+    whitelist: AddrList | null;
     unstakeFee: bigint;
     collectedCommissions: bigint;
     rewardsCommission: bigint;
@@ -100,12 +101,13 @@ export function stakingPoolConfigToCell(config: StakingPoolUninitedConfig | Stak
 
 export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
     return beginCell()
-                .storeBit(config.init)
+                .storeBit(config.inited)
                 .storeUint(config.poolId, 32)
                 .storeAddress(config.adminAddress)
                 .storeAddress(config.creatorAddress)
-                .storeRef(config.stakeWalletCode)
                 .storeAddress(config.lockWalletAddress)
+                .storeMaybeRef(config.content)
+                .storeRef(config.stakeWalletCode)
                 .storeRef(
                     beginCell()
                         .storeCoins(config.tvl)
@@ -171,7 +173,7 @@ export class StakingPool implements Contract {
             body: beginCell().storeUint(OpCodes.CLAIM_COMMISSIONS, 32).storeUint(queryId ?? 0, 64).endCell()
         });
     }
-    
+
     async sendGetStorageData(provider: ContractProvider, via: Sender, value: bigint, toAddress: Address, forwardPayload: Maybe<Cell>, queryId?: number) {
         await provider.internal(via, {
             value,
@@ -228,7 +230,7 @@ export class StakingPool implements Contract {
     async getStorageData(provider: ContractProvider): Promise<StakingPoolConfig> {
         let { stack } = await provider.get('get_storage_data', []);
         let res: any = {
-            init: stack.readBoolean(),
+            inited: stack.readBoolean(),
             poolId: stack.readBigNumber(),
             adminAddress: stack.readAddress(),
             creatorAddress: stack.readAddress(),

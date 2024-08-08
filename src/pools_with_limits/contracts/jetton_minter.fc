@@ -21,6 +21,9 @@ global cell  storage::stake_wallet_code;
 
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) {
+        return ();
+    }
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     slice sender_address = cs~load_msg_addr();
@@ -46,6 +49,37 @@ global cell  storage::stake_wallet_code;
             .end_cell()
         );
     }
+
+    if (op == op::provide_wallet_address) {
+        cs~load_msg_addr(); ;; skip dst
+        cs~load_coins(); ;; skip value
+        cs~skip_bits(1); ;; skip extracurrency collection
+        cs~load_coins(); ;; skip ihr_fee
+        int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of forward_payload costs
+
+        throw_unless(exc::discovery_fee_not_matched, msg_value > fwd_fee + 5000000);
+        int query_id = in_msg_body~load_uint(64);
+        slice owner_address = in_msg_body~load_msg_addr();
+        int include_address? = in_msg_body~load_uint(1);
+
+        builder msg_body = begin_cell()
+                                .store_uint(op::take_wallet_address, 32)
+                                .store_uint(query_id, 64);
+
+        (int wc, _) = parse_std_addr(owner_address);
+        if (wc != WORKCHAIN) {
+            msg_body = msg_body.store_uint(0, 2);
+        }
+        else {
+            cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, my_address(), owner_address, storage::lock_period, storage::stake_wallet_code);
+            msg_body = msg_body.store_slice(get_address_by_state_init(state_init));
+        }
+        msg_body = include_address? ? msg_body.store_maybe_ref(begin_cell().store_slice(owner_address).end_cell()) : msg_body.store_int(0, 1);
+        send_cell_message(owner_address, 0, msg_body.end_cell(), mode::carry_remaining_gas);
+        return ();
+    }
+
+    throw(exc::unsupported_op);
 }
 
 

@@ -37,7 +37,10 @@ export const OpCodes = {
     
     // Pools admin,
     DEPLOY_NEW_POOL:       0XDA861F17,
-    SEND_COMMISSIONS:      0XB96ADAEA
+    SEND_COMMISSIONS:      0XB96ADAEA,
+    SET_CODE:              0xe2d2d211,
+    CHANGE_CREATION_FEE:   0x66d5528b,
+    CHANGE_CONTENT:        0x0ec29200
 };
 
 export const Gas = {

@@ -1,22 +1,18 @@
-global_variables = """global slice storage::staking_pool_address;
-global slice storage::owner_address;   
-global int   storage::lock_period;              ;; Uint32. Time to wait for free withdrawal
-            
-global int   storage::jetton_balance;
-global cell  storage::rewards_dict;                 ;; HashMapE. reward jetton address (MsgAddressStd) -> last_distributed_rewards (uint256), unclaimed_rewards (coins)
+global_variables = """global slice storage::admin_address;
+global int   storage::next_pool_id;
+global cell  storage::collection_content;
 
-global cell  storage::unstake_requests;         ;; HashMapE. request_time (uint32) -> jettons_to_unstake (coins)
-global int   storage::total_requested_jettons;
+global int   storage::min_rewards_commission;
+global int   storage::unstake_fee;
+global slice storage::fees_wallet_address;
+global int   storage::creation_fee;
 
-global int   storage::is_active;                ;; int1
-global int   storage::has_pending_transfer;     ;; int1
+global cell  storage::pool_uninited_codes;
+global cell  storage::pool_inited_code;
+global cell  storage::stake_wallet_code;
+global cell  storage::jetton_minter_code;
 
-global int   storage::unstake_commission;       ;; Uint32. commission rate for instant unstakes
-global int   storage::unstake_fee;              ;; Coins. const TON fee
-        
-global int   storage::min_deposit;
-global int   storage::max_deposit;  
-global cell  storage::whitelist;"""
+global int   storage::version;"""
 
 
 def to_camel_case(s: str) -> str:
@@ -45,7 +41,7 @@ def to_config(s: str) -> str:
     return "\n".join(t)
 
 
-def to_cell(s: str) -> str:
+def to_ts_cell(s: str) -> str:
     s = s.replace("storage::", "config.").replace("store_slice", "storeAddress")
     return to_camel_case(s)
 
@@ -107,28 +103,41 @@ def get_constants(s: str) -> str:
         res.append(tmp.upper())
     return '\n    '.join(res)
             
+# print(get_storage_data_fc(global_variables))
+print(get_storage_data_ts(global_variables))
 # print(to_config(global_variables))
-# print(to_cell("""begin_cell()
-#                         .store_slice(pool_address)
-#                         .store_slice(owner_address)
-#                         .store_uint(lock_period, 32)
-#                         .store_uint(0, 10)
-#                         .store_int(true, 1)
-#                     .end_cell()"""))
-print(get_constants("""const int gas::min_reserve           = 20000000n;   ;; 0.02  TON
-const int gas::deploy_pool           = 120000000n;  ;; 0.12  TON
-const int gas::notification          = 10000000n;   ;; 0.01  TON
-const int gas::jetton_transfer       = 55000000n;   ;; 0.055 TON
-const int gas::burn_jettons          = 50000000n;   ;; 0.05  TON
+# print(to_ts_cell("""begin_cell()
+#             .store_slice(storage::admin_address)
+#             .store_uint(storage::next_pool_id, 32)
+#             .store_dict(storage::collection_content)
+#             .store_uint(storage::min_rewards_commission, 16)
+#             .store_coins(storage::unstake_fee)
+#             .store_slice(storage::fees_wallet_address)
+#             .store_coins(storage::creation_fee)
+#             .store_ref(
+#                 begin_cell()
+#                     .store_dict(storage::pool_uninited_codes)
+#                     .store_ref(storage::pool_inited_code)
+#                     .store_ref(storage::stake_wallet_code)
+#                     .store_ref(storage::jetton_minter_code)
+#                     .store_uint(storage::version, 16)
+#                 .end_cell()
+#             )
+#         .end_cell()"""))
+# print(get_constants("""const int gas::min_reserve           = 20000000n;   ;; 0.02  TON
+# const int gas::deploy_pool           = 120000000n;  ;; 0.12  TON
+# const int gas::notification          = 10000000n;   ;; 0.01  TON
+# const int gas::jetton_transfer       = 55000000n;   ;; 0.055 TON
+# const int gas::burn_jettons          = 50000000n;   ;; 0.05  TON
 
-const int gas::stake_jettons         = 155000000n;  ;; 0.155 TON
-const int gas::unstake_jettons       = 155000000n;  ;; 0.155 TON
-const int gas::cancel_unstake        = 110000000n;  ;; 0.11  TON
-const int gas::send_commissions      = 120000000n;  ;; 0.12  TON
-const int gas::simple_update_request = 100000000n;  ;; 0.1   TON
-const int gas::add_rewards           = 65000000n;   ;; 0.065 TON
+# const int gas::stake_jettons         = 155000000n;  ;; 0.155 TON
+# const int gas::unstake_jettons       = 155000000n;  ;; 0.155 TON
+# const int gas::cancel_unstake        = 110000000n;  ;; 0.11  TON
+# const int gas::send_commissions      = 120000000n;  ;; 0.12  TON
+# const int gas::simple_update_request = 100000000n;  ;; 0.1   TON
+# const int gas::add_rewards           = 65000000n;   ;; 0.065 TON
  
-const int gas::approve_transfer      = 20000000n;   ;; 0.02  TON
-const int gas::save_updated_rewards  = 10000000n;   ;; 0.01  TON
-const int gas::min_excess            = 10000000n;   ;; 0.01  TON
-const int gas::send_staked_jettons   = 70000000n;   ;; 0.07  TON """))
+# const int gas::approve_transfer      = 20000000n;   ;; 0.02  TON
+# const int gas::save_updated_rewards  = 10000000n;   ;; 0.01  TON
+# const int gas::min_excess            = 10000000n;   ;; 0.01  TON
+# const int gas::send_staked_jettons   = 70000000n;   ;; 0.07  TON """))
