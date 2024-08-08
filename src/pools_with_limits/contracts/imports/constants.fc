@@ -18,6 +18,7 @@ const int exc::has_pending_request = 56;
 const int exc::user_not_in_wl = 57;
 const int exc::incorrect_distribution_period = 58;
 const int exc::already_inited = 59;
+const int exc::not_inited = 60;
 
 const int exc::incorrect_input = 45;
 const int exc::incorrect_lock_periods = 61;

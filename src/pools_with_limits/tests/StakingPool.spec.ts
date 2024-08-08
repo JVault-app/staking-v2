@@ -8,7 +8,6 @@ import { JettonMinter as JettonMinterDefault } from '../wrappers/JettonMinterDef
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { randomAddress } from '@ton/test-utils';
 import { AddrList, Deviders, Gas, OpCodes } from '../wrappers/imports/constants';
-import exp from 'constants';
 
 describe('StakingPool', () => {
     let jettonMinterDefaultCode: Cell;
@@ -41,8 +40,6 @@ describe('StakingPool', () => {
     let stakeWallet2_1: SandboxContract<StakeWallet>;
     let stakeWallet2_2: SandboxContract<StakeWallet>;
     let stakeWallet2_3: SandboxContract<StakeWallet>;
-
-    let poolLockStakeWallet: SandboxContract<StakeWallet>
 
     let jettonMinterDefault: SandboxContract<JettonMinterDefault>;
     let poolLockWallet: SandboxContract<JettonWallet>;
@@ -112,7 +109,7 @@ describe('StakingPool', () => {
             adminAddress: poolAdmin.address,
             creatorAddress: poolCreator.address,
             stakeWalletCode: stakeWalletCode,
-            lockWalletAddress: jettonMinterDefault.address,
+            lockWalletAddress: jettonMinterDefault.address, // will send `op::take_wallet_address` to staking_pool.fc
             minDeposit: 2n,
             maxDeposit: 500n,
             tvl: 0n,
@@ -127,13 +124,30 @@ describe('StakingPool', () => {
 
         // deployment
         let transactionRes = await stakingPool.sendDeploy(poolAdmin.getSender(), toNano('0.05'), stakingPoolConfig, stakingPoolCode);
-        expect(transactionRes.transactions).toHaveTransaction({
+
+        expect(transactionRes.transactions).toHaveTransaction({ // staking_pool deploy
             from: poolAdmin.address,
             to: stakingPool.address,
             deploy: true,
             success: true,
         });
-        
+        expect(transactionRes.transactions).toHaveTransaction({ // request storage::lock_wallet_address
+            from: stakingPool.address,
+            to: stakingPoolConfig.lockWalletAddress,
+            op: OpCodes.PROVIDE_WALLET_ADDRESS,
+            success: true
+        })
+        expect(transactionRes.transactions).toHaveTransaction({ // take and set storage::lock_wallet_address -> storage::init? := true
+            from: stakingPoolConfig.lockWalletAddress,
+            to: stakingPool.address,
+            op: OpCodes.TAKE_WALLET_ADDRESS,
+            success: true
+        })
+        expect((await stakingPool.getStorageData()).init).toBeTruthy() // check if storage::lock_wallet_address == true
+        expect((await stakingPool.getStorageData()).lockWalletAddress).toEqualAddress(await jettonMinterDefault.getWalletAddress(stakingPool.address)) // check if storage::lock_wallet_address is correct
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         // adding reward jetton
         rewardJettonsList = Dictionary.empty();
         rewardJettonsList.set(poolRewardsWallet.address, false);
@@ -199,7 +213,7 @@ describe('StakingPool', () => {
         });
 
         let poolLockBalance = await poolLockWallet.getJettonBalance()
-        expect(poolLockBalance).toEqual(jettonsToStake1 + jettonsToStake2);
+        expect(poolLockBalance).toEqual(jettonsToStake1 + jettonsToStake2); // 400n + 50n = 450n
         stakeWalletConfig1_1 = await stakeWallet1_1.getStorageData();
         expect(stakeWalletConfig1_1.isActive).toBeTruthy();
         expect(stakeWalletConfig1_1.jettonBalance).toEqual(jettonsToStake1 - commission1);
@@ -223,6 +237,7 @@ describe('StakingPool', () => {
     });
 
     it('should send commissions', async () => {
+        //Transactions chain (in order)
         let transactionRes = await stakingPool.sendClaimCommissions(poolCreator.getSender()); // 0
         
         expect(transactionRes.transactions).toHaveTransaction({ // 1
@@ -237,14 +252,13 @@ describe('StakingPool', () => {
             op: OpCodes.TRANSFER_JETTON,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: poolLockWallet.address,
             to: creatorLockWallet.address,
             op: OpCodes.INTERNAL_TRANSFER,
             success: true
         })
-        expect(transactionRes.transactions).toHaveTransaction({ // 4 fail
+        expect(transactionRes.transactions).toHaveTransaction({ // 4 fails
             from: creatorLockWallet.address,
             to: poolCreator.address,
             op: OpCodes.TRANSFER_NOTIFICATION,
@@ -285,14 +299,12 @@ describe('StakingPool', () => {
             op: OpCodes.SEND_CLAIMED_REWARDS,
             success: true
         })
-        
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: poolRewardsWallet.address,
             op: OpCodes.TRANSFER_JETTON,
             success: true
         })
-        
         expect(transactionRes.transactions).toHaveTransaction({ // 4
             from: poolRewardsWallet.address,
             to: user1RewardsWallet.address,
@@ -341,7 +353,6 @@ describe('StakingPool', () => {
             op: OpCodes.CLAIM_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({
             from: poolRewardsWallet.address,
             to: user1RewardsWallet.address,
@@ -365,7 +376,6 @@ describe('StakingPool', () => {
             op: OpCodes.CLAIM_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({
             from: poolRewardsWallet.address,
             to: user1RewardsWallet.address,
@@ -380,6 +390,7 @@ describe('StakingPool', () => {
     it('should send unstaked jettons', async () => {
         blockchain.now!! += 100;  // cur_rewards = 100 + 80 = 180
         let jettonsToFreeUnstake = 80n;
+
         // Transaction Chain (in order)
         let transactionRes = await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), jettonsToFreeUnstake); // 0
 
@@ -391,21 +402,18 @@ describe('StakingPool', () => {
             op: OpCodes.UNSTAKE_REQUEST,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 2
             from: stakeWallet1_1.address,
             to: stakingPool.address,
             op: OpCodes.REQUEST_UPDATE_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: stakeWallet1_1.address,
             op: OpCodes.UPDATE_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 4
             from: stakeWallet1_1.address,
             to: user1.address,
@@ -414,7 +422,6 @@ describe('StakingPool', () => {
         });
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////// 2
-
 
         blockchain.now!! += 100;  // cur_rewards = 180 + 75 = 255
         await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), jettonsToFreeUnstake);
@@ -430,42 +437,36 @@ describe('StakingPool', () => {
             op: OpCodes.UNSTAKE_JETTONS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 2
             from: stakeWallet1_1.address,
             to: stakingPool.address,
             op: OpCodes.REQUEST_UPDATE_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: poolLockWallet.address,
             op: OpCodes.TRANSFER_JETTON,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 4
             from: poolLockWallet.address,
             to: user1LockWallet.address,
             op: OpCodes.INTERNAL_TRANSFER,
             success: true
         })
-
-        expect(transactionRes.transactions).toHaveTransaction({ // 5 fail
+        expect(transactionRes.transactions).toHaveTransaction({ // 5 fails
             from: user1LockWallet.address,
             to: user1.address,
             op: OpCodes.TRANSFER_NOTIFICATION,
             success: false
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 6
             from: stakingPool.address,
             to: stakeWallet1_1.address,
             op: OpCodes.UPDATE_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 7
             from: user1.address,
             to: stakeWallet1_1.address,
@@ -476,8 +477,10 @@ describe('StakingPool', () => {
         // printTransactionFees(transactionRes.transactions);
         let user1LockBalance = await user1LockWallet.getJettonBalance();
         expect(user1LockBalance).toEqual(toNano(1000) - 450n + jettonsToFreeUnstake + jettonsToForceUnstake - unstakeCommission);
+
         stakingPoolConfig = await stakingPool.getStorageData();
         expect(stakingPoolConfig.collectedCommissions).toEqual(unstakeCommission + 90n);  // unstake commission + deposit commission
+
         let requestsToCancel: Dictionary<number, boolean> = Dictionary.empty();
         requestsToCancel.set(blockchain.now!!, false);
         transactionRes = await stakeWallet1_1.sendCancelUnstakeRequest(user1.getSender(), requestsToCancel);
@@ -490,6 +493,8 @@ describe('StakingPool', () => {
 
     it('should make jetton transfer', async () => {
         blockchain.now!! += 100;  // cur_rewards_1 = 100 + 80 = 180, cur_rewards_2 = 0
+
+        expect((await stakeWallet1_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet1_1.getStorageData()).minDeposit)
 
         let transactionRes = await stakeWallet1_1.sendTransfer( // 0
             user1.getSender(), 80n, user2.address, user1.address, toNano(1),
@@ -518,56 +523,48 @@ describe('StakingPool', () => {
             op: OpCodes.RECEIVE_JETTONS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakeWallet2_1.address,
             to: stakingPool.address,
-            op: OpCodes.REQUEST_UPDATE_REWARDS, // forward
+            op: OpCodes.REQUEST_UPDATE_REWARDS, // request forward
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 4
             from: stakeWallet2_1.address,
             to: stakingPool.address,
-            op: OpCodes.REQUEST_UPDATE_REWARDS,
+            op: OpCodes.REQUEST_UPDATE_REWARDS, // request without forward
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 5
             from: stakeWallet2_1.address,
             to: stakeWallet2_1_OwnerAddress,
             op: OpCodes.TRANSFER_NOTIFICATION,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 6
             from: stakeWallet2_1.address,
             to: user1.address,
             op: OpCodes.EXCESSES,
             success: true
         });
-
         expect(transactionRes.transactions).toHaveTransaction({ // 7
             from: stakingPool.address,
             to: stakeWallet1_1.address,
             op: OpCodes.UPDATE_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 8
             from: stakingPool.address,
             to: stakeWallet2_1.address,
             op: OpCodes.UPDATE_REWARDS,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 9
             from: stakeWallet1_1.address,
             to: stakeWallet1_1_OwnerAddress,
             op: OpCodes.EXCESSES,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 10
             from: stakeWallet2_1.address,
             to: stakeWallet2_1_OwnerAddress,
@@ -585,5 +582,8 @@ describe('StakingPool', () => {
         transactionRes = await stakeWallet2_1.sendClaimRewards(user2.getSender(), rewardJettonsList);
         let user2RewardsBalance = await user2RewardsWallet.getJettonBalance();
         expect(user2RewardsBalance).toEqual(20n);
+
+        expect((await stakeWallet1_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet1_1.getStorageData()).minDeposit)
+        expect((await stakeWallet2_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet2_1.getStorageData()).minDeposit)
     });
 });
