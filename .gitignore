@@ -1,8 +1,8 @@
-src/pools_with_limits/node_modules
-src/pools_with_limits/temp
-src/pools_with_limits/build
-src/pools_with_limits/dist
-src/pools_with_limits/.DS_Store
+src/node_modules
+src/temp
+src/build
+src/dist
+src/.DS_Store
 
 src/pools_without_limits/node_modules
 src/pools_without_limits/temp
