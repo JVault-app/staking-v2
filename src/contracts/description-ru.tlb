@@ -106,13 +106,18 @@ whitelist$_ _:(HashmapE 267 Bit) = Whitelist;  // user_address (MsgAddressStd) -
 reward_jettons$_
     _:(HashmapE 267 [distributed_rewards: uint256 rewards_deposits:(HashmapE 32 [farming_speed:Coins start_time:uint32 end_time:uint32])])
 = RewardJettons;  // key is pool's jetton wallet address
-lock_periods$_ _:(HashmapE 32 [cur_tvl:Coins tvl_limit:Coins reward_multiplier:uint16 minter_address:MsgAddressStd ]) = LockPeriods;
+
+lock_periods$_ _:(HashmapE 32 [cur_tvl:Coins tvl_limit:Coins
+                  reward_multiplier:uint16 deposit_commission:uint16
+                  unstake_commission:uint16 minter_address:MsgAddressStd]) = LockPeriods;
 
 staking_pool_storage$_
+    init:int1
     pool_id:uint32
     admin_address:MsgAddressStd
     creator_address:MsgAddressStd
     lock_wallet_address:MsgAddressStd
+    nft_content:(Maybe ^Cell)
     stake_wallet_code:^Cell
     _:^[
         tvl:Coins
@@ -122,8 +127,6 @@ staking_pool_storage$_
         reward_jettons:RewardJettons
         lock_periods:LockPeriods
         whitelist:Whitelist
-        deposit_commission:uint16
-        unstake_commission:uint16
         unstake_fee:Coins
         collected_commissions:Coins
         rewards_commission:uint16
@@ -190,6 +193,7 @@ rewards_commission_transfer_msg$_ _:(JettonTransferMsg Cell) = InternalMsgBody;
 stake_payload#e3a06989 lock_period:uint32 = StakePayload;
 stake_transfer_msg$_ _:(JettonTransferMsg StakePayload) = InternalMsgBody;
 // На смарт-контракте staking_pool.fc проверяется, что
+// 0. Пул инициализирован (установлен lock_wallet_address => init? = true)
 // 1. К трансферу прикреплено достаточно газа
 // 2. Получены правильные жетоны (jetton_transfer_notification пришел с сохраненного адреса)
 // 3. Пользователь есть в вайтлисте, либо whitelist == null()
