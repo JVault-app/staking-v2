@@ -103,7 +103,7 @@ describe('StakingPool', () => {
         whitelist.set(user1.address, false);
         whitelist.set(user2.address, false);
         stakingPoolConfig = {
-            init: false,
+            inited: false,
             poolId: 1n,
             factoryAddress: poolAdmin.address,
             adminAddress: poolAdmin.address,
@@ -143,7 +143,7 @@ describe('StakingPool', () => {
             op: OpCodes.TAKE_WALLET_ADDRESS,
             success: true
         })
-        expect((await stakingPool.getStorageData()).init).toBeTruthy() // check if storage::lock_wallet_address == true
+        expect((await stakingPool.getStorageData()).inited).toBeTruthy() // check if storage::lock_wallet_address == true
         expect((await stakingPool.getStorageData()).lockWalletAddress).toEqualAddress(await jettonMinterDefault.getWalletAddress(stakingPool.address)) // check if storage::lock_wallet_address is correct
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -223,7 +223,7 @@ describe('StakingPool', () => {
 
         // check that everything is ok
         stakingPoolConfig = await stakingPool.getStorageData();
-        let tmp = stakingPoolConfig.rewardJettons.get(poolRewardsWallet.address);
+        let tmp = stakingPoolConfig.rewardJettons!!.get(poolRewardsWallet.address);
         expect(tmp?.distributedRewards).toEqual(Deviders.DISTRIBUTED_REWARDS_DEVIDER * rewardsToAdd / (10n * (jettonsToStake1 - commission1)));
         expect(tmp?.rewardsDeposits.get(0)).toEqual({farmingSpeed: Deviders.FARMING_SPEED_DEVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
         expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 + jettonsToStake2 - commission1 - commission2);

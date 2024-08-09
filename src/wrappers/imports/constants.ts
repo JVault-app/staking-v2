@@ -39,7 +39,7 @@ export const OpCodes = {
     DEPLOY_NEW_POOL:       0XDA861F17,
     SEND_COMMISSIONS:      0XB96ADAEA,
     SET_CODE:              0xe2d2d211,
-    CHANGE_CREATION_FEE:   0x66d5528b,
+    CHANGE_CREATION_FEE:   0x66D5528B,
     CHANGE_CONTENT:        0x0ec29200
 };
 
