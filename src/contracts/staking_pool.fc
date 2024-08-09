@@ -347,7 +347,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
         }
         if (tvl_change) {
             storage::tvl += tvl_change;
-            storage::tvl_with_multipliers += muldiv(tvl_change, reward_multiplier, rewards_devider);
+            storage::tvl_with_multipliers += muldiv(tvl_change, reward_multiplier, reward_multiplier_devider);
         }
         storage::collected_commissions += commission;
 
