@@ -143,6 +143,7 @@ describe('StakingPool', () => {
             op: OpCodes.TAKE_WALLET_ADDRESS,
             success: true
         })
+
         expect((await stakingPool.getStorageData()).inited).toBeTruthy() // check if storage::lock_wallet_address == true
         expect((await stakingPool.getStorageData()).lockWalletAddress).toEqualAddress(await jettonMinterDefault.getWalletAddress(stakingPool.address)) // check if storage::lock_wallet_address is correct
 
@@ -175,8 +176,8 @@ describe('StakingPool', () => {
             success: true
         })
 
-        let poolRewardsBalance = await poolRewardsWallet.getJettonBalance()
-        let adminRewardsBalance = await adminRewardsWallet.getJettonBalance()
+        let poolRewardsBalance = await poolRewardsWallet.getJettonBalance();
+        let adminRewardsBalance = await adminRewardsWallet.getJettonBalance();
         expect(poolRewardsBalance).toEqual(rewardsToAdd); // 1000n
         expect(adminRewardsBalance).toEqual(rewardsCommission); // 5000n
 

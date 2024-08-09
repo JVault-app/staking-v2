@@ -11,7 +11,7 @@ import { AddrList, Deviders, Gas, OpCodes } from '../wrappers/imports/constants'
 import exp from 'constants';
 import { PeriodsDeployValue, PoolFactory, PoolFactoryConfig } from '../wrappers/PoolFactory';
 
-describe('StakingPool', () => {
+describe('PoolFactory', () => {
     let jettonMinterDefaultCode: Cell;
     let jettonWalletCode: Cell;
     let stakingPoolUninitedCode: Cell;
@@ -131,51 +131,44 @@ describe('StakingPool', () => {
         })
         expect((await factory.getStorageData()).feesWalletAddress).toEqualAddress(await feesJettonMinter.getWalletAddress(factory.address))
 
-        // let deployPayload = PoolFactory.getDeployPayload(
-        //     stakingPoolConfig.lockWalletAddress, stakingPoolConfig.minDeposit, stakingPoolConfig.maxDeposit, periodsDeploy, null, stakingPoolConfig.rewardsCommission
-        // );
-        // transactionRes = await creatorFeesWallet.sendTransfer(
-        //     poolCreator.getSender(), factoryConfig.creationFee, factory.address, poolCreator.address, toNano("0.155"), deployPayload
-        // )
+        let deployPayload = PoolFactory.getDeployPayload(
+            stakingPoolConfig.lockWalletAddress, stakingPoolConfig.minDeposit, stakingPoolConfig.maxDeposit, periodsDeploy, null, stakingPoolConfig.rewardsCommission
+        );
+        transactionRes = await creatorFeesWallet.sendTransfer(
+            poolCreator.getSender(), factoryConfig.creationFee, factory.address, poolCreator.address, toNano("0.155"), deployPayload
+        )
 
-        // // printTransactionFees(transactionRes.transactions)
-        // let stakingPoolConfig2 = await stakingPool.getStorageData();
-        // expect(stakingPoolConfig2.inited).toBeTruthy();
-        // expect(stakingPoolConfig2.poolId).toEqual(stakingPoolConfig.poolId)
-        // expect(stakingPoolConfig2.adminAddress.toString()).toEqual(factory.address.toString())
-        // expect(stakingPoolConfig2.creatorAddress.toString()).toEqual(poolCreator.address.toString())
-        // expect(stakingPoolConfig2.lockWalletAddress.toString()).toEqual((await lockJettonMinter.getWalletAddress(stakingPool.address)).toString());
-        // expect(stakingPoolConfig2.minDeposit).toEqual(stakingPoolConfig.minDeposit)
-        // expect(stakingPoolConfig2.maxDeposit).toEqual(stakingPoolConfig.maxDeposit)
-        // expect(stakingPoolConfig2.tvl).toEqual(stakingPoolConfig.tvl)
-        // expect(stakingPoolConfig2.tvlWithMultipliers).toEqual(stakingPoolConfig.tvlWithMultipliers)
-        // expect(stakingPoolConfig2.rewardJettons).toEqual(stakingPoolConfig.rewardJettons)
-        // expect(stakingPoolConfig2.whitelist).toEqual(stakingPoolConfig.whitelist)
-        // expect(stakingPoolConfig2.unstakeFee).toEqual(stakingPoolConfig.unstakeFee)
-        // expect(stakingPoolConfig2.collectedCommissions).toEqual(stakingPoolConfig.collectedCommissions)
-        // expect(stakingPoolConfig2.rewardsCommission).toEqual(stakingPoolConfig.rewardsCommission)
+        // printTransactionFees(transactionRes.transactions)
+        let stakingPoolConfig2 = await stakingPool.getStorageData();
+        expect(stakingPoolConfig2.inited).toBeTruthy();
+        expect(stakingPoolConfig2.poolId).toEqual(stakingPoolConfig.poolId)
+        expect(stakingPoolConfig2.adminAddress.toString()).toEqual(factory.address.toString())
+        expect(stakingPoolConfig2.creatorAddress.toString()).toEqual(poolCreator.address.toString())
+        expect(stakingPoolConfig2.lockWalletAddress.toString()).toEqual((await lockJettonMinter.getWalletAddress(stakingPool.address)).toString());
+        expect(stakingPoolConfig2.minDeposit).toEqual(stakingPoolConfig.minDeposit)
+        expect(stakingPoolConfig2.maxDeposit).toEqual(stakingPoolConfig.maxDeposit)
+        expect(stakingPoolConfig2.tvl).toEqual(stakingPoolConfig.tvl)
+        expect(stakingPoolConfig2.tvlWithMultipliers).toEqual(stakingPoolConfig.tvlWithMultipliers)
+        expect(stakingPoolConfig2.rewardJettons).toEqual(stakingPoolConfig.rewardJettons)
+        expect(stakingPoolConfig2.whitelist).toEqual(stakingPoolConfig.whitelist)
+        expect(stakingPoolConfig2.unstakeFee).toEqual(stakingPoolConfig.unstakeFee)
+        expect(stakingPoolConfig2.collectedCommissions).toEqual(stakingPoolConfig.collectedCommissions)
+        expect(stakingPoolConfig2.rewardsCommission).toEqual(stakingPoolConfig.rewardsCommission)
     });
 
     it('should deploy staking pool', async () => {
         // the check is done inside beforeEach
         // blockchain and stakingPool are ready to use
     });
-    it('change creation fee', async () => { // 🗣⊂==============3
+    it('change creation fee', async () => {
         let newCreationFee = toNano('100')
         let transactionRes = await factory.sendChangeCreationFee(admin.getSender(), newCreationFee)
-        // printTransactionFees(transactionRes.transactions)
-        // console.log(transactionRes.transactions[1].outMessages)
-        // expect(transactionRes.transactions).toHaveTransaction({
-        //     from: admin.address,
-        //     to: factory.address,
-        //     op: OpCodes.CHANGE_CREATION_FEE,
-        //     body: beginCell().storeUint(OpCodes.CHANGE_CREATION_FEE, 32).storeUint(0, 64).storeUint(newCreationFee, 124).endCell(),
-        //     exitCode: 9, // ????
-        //     success: false
-        // })
-        // console.log((await factory.getStorageData()).creationFee)
-        console.log(transactionRes.transactions[1].vmLogs)
-        // expect((await factory.getStorageData()).creationFee).toEqual(new_creation_fee)
+        expect(transactionRes.transactions).toHaveTransaction({
+            from: admin.address,
+            to: factory.address,
+            success: true
+        })
+        expect((await factory.getStorageData()).creationFee).toEqual(newCreationFee)
     });
     it('should accept `take wallet address` and update storage::fees_wallet_address', async () => {
         let new_fees_wallet_address = randomAddress()
