@@ -104,7 +104,14 @@ export class PoolFactory implements Contract {
         });        
     }
 
-    
+    async sendChangeCreationFee(provider: ContractProvider, via: Sender, newCreationFee: bigint) {
+        await provider.internal(via, {
+            value: toNano("0.01"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.CHANGE_CREATION_FEE, 32).storeUint(0, 64).storeCoins(newCreationFee).endCell(),
+        });        
+    }
+
     static getDeployPayload(lockWalletAddress: Address,
                              minDeposit: bigint | number, 
                              maxDeposit: bigint | number,
@@ -145,7 +152,7 @@ export class PoolFactory implements Contract {
     }
 
     async getNftAddressByIndex(provider: ContractProvider, index: number | bigint) {
-        let { stack } = await provider.get('get_nft_address_by_index', [{ type: 'int', value: BigInt(index)}]);
+        let { stack } = await provider.get('get_nft_address_by_index', [{ type: 'int', value: BigInt(index)} ]);
         return stack.readAddress();
     }
 }
