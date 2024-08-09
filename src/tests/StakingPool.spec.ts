@@ -226,7 +226,7 @@ describe('StakingPool', () => {
         stakingPoolConfig = await stakingPool.getStorageData();
         let tmp = stakingPoolConfig.rewardJettons!!.get(poolRewardsWallet.address);
         expect(tmp?.distributedRewards).toEqual(Deviders.DISTRIBUTED_REWARDS_DEVIDER * rewardsToAdd / (10n * (jettonsToStake1 - commission1)));
-        expect(tmp?.rewardsDeposits.get(0)).toEqual({farmingSpeed: Deviders.FARMING_SPEED_DEVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
+        expect(tmp?.rewardsDeposits.get(0)).toEqual({distributionSpeed: Deviders.DISTRIBUTION_SPEED_DEVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
         expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 + jettonsToStake2 - commission1 - commission2);
         expect(stakingPoolConfig.tvlWithMultipliers).toEqual(jettonsToStake1 - commission1 + (jettonsToStake2 - commission2) * 2n);
         expect(stakingPoolConfig.collectedCommissions).toEqual(commission1 + commission2);

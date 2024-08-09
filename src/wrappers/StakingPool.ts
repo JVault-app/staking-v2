@@ -37,7 +37,7 @@ function lockPeriodsValueParser(): DictionaryValue<LockPeriodsValue> {
 }
 
 export type RewardsDepositsValue = {
-    farmingSpeed: bigint
+    distributionSpeed: bigint
     startTime: number
     endTime: number
 }
@@ -45,10 +45,10 @@ export type RewardsDepositsValue = {
 function rewardsDepositsValueParser(): DictionaryValue<RewardsDepositsValue> {
     return {
         serialize: (src, buidler) => {
-            buidler.storeCoins(src.farmingSpeed).storeUint(src.startTime, 32).storeUint(src.endTime, 32).endCell();
+            buidler.storeCoins(src.distributionSpeed).storeUint(src.startTime, 32).storeUint(src.endTime, 32).endCell();
         },
         parse: (src) => {
-            return {farmingSpeed: src.loadCoins(), startTime: src.loadUint(32), endTime: src.loadUint(32)};
+            return {distributionSpeed: src.loadCoins(), startTime: src.loadUint(32), endTime: src.loadUint(32)};
         }
     }
 }
