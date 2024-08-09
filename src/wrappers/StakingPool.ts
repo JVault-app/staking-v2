@@ -88,6 +88,7 @@ export type StakingPoolConfig = {
     unstakeFee: bigint;
     collectedCommissions: bigint;
     rewardsCommission: bigint;
+    version?: bigint;
 };
 
 export type StakingPoolUninitedConfig = {
@@ -120,6 +121,7 @@ export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
                         .storeCoins(config.unstakeFee)
                         .storeCoins(config.collectedCommissions)
                         .storeUint(config.rewardsCommission, 16)
+                        .storeUint(config.version ?? 0, 16)
                     .endCell()
                 )
             .endCell();
@@ -245,7 +247,8 @@ export class StakingPool implements Contract {
             whitelist: stack.readCellOpt(),
             unstakeFee: stack.readBigNumber(),
             collectedCommissions: stack.readBigNumber(),
-            rewardsCommission: stack.readBigNumber()
+            rewardsCommission: stack.readBigNumber(),
+            version: stack.readBigNumber()
         }
         
         if (res.rewardJettons) {

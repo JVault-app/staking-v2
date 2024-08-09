@@ -31,6 +31,8 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
     storage::owner_address           = ds~load_msg_addr(); 
 
     slice ds2 = ds~load_ref().begin_parse();
+    ds.end_parse();
+
     storage::lock_period             = ds2~load_uint(32); 
     storage::jetton_balance          = ds2~load_coins();
     storage::rewards_dict            = ds2~load_dict();              
@@ -45,6 +47,8 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
         storage::max_deposit             = ds2~load_coins();
         storage::whitelist               = ds2~load_dict();
     }
+    
+    ds2.end_parse();
 }
 
 () save_data() impure inline {

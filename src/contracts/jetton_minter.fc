@@ -17,6 +17,7 @@ global cell  storage::stake_wallet_code;
     storage::lock_period = ds~load_uint(32);
     storage::jetton_content = ds~load_dict();
     storage::stake_wallet_code = ds~load_ref();
+    ds.end_parse();
 }
 
 

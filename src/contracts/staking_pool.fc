@@ -16,7 +16,7 @@ global int   storage::tvl_with_multipliers;  ;; Coins. Current TVL with multipli
 global int   storage::min_deposit;           ;; Coins. Min staking deposit
 global int   storage::max_deposit;           ;; Coins. Max staking deposit
 
-global cell  storage::reward_jettons;        ;; HashmapE. jetton_wallet_address (MsgAddressStd) -> distributed_rewards (uint256), HashmapE(index (uint32) -> farming_speed (coins), start_time (uint32), end_time (uint32))
+global cell  storage::reward_jettons;        ;; HashmapE. jetton_wallet_address (MsgAddressStd) -> distributed_rewards (uint256), HashmapE(index (uint32) -> distribution_speed (coins), start_time (uint32), end_time (uint32))
 global cell  storage::lock_periods;          ;; HashmapE. lock_period (uint32) -> cur_tvl (Coins), tvl_limit (Coins), reward_multiplier (uint16), deposit_commission (uint16), unstake_commission (uint16), minter_address (MsgAddressStd)
 
 global cell  storage::whitelist;             ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
@@ -25,6 +25,7 @@ global int   storage::unstake_fee;           ;; Coins. Const JVault's TON fee
 global int   storage::collected_commissions; ;; Coins. Commissions collected from instant unstakes  
 
 global int   storage::rewards_commission;    ;; Uint16. JVault's commission as percent of staking rewards. Commission rate = commission_factor / commission_devider.
+global int   storage::version;               ;; Uint16. Version of the staking pool code
 
 
 () load_data() impure inline {
@@ -37,7 +38,9 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     storage::nft_content           = ds~load_dict();
     storage::stake_wallet_code     = ds~load_ref();
 
-    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 1 + 1 + 124 + 124 + 16 = 763. Refs = 3.
+    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 1 + 1 + 124 + 124 + 16 + 16 = 779. Refs = 3.
+    ds.end_parse();
+
     storage::tvl                   = ds2~load_coins();
     storage::tvl_with_multipliers  = ds2~load_coins();
     storage::min_deposit           = ds2~load_coins();
@@ -48,7 +51,11 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     storage::unstake_fee           = ds2~load_coins();
     storage::collected_commissions = ds2~load_coins();
     storage::rewards_commission    = ds2~load_uint(16);
+    storage::version               = ds2~load_uint(16);
+
+    ds2.end_parse();
 }
+
 
 () save_data() impure inline {
     set_data(
@@ -72,6 +79,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                     .store_coins(storage::unstake_fee)
                     .store_coins(storage::collected_commissions)
                     .store_uint(storage::rewards_commission, 16)
+                    .store_uint(storage::version, 16)
                 .end_cell()
             )
         .end_cell()
@@ -79,10 +87,10 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 }
 
 
-(int) get_distributed_rewards(int farming_speed, int start_time, int time_now) inline {
+(int) get_distributed_rewards(int distribution_speed, int start_time, int time_now) inline {
     return (storage::tvl_with_multipliers ?
             muldiv(
-                muldiv(farming_speed, distributed_rewards_devider, farming_speed_devider), 
+                muldiv(distribution_speed, distributed_rewards_devider, distribution_speed_devider), 
                 time_now - start_time,
                 storage::tvl_with_multipliers
             ) : 0);
@@ -124,6 +132,7 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                 }
                 
                 int lock_period = payload~load_uint(32);
+                payload.end_parse();
 
                 (slice period_info_slice, int success) = storage::lock_periods.udict_get?(32, lock_period);
                 throw_unless(exc::incorrect_lock_period, success);
@@ -143,20 +152,20 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                 
                 storage::lock_periods~udict_set_builder(32, lock_period, begin_cell().store_coins(cur_tvl).store_slice(period_info_slice));
 
-                cell payload = begin_cell()
-                                    .store_uint(op::receive_jettons, 32)
-                                    .store_uint(query_id, 64)
-                                    .store_coins(storage::min_deposit)
-                                    .store_coins(storage::max_deposit)
-                                    .store_uint(unstake_commission, 16)
-                                    .store_coins(storage::unstake_fee)
-                                    .store_dict(storage::whitelist)
-                                    .store_coins(transferred_jettons - commission)
-                                    .store_coins(commission)
-                                .end_cell();
+                cell stake_payload = begin_cell()
+                                        .store_uint(op::receive_jettons, 32)
+                                        .store_uint(query_id, 64)
+                                        .store_coins(storage::min_deposit)
+                                        .store_coins(storage::max_deposit)
+                                        .store_uint(unstake_commission, 16)
+                                        .store_coins(storage::unstake_fee)
+                                        .store_dict(storage::whitelist)
+                                        .store_coins(transferred_jettons - commission)
+                                        .store_coins(commission)
+                                    .end_cell();
                 cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, from_address, lock_period, storage::stake_wallet_code);
                 slice stake_wallet_address = get_address_by_state_init(state_init);
-                send_deploy_message(stake_wallet_address, 0, state_init, payload, mode::carry_remaining_gas);
+                send_deploy_message(stake_wallet_address, 0, state_init, stake_payload, mode::carry_remaining_gas);
                 
                 save_data();
                 return ();
@@ -172,14 +181,15 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                 int commission = transferred_jettons - rewards_to_add;
                 int start_time = payload~load_uint(32);
                 int end_time = payload~load_uint(32);
+                payload.end_parse();
                 throw_unless(exc::incorrect_distribution_period, (now() <= start_time) & (start_time < end_time));
-                int farming_speed = muldiv(rewards_to_add, farming_speed_devider, end_time - start_time);
+                int distribution_speed = muldiv(rewards_to_add, distribution_speed_devider, end_time - start_time);
                 
                 int distributed_rewards = rewards_info_slice~load_uint(256);
                 cell rewards_deposits = rewards_info_slice~load_dict();
                 (int max_index, _, int success) = rewards_deposits.udict_get_max?(32);
                 max_index = success ? max_index + 1 : 0;
-                rewards_deposits~udict_set_builder(32, max_index, begin_cell().store_coins(farming_speed).store_uint(start_time, 32).store_uint(end_time, 32));
+                rewards_deposits~udict_set_builder(32, max_index, begin_cell().store_coins(distribution_speed).store_uint(start_time, 32).store_uint(end_time, 32));
                 storage::reward_jettons~dict_set_builder(267, sender_address, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
 
                 send_jettons(query_id, commission, storage::admin_address, from_address, sender_address, 0, mode::carry_remaining_gas, 
@@ -215,7 +225,6 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
     if (op == op::claim_commissions) {
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::creator_address));
         throw_unless(exc::out_of_gas, msg_value >= gas::jetton_transfer);
-        throw_unless(exc::not_inited, storage::init?); ;; ??
 
         send_jettons(query_id, storage::collected_commissions, sender_address, sender_address, storage::lock_wallet_address, 0,
                      mode::carry_remaining_gas, 1, begin_cell().store_uint(0, 32).store_slice("Unstake commissions claimed").end_cell());
@@ -237,9 +246,9 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                                             equal_slices(sender_address, storage::creator_address));
         throw_if(exc::already_inited, storage::init?);
         
-
         storage::lock_wallet_address = in_msg_body~load_msg_addr();
         storage::init? = true;
+
         save_data();
         return ();
     }
@@ -308,17 +317,17 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 
             (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
             while (success2) {
-                int farming_speed = rewards_deposit_slice~load_coins();
-                int start_time = rewards_deposit_slice~load_uint(32);
-                int time_now = now();
+                int distribution_speed = rewards_deposit_slice~load_coins();
+                int start_time         = rewards_deposit_slice~load_uint(32);
+                int time_now           = now();
                 if (start_time < time_now) {
                     int end_time = rewards_deposit_slice~load_uint(32);
                     if (end_time <= time_now) {
                         rewards_deposits~udict_delete?(32, index);
                         time_now = end_time;
                     }
-                    distributed_rewards += get_distributed_rewards(farming_speed, start_time, time_now);
-                    rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(farming_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                    distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
+                    rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
                 }
                 (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
             }
@@ -380,9 +389,9 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
 
                 (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
                 while (success2) {
-                    int farming_speed = rewards_deposit_slice~load_coins();
-                    int start_time = rewards_deposit_slice~load_uint(32);
-                    int time_now = now();
+                    int distribution_speed = rewards_deposit_slice~load_coins();
+                    int start_time         = rewards_deposit_slice~load_uint(32);
+                    int time_now           = now();
                     if (start_time < time_now) {
                         int end_time = rewards_deposit_slice~load_uint(32);
                         if (end_time <= time_now) {
@@ -391,8 +400,8 @@ global int   storage::rewards_commission;    ;; Uint16. JVault's commission as p
                             should_update_rewards = true;
                             should_update_rewards2 = true;
                         }
-                        distributed_rewards += get_distributed_rewards(farming_speed, start_time, time_now);
-                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(farming_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                        distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
+                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
                     }
                     (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
                 }
@@ -467,7 +476,7 @@ int get_revoked_time() method_id {
 }
 
 
-(int, int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int) get_storage_data() method_id {
+(int, int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int, int) get_storage_data() method_id {
     load_data();
     return (
         storage::init?,
@@ -485,6 +494,7 @@ int get_revoked_time() method_id {
         storage::whitelist,
         storage::unstake_fee,
         storage::collected_commissions,
-        storage::rewards_commission
+        storage::rewards_commission,
+        storage::version
     );
 }
