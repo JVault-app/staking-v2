@@ -34,7 +34,7 @@ const int gas::stake_jettons         = 155000000;  ;; 0.155 TON
 const int gas::unstake_jettons       = 155000000;  ;; 0.155 TON
 const int gas::create_staking_pool   = 150000000;  ;; 0.150 TON
 const int gas::cancel_unstake        = 110000000;  ;; 0.11  TON
-const int gas::simple_update_request = 100000000;  ;; 0.1   TON
+const int gas::simple_update_request = 65000000;  ;; 0.065   TON
 const int gas::add_rewards           = 65000000;   ;; 0.065 TON
  
 const int gas::save_updated_rewards  = 10000000;   ;; 0.01  TON

@@ -299,7 +299,7 @@ global int   storage::version;               ;; Uint16. Version of the staking p
         return ();
     }
 
-    if (op == op::request_update_rewards) {
+    if (op == op::request_update_rewards) { ;; from stake wal op unstake request no comission ;; comp - 7297600 
         int  user_jetton_balance = in_msg_body~load_coins();
         int  tvl_change          = in_msg_body~load_int(121);
         cell user_rewards_dict   = in_msg_body~load_dict();
@@ -360,7 +360,9 @@ global int   storage::version;               ;; Uint16. Version of the staking p
         }
         storage::collected_commissions += commission;
 
+        ~strdump("req_upd_rew");
         required_gas += get_compute_fee(WORKCHAIN, gas_consumed() + 4000);
+        ~dump(required_gas);
         msg_value = max(msg_value - required_gas, gas::save_updated_rewards);
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
         send_builder_message(sender_address, msg_value, payload, mode::simple);
@@ -369,9 +371,10 @@ global int   storage::version;               ;; Uint16. Version of the staking p
         return ();
     }
 
-    if (op == op::send_claimed_rewards) {
+    if (op == op::send_claimed_rewards) { ;; 160151 - 64060400 - 0.065 for 1
         raw_reserve(0, 4);
-        
+        ~strdump("send_claimed_rewards");
+        ~dump(msg_value);
         int  user_jetton_balance = in_msg_body~load_coins();
         cell user_rewards_dict   = in_msg_body~load_dict();
         cell jettons_to_claim    = in_msg_body~load_dict();  ;; HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
@@ -431,9 +434,11 @@ global int   storage::version;               ;; Uint16. Version of the staking p
 
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
         required_gas += get_compute_fee(0, gas_consumed() + 1000);
+        ~dump(required_gas);
         throw_unless(exc::out_of_gas, msg_value >= gas::save_updated_rewards);
+        ~dump(gas_consumed());
         send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance);  
-
+        ~dump(gas_consumed());
         return ();
     }
     

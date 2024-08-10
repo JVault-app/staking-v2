@@ -158,7 +158,7 @@ export class StakingPool implements Contract {
 
     async sendAddRewardJettons(provider: ContractProvider, via: Sender, jettonWallets: AddrList, queryId?: number) {
         await provider.internal(via, {
-            value: toNano("0.01"),
+            value: toNano("0.05"),
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
                     .storeUint(OpCodes.ADD_REWARD_JETTONS, 32)
