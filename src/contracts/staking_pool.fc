@@ -245,7 +245,10 @@ global int   storage::version;               ;; Uint16. Version of the staking p
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::lock_wallet_address) |
                                             equal_slices(sender_address, storage::creator_address));
         throw_if(exc::already_inited, storage::init?);
-        
+
+        raw_reserve(gas::min_reserve, 0);
+        send_message_with_comment(storage::creator_address, 0, "Deploy successfull", mode::carry_remaining_balance);
+
         storage::lock_wallet_address = in_msg_body~load_msg_addr();
         storage::init? = true;
 
@@ -464,6 +467,12 @@ slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
 
 (int, int, slice, slice, cell) get_nft_data() method_id {
     load_data();
+    ifnot(null?(storage::nft_content)) {
+        (slice uri, int success) = storage::nft_content.udict_get?(256, "uri"H);
+        if (success) {
+            storage::nft_content~udict_set_builder(256, "uri"H, begin_cell().store_slice(uri).store_number10(storage::pool_id));
+        }
+    }
     return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, storage::nft_content);
 }
 
