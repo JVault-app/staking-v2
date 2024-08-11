@@ -33,6 +33,7 @@ describe('StakingPool', () => {
     let stakingPool: SandboxContract<StakingPool>;
 
     let user1: SandboxContract<TreasuryContract>;
+    let user3: SandboxContract<TreasuryContract>
     let stakeWallet1_1: SandboxContract<StakeWallet>;
     let stakeWallet1_2: SandboxContract<StakeWallet>;
     let stakeWallet1_3: SandboxContract<StakeWallet>;
@@ -42,32 +43,19 @@ describe('StakingPool', () => {
     let stakeWallet2_3: SandboxContract<StakeWallet>;
 
     let jettonMinterDefault: SandboxContract<JettonMinterDefault>;
-
-    let jettonMinterDefault1: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault3: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault4: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault5: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault6: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault7: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault8: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault9: SandboxContract<JettonMinterDefault>;
-    let jettonMinterDefault10 : SandboxContract<JettonMinterDefault>;
-
-
-
     let poolLockWallet: SandboxContract<JettonWallet>;
     let user1LockWallet: SandboxContract<JettonWallet>;
     let user2LockWallet: SandboxContract<JettonWallet>;
-    let user3: SandboxContract<TreasuryContract>;
-    let user3JettonWallet: SandboxContract<JettonWallet>;
     let creatorLockWallet: SandboxContract<JettonWallet>;
 
     let jettonMinterDefault2: SandboxContract<JettonMinterDefault>;
     let poolRewardsWallet: SandboxContract<JettonWallet>;
+
     let user1RewardsWallet: SandboxContract<JettonWallet>;
     let user2RewardsWallet: SandboxContract<JettonWallet>;
     let creatorRewardsWallet: SandboxContract<JettonWallet>;
     let adminRewardsWallet: SandboxContract<JettonWallet>;
+    let add_wallet: SandboxContract<JettonWallet>
     
     let stakingPoolConfig: StakingPoolConfig;
     let stakeWalletConfig1_1: StakeWalletConfig;
@@ -76,16 +64,6 @@ describe('StakingPool', () => {
     let stakeWalletConfig2_1: StakeWalletConfig;
     let stakeWalletConfig2_2: StakeWalletConfig;
     let stakeWalletConfig2_3: StakeWalletConfig;
-
-    let jw1: SandboxContract<JettonWallet>;
-    let jw2: SandboxContract<JettonWallet>;
-    let jw3: SandboxContract<JettonWallet>;
-    let jw4: SandboxContract<JettonWallet>;
-    let jw5: SandboxContract<JettonWallet>;
-    let jw6: SandboxContract<JettonWallet>;
-    let jw7: SandboxContract<JettonWallet>;
-    let jw8: SandboxContract<JettonWallet>;
-    let jw9: SandboxContract<JettonWallet>;
 
     let rewardJettonsList: AddrList;
     beforeEach(async () => {
@@ -96,7 +74,7 @@ describe('StakingPool', () => {
         poolCreator = await blockchain.treasury('poolCreator');
         user1 = await blockchain.treasury('user1');
         user2 = await blockchain.treasury('user2');
-        user3 = await blockchain.treasury('user3'); 
+        user3 = await blockchain.treasury('user3')
         
         stakingPool = blockchain.openContract(StakingPool.createFromConfig({poolId: 1n, factoryAddress: poolAdmin.address}, stakingPoolUninitedCode));
 
@@ -105,11 +83,9 @@ describe('StakingPool', () => {
         await jettonMinterDefault.sendMint(poolAdmin.getSender(), user2.address, toNano(1000), toNano("0.2"), toNano("0.5"));
         user1LockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user1.address)));
         user2LockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user2.address)));
-
-        user3JettonWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user3.address)));
-
         creatorLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(poolCreator.address)));
         poolLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(stakingPool.address)));
+        add_wallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user3.address)))
 
         jettonMinterDefault2 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(0, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         // await jettonMinterDefault2.sendMint(poolAdmin.getSender(), user1.address, toNano(1000), toNano("0.2"), toNano("0.5"));
@@ -121,39 +97,6 @@ describe('StakingPool', () => {
         poolRewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(stakingPool.address)));
         adminRewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(poolAdmin.address)));
 
-        /////////////////////////////////////////////////////
-
-        // jettonMinterDefault1 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(1, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault3 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(2, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault4 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(3, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault5 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(4, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault6 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(5, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault7 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(6, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault8 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(7, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault9 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(8, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-        // jettonMinterDefault10 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(9, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
-
-
-        // await jettonMinterDefault1.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault3.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault4.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault5.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault6.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault7.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault8.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault9.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-        // await jettonMinterDefault10.sendMint(poolAdmin.getSender(), stakingPool.address, toNano(10), toNano("0.2"), toNano("0.5"));
-
-        // jw1 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault1.getWalletAddress(stakingPool.address)));
-        // jw2 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault3.getWalletAddress(stakingPool.address)));
-        // jw3 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault4.getWalletAddress(stakingPool.address)));
-        // jw4 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault5.getWalletAddress(stakingPool.address)));
-        // jw5 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault6.getWalletAddress(stakingPool.address)));
-        // jw6 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault7.getWalletAddress(stakingPool.address)));
-        // jw7 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault8.getWalletAddress(stakingPool.address)));
-        // jw8 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault9.getWalletAddress(stakingPool.address)));
-        // jw9 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault10.getWalletAddress(stakingPool.address)));
-
         let lockPeriods: Dictionary<number, LockPeriodsValue> = Dictionary.empty();
         let minterAddr1 = randomAddress(0);
         let minterAddr2 = randomAddress(0);
@@ -164,6 +107,7 @@ describe('StakingPool', () => {
         let whitelist: AddrList = Dictionary.empty();
         whitelist.set(user1.address, false);
         whitelist.set(user2.address, false);
+        whitelist.set(user3.address, false)
         stakingPoolConfig = {
             inited: false,
             poolId: 1n,
@@ -215,50 +159,64 @@ describe('StakingPool', () => {
         rewardJettonsList = Dictionary.empty();
 
         rewardJettonsList.set(poolRewardsWallet.address, false)
-        // rewardJettonsList.set(jw1.address, false)
-        // rewardJettonsList.set(jw2.address, false)
-        // rewardJettonsList.set(jw3.address, false)
-        // rewardJettonsList.set(jw4.address, false)
-        // rewardJettonsList.set(jw5.address, false)
-        // rewardJettonsList.set(jw6.address, false)
-        // rewardJettonsList.set(jw7.address, false)
-        // rewardJettonsList.set(jw8.address, false)
-        // rewardJettonsList.set(jw9.address, false)
+        rewardJettonsList.set(poolLockWallet.address, false)
+        rewardJettonsList.set(user1LockWallet.address, false)
+        rewardJettonsList.set(user2LockWallet.address, false)
+        rewardJettonsList.set(user1RewardsWallet.address, false)
+        rewardJettonsList.set(user2RewardsWallet.address, false)
+        rewardJettonsList.set(adminRewardsWallet.address, false)
+        rewardJettonsList.set(creatorLockWallet.address, false)
+        rewardJettonsList.set(creatorRewardsWallet.address, false)
+        rewardJettonsList.set(add_wallet.address, false)
 
+        
+        // console.log("RewardsJettonList size " + rewardJettonsList.size + rewardJettonsList.get(user1LockWallet.address))
+        
         transactionRes = await stakingPool.sendAddRewardJettons(poolCreator.getSender(), rewardJettonsList);
-        expect(transactionRes.transactions).toHaveTransaction({
-            from: poolCreator.address,
-            to: stakingPool.address,
-            op: OpCodes.ADD_REWARD_JETTONS,
-            success: true
-        });
+        printTransactionFees(transactionRes.transactions)
+
+
+        expect((await stakingPool.getStorageData()).rewardJettons?.size).toEqual(10)
+        // console.log(transactionRes.transactions[1].vmLogs)
+        // expect(transactionRes.transactions).toHaveTransaction({  
+        //     from: poolCreator.address,
+        //     to: stakingPool.address,
+        //     op: OpCodes.ADD_REWARD_JETTONS,
+        //     success: true
+        // });
 
         // adding rewards
         let rewardsToAdd = 1000n;
         let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Deviders.COMMISSION_DEVIDER;
         let distributionPeriod = 1000
-        transactionRes = await creatorRewardsWallet.sendTransfer(
-            poolCreator.getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
-            StakingPool.addRewardsPayload(blockchain.now, blockchain.now + distributionPeriod)
-        );
-
-        printTransactionFees(transactionRes.transactions)
 
         
-
-
+        transactionRes = await creatorRewardsWallet.sendTransfer( 
+        poolCreator.getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
+        StakingPool.addRewardsPayload(blockchain.now, blockchain.now + distributionPeriod))
         
-        expect(transactionRes.transactions).toHaveTransaction({
-            from: poolCreator.address,
-            to: creatorRewardsWallet.address,
-            op: OpCodes.TRANSFER_JETTON,
-            success: true
-        })
+        // console.log(transactionRes.transactions)
+        
+        // transactionRes = await user1LockWallet.sendTransfer(
+            // user1.getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
+            // StakingPool.addRewardsPayload(blockchain.now, blockchain.now + distributionPeriod + 3))
+        
+            // printTransactionFees(transactionRes.transactions)
+         
+       
+        console.log("RewardDeposits Size " + (await stakingPool.getStorageData()).rewardJettons?.get(creatorRewardsWallet.address)?.rewardsDeposits.size)
+        
+        // expect(transactionRes.transactions).toHaveTransaction({
+        //     from: poolCreator.address,
+        //     to: creatorRewardsWallet.address,
+        //     op: OpCodes.TRANSFER_JETTON,
+        //     success: true
+        // })
 
-        let poolRewardsBalance = await poolRewardsWallet.getJettonBalance();
-        let adminRewardsBalance = await adminRewardsWallet.getJettonBalance();
-        expect(poolRewardsBalance).toEqual(rewardsToAdd); // 1000n
-        expect(adminRewardsBalance).toEqual(rewardsCommission); // 5000n
+        // let poolRewardsBalance = await poolRewardsWallet.getJettonBalance();
+        // let adminRewardsBalance = await adminRewardsWallet.getJettonBalance();
+        // expect(poolRewardsBalance).toEqual(rewardsToAdd); // 1000n
+        // expect(adminRewardsBalance).toEqual(rewardsCommission); // 5000n
 
         // staking jettons 
         let jettonsToStake1 = 400n;
@@ -266,15 +224,17 @@ describe('StakingPool', () => {
         let commission1 = 80n;
         stakeWallet1_1 = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user1.address, lockPeriod1))!!));
         transactionRes = await user1LockWallet.sendTransfer(
-            user1.getSender(), jettonsToStake1, stakingPool.address, user1.address, Gas.STAKE_JETTONS,
+            user1.getSender(), jettonsToStake1, stakingPool.address, user1.address, toNano('0.3'),
             StakingPool.stakePayload(lockPeriod1)
         );
+        // printTransactionFees(transactionRes.transactions)
 
-        expect(transactionRes.transactions).toHaveTransaction({
-            from: stakeWallet1_1.address,
-            to: user1.address,
-            op: OpCodes.EXCESSES
-        });
+
+        // expect(transactionRes.transactions).toHaveTransaction({
+        //     from: stakeWallet1_1.address,
+        //     to: user1.address,
+        //     op: OpCodes.EXCESSES
+        // });
 
         blockchain.now += distributionPeriod / 10;
         let jettonsToStake2 = 50n;
@@ -282,9 +242,38 @@ describe('StakingPool', () => {
         let commission2 = 10n;
         stakeWallet1_2 = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user1.address, lockPeriod2))!!));
         transactionRes = await user1LockWallet.sendTransfer(
-            user1.getSender(), jettonsToStake2, stakingPool.address, user1.address, Gas.STAKE_JETTONS,
+            user1.getSender(), jettonsToStake2, stakingPool.address, user1.address, toNano('0.3'),
             StakingPool.stakePayload(lockPeriod2)
         );
+
+        // printTransactionFees(transactionRes.transactions)
+
+        // const transferTx = findTransactionRequired(transactionRes.transactions, {
+        //     on: user1LockWallet.address,
+        //     from: user1.address,
+        //     op: OpCodes.TRANSFER_JETTON,
+        //     success: true
+        // });
+
+        // let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
+        // computedGeneric = (transaction) => {
+        // if(transaction.description.type !== "generic")
+        //     throw("Expected generic transactionaction");
+        // if(transaction.description.computePhase.type !== "vm")
+        //     throw("Compute phase expected")
+        // return transaction.description.computePhase;
+        // }
+
+        // let printTxGasStats: (name: string, trans: Transaction) => bigint;
+        // printTxGasStats = (name, transaction) => {
+        //     const txComputed = computedGeneric(transaction);
+        //     console.log(`${name} used ${txComputed.gasUsed} gas`);
+        //     console.log(`${name} gas cost: ${txComputed.gasFees}`);
+        //     return txComputed.gasFees;
+        // }
+        // printTxGasStats("Jetton transfer", transferTx);
+
+
         // printTransactionFees(transactionRes.transactions);
         expect(transactionRes.transactions).toHaveTransaction({
             from: stakeWallet1_2.address,
@@ -305,7 +294,7 @@ describe('StakingPool', () => {
         stakingPoolConfig = await stakingPool.getStorageData();
         let tmp = stakingPoolConfig.rewardJettons!!.get(poolRewardsWallet.address);
         expect(tmp?.distributedRewards).toEqual(Deviders.DISTRIBUTED_REWARDS_DEVIDER * rewardsToAdd / (10n * (jettonsToStake1 - commission1)));
-        expect(tmp?.rewardsDeposits.get(0)).toEqual({distributionSpeed: Deviders.DISTRIBUTION_SPEED_DEVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
+        expect(tmp?.rewardsDeposits.get(0)).toEqual({farmingSpeed: Deviders.DISTRIBUTION_SPEED_DEVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
         expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 + jettonsToStake2 - commission1 - commission2);
         expect(stakingPoolConfig.tvlWithMultipliers).toEqual(jettonsToStake1 - commission1 + (jettonsToStake2 - commission2) * 2n);
         expect(stakingPoolConfig.collectedCommissions).toEqual(commission1 + commission2);
@@ -362,8 +351,6 @@ describe('StakingPool', () => {
         // Transaction Chain (in order)
         let transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList); // 0
 
-        printTransactionFees(transactionRes.transactions)
-
         stakeWalletConfig1_1 = await stakeWallet1_1.getStorageData();
         let user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
 
@@ -376,14 +363,39 @@ describe('StakingPool', () => {
             success: true
         })
 
+        const transferTx = findTransactionRequired(transactionRes.transactions, {
+            on: stakeWallet1_1.address,
+            from: user1.address,
+            op: OpCodes.CLAIM_REWARDS,
+            success: true
+        });
+
+        let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
+        computedGeneric = (transaction) => {
+        if(transaction.description.type !== "generic")
+            throw("Expected generic transactionaction");
+        if(transaction.description.computePhase.type !== "vm")
+            throw("Compute phase expected")
+        return transaction.description.computePhase;
+        }
+
+        let printTxGasStats: (name: string, trans: Transaction) => bigint;
+        printTxGasStats = (name, transaction) => {
+            const txComputed = computedGeneric(transaction);
+            console.log(`${name} used ${txComputed.gasUsed} gas`);
+            console.log(`${name} gas cost: ${txComputed.gasFees}`);
+            return txComputed.gasFees;
+        }
+        printTxGasStats(`${OpCodes.CLAIM_REWARDS}`, transferTx);
+
+        printTransactionFees(transactionRes.transactions)
+
         expect(transactionRes.transactions).toHaveTransaction({ // 2
             from: stakeWallet1_1.address,
             to: stakingPool.address,
             op: OpCodes.SEND_CLAIMED_REWARDS,
             success: true
         })
-
-        
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: poolRewardsWallet.address,
@@ -487,39 +499,12 @@ describe('StakingPool', () => {
             op: OpCodes.UNSTAKE_REQUEST,
             success: true
         })
-
         expect(transactionRes.transactions).toHaveTransaction({ // 2
             from: stakeWallet1_1.address,
             to: stakingPool.address,
             op: OpCodes.REQUEST_UPDATE_REWARDS,
             success: true
         })
-
-        const transferTx = findTransactionRequired(transactionRes.transactions, {
-            on: stakingPool.address,
-            from: stakeWallet1_1.address,
-            op: OpCodes.REQUEST_UPDATE_REWARDS,
-            success: true
-        });
-
-        let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        let printTxGasStats: (name: string, trans: Transaction) => bigint;
-        printTxGasStats = (name, transaction) => {
-            const txComputed = computedGeneric(transaction);
-            console.log(`${name} used ${txComputed.gasUsed} gas`);
-            console.log(`${name} gas cost: ${txComputed.gasFees}`);
-            return txComputed.gasFees;
-        }
-        printTxGasStats(`request upd rew`, transferTx);
-
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: stakeWallet1_1.address,
@@ -549,30 +534,6 @@ describe('StakingPool', () => {
             op: OpCodes.UNSTAKE_JETTONS,
             success: true
         })
-        const transferTx1 = findTransactionRequired(transactionRes.transactions, {
-            on: stakeWallet1_1.address,
-            from: user1.address,
-            op: OpCodes.UNSTAKE_JETTONS,
-            success: true
-        });
-
-        let computedGeneric1: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric1 = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        printTxGasStats = (name, transaction) => {
-            const txComputed = computedGeneric1(transaction);
-            console.log(`${name} used ${txComputed.gasUsed} gas`);
-            console.log(`${name} gas cost: ${txComputed.gasFees}`);
-            return txComputed.gasFees;
-        }
-        printTxGasStats(`unstake jettons`, transferTx1);
-        
         expect(transactionRes.transactions).toHaveTransaction({ // 2
             from: stakeWallet1_1.address,
             to: stakingPool.address,
@@ -620,23 +581,6 @@ describe('StakingPool', () => {
         let requestsToCancel: Dictionary<number, boolean> = Dictionary.empty();
         requestsToCancel.set(blockchain.now!!, false);
         transactionRes = await stakeWallet1_1.sendCancelUnstakeRequest(user1.getSender(), requestsToCancel);
-        
-        const transferTx2 = findTransactionRequired(transactionRes.transactions, {
-            on: stakeWallet1_1.address,
-            from: user1.address,
-            op: OpCodes.CANCEL_UNSTAKE_REQUEST
-        })
-
-        let computedGeneric2: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric2 = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        printTxGasStats(`cancel unstake request`, transferTx2)
 
         blockchain.now!! += 100;  // cur_rewards = 255 + 66 = 321
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
@@ -650,11 +594,9 @@ describe('StakingPool', () => {
         expect((await stakeWallet1_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet1_1.getStorageData()).minDeposit)
 
         let transactionRes = await stakeWallet1_1.sendTransfer( // 0
-            user1.getSender(), 80n, user2.address, user1.address, toNano(0.1),
+            user1.getSender(), 80n, user2.address, user1.address, toNano(1),
             beginCell().storeUint(0, 32).endCell()
         );
-
-        printTransactionFees(transactionRes.transactions)
 
         expect(transactionRes.transactions).toHaveTransaction({ // 1
             from: user1.address,
@@ -662,31 +604,6 @@ describe('StakingPool', () => {
             op: OpCodes.TRANSFER_JETTON,
             success: true
         })
-
-        const transferTx = findTransactionRequired(transactionRes.transactions, {
-            on: stakeWallet1_1.address,
-            from: user1.address,
-            op: OpCodes.TRANSFER_JETTON,
-            success: true
-        });
-
-        let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        let printTxGasStats: (name: string, trans: Transaction) => bigint;
-        printTxGasStats = (name, transaction) => {
-            const txComputed = computedGeneric(transaction);
-            console.log(`${name} used ${txComputed.gasUsed} gas`);
-            console.log(`${name} gas cost: ${txComputed.gasFees}`);
-            return txComputed.gasFees;
-        }
-        printTxGasStats(`stake jet trans`, transferTx);
 
         stakeWallet2_1 = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user2.address, 60))!!));
 

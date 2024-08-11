@@ -51,14 +51,14 @@ export const Gas = {
     BURN_JETTONS:           50000000n,   // 0.05  TON
     STAKE_JETTONS:          155000000n,  // 0.155 TON
     UNSTAKE_JETTONS:        155000000n,  // 0.155 TON
-    CANCEL_UNSTAKE:         110000000n,  // 0.11  TON
+    CANCEL_UNSTAKE:         70000000n,   // 0.07  TON
     SEND_COMMISSIONS:       120000000n,  // 0.12  TON
-    SIMPLE_UPDATE_REQUEST:  100000000n,  // 0.1   TON
+    SIMPLE_UPDATE_REQUEST:  65000000n,   // 0.65  TON
     ADD_REWARDS:            65000000n,   // 0.065 TON
     APPROVE_TRANSFER:       20000000n,   // 0.02  TON
     SAVE_UPDATED_REWARDS:   10000000n,   // 0.01  TON
     MIN_EXCESS:             10000000n,   // 0.01  TON
-    SEND_STAKED_JETTONS:    250000000n,  // 0.25  TON
+    SEND_STAKED_JETTONS:    200000000n,  // 0.2   TON
 }
 
 export type AddrList = Dictionary<Address, Boolean>;
