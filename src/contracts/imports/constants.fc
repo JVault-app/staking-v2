@@ -15,6 +15,7 @@ const int exc::user_not_in_wl                   = 57;
 const int exc::incorrect_distribution_period    = 58;
 const int exc::already_inited                   = 59;
 const int exc::not_inited                       = 60;
+const int exc::rewards_deposits_overflow        = 61;
 
 const int exc::incorrect_rewards_commission     = 45;
 const int exc::incorrect_lock_periods           = 61;
@@ -37,7 +38,7 @@ const int gas::cancel_unstake        = 70000000;   ;; 0.07  TON ✅
 const int gas::simple_update_request = 65000000;   ;; 0.065 TON ✅
 const int gas::add_rewards           = 65000000;   ;; 0.065 TON ✅
  
-const int gas::save_updated_rewards  = 10000000;   ;; 0.01  TON ✅
+const int gas::save_updated_rewards  = 18400;   ;; 0.01  TON ✅ done
 const int gas::min_excess            = 10000000;   ;; 0.01  TON ✅
 const int gas::send_staked_jettons   = 200000000;  ;; 0.2   TON ✅
 
@@ -113,3 +114,4 @@ const int distributed_rewards_devider   = 10000000000000000000000000000000000000
 const slice burn_address                = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
 const int WORKCHAIN                     = 0;
 const int ONE_TON                       = 1000000000;
+const int REWARDS_DEPOSITS_MAX_COUNT    = 30;

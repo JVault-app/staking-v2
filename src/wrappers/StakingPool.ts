@@ -77,6 +77,7 @@ export type StakingPoolConfig = {
     adminAddress: Address;
     creatorAddress: Address;
     stakeWalletCode: Cell;
+    rewardsDepositsCounter: bigint;
     lockWalletAddress: Address;
     minDeposit: bigint;
     maxDeposit: bigint;
@@ -109,6 +110,7 @@ export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
                 .storeAddress(config.lockWalletAddress)
                 .storeMaybeRef(config.content)
                 .storeRef(config.stakeWalletCode)
+                .storeUint(config.rewardsDepositsCounter, 16)
                 .storeRef(
                     beginCell()
                         .storeCoins(config.tvl)
@@ -248,7 +250,8 @@ export class StakingPool implements Contract {
             unstakeFee: stack.readBigNumber(),
             collectedCommissions: stack.readBigNumber(),
             rewardsCommission: stack.readBigNumber(),
-            version: stack.readBigNumber()
+            version: stack.readBigNumber(),
+            rewardsDepositsCounter: stack.readBigNumber()
         }
         
         if (res.rewardJettons) {

@@ -119,6 +119,9 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     slice sender_address = cs~load_msg_addr();
+    int fwd_fee_from_in_msg = cs~retrieve_fwd_fee();
+    int fwd_fee = get_original_fwd_fee(WORKCHAIN, fwd_fee_from_in_msg); 
+
     if (flags & 1) {  ;; bounced messages
         in_msg_body~skip_bits(32);
         int op = in_msg_body~load_uint(32);
