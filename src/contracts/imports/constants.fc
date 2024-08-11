@@ -1,48 +1,48 @@
 {- EXCEPTIONS -}
 
-const int exc::out_of_gas = 13;
-const int exc::less_than_min_deposit = 41;
-const int exc::more_than_max_deposit = 42;
-const int exc::incorrect_jetton = 43;
-const int exc::tvl_limit_exceeded = 44;
-const int exc::not_enough_jettons = 46;
-const int exc::incorrect_lock_period = 47;
-const int exc::staking_not_started = 48;
-const int exc::incorrect_sender = 50;
-const int exc::premint_closed = 52;
-const int exc::has_pending_request = 56;
-const int exc::user_not_in_wl = 57;
-const int exc::incorrect_distribution_period = 58;
-const int exc::already_inited = 59;
-const int exc::not_inited = 60;
+const int exc::out_of_gas                       = 13;
+const int exc::less_than_min_deposit            = 41;
+const int exc::more_than_max_deposit            = 42;
+const int exc::incorrect_jetton                 = 43;
+const int exc::tvl_limit_exceeded               = 44;
+const int exc::not_enough_jettons               = 46;
+const int exc::incorrect_lock_period            = 47;
+const int exc::staking_not_started              = 48;
+const int exc::incorrect_sender                 = 50;
+const int exc::premint_closed                   = 52;
+const int exc::has_pending_request              = 56;
+const int exc::user_not_in_wl                   = 57;
+const int exc::incorrect_distribution_period    = 58;
+const int exc::already_inited                   = 59;
+const int exc::not_inited                       = 60;
 
-const int exc::incorrect_rewards_commission = 45;
-const int exc::incorrect_lock_periods = 61;
+const int exc::incorrect_rewards_commission     = 45;
+const int exc::incorrect_lock_periods           = 61;
 
-const int exc::discovery_fee_not_matched = 75;
+const int exc::discovery_fee_not_matched        = 75;
 
-const int exc::wrong_chain = 333;
-const int exc::unsupported_op = 0xffff;
+const int exc::wrong_chain                      = 333;
+const int exc::unsupported_op                   = 0xffff;
 
 
 {- GAS (TODO) -}
-const int gas::min_reserve           = 20000000;   ;; 0.02  TON
-const int gas::jetton_transfer       = 55000000;   ;; 0.055 TON
-const int gas::burn_jettons          = 50000000;   ;; 0.05  TON
+const int gas::min_reserve           = 20000000;   ;; 0.02  TON ✅
+const int gas::jetton_transfer       = 55000000;   ;; 0.055 TON ✅
+const int gas::burn_jettons          = 50000000;   ;; 0.05  TON ✅
 
 const int gas::stake_jettons         = 155000000;  ;; 0.155 TON
 const int gas::unstake_jettons       = 155000000;  ;; 0.155 TON
-const int gas::create_staking_pool   = 150000000;  ;; 0.150 TON
-const int gas::cancel_unstake        = 110000000;  ;; 0.11  TON
-const int gas::simple_update_request = 65000000;  ;; 0.065   TON
-const int gas::add_rewards           = 65000000;   ;; 0.065 TON
+const int gas::create_staking_pool   = 150000000;  ;; 0.150 TON ✅
+const int gas::cancel_unstake        = 70000000;   ;; 0.07  TON ✅  
+const int gas::simple_update_request = 65000000;   ;; 0.065 TON ✅
+const int gas::add_rewards           = 65000000;   ;; 0.065 TON ✅
  
-const int gas::save_updated_rewards  = 10000000;   ;; 0.01  TON
-const int gas::min_excess            = 10000000;   ;; 0.01  TON
-const int gas::send_staked_jettons   = 25000000;   ;; 0.25  TON 
+const int gas::save_updated_rewards  = 10000000;   ;; 0.01  TON ✅
+const int gas::min_excess            = 10000000;   ;; 0.01  TON ✅
+const int gas::send_staked_jettons   = 200000000;  ;; 0.2   TON ✅
 
-const int gas::deploy_pool           = 20000000;  ;; 0.02  TON
-const int gas::deploy_minter         = 20000000;   ;; 0.02  TON
+const int gas::deploy_pool           = 20000000;   ;; 0.02  TON ✅
+const int gas::deploy_minter         = 20000000;   ;; 0.02  TON ✅
 
 
 {- OP-CODES -}
@@ -106,10 +106,10 @@ const int mode::selfdestruct_on_empty   = 32;
 
 {- OTHER -}
 
-const int commission_devider = 10000;
-const int reward_multiplier_devider = 1000;
-const int distribution_speed_devider = 24 * 60 * 60;
-const int distributed_rewards_devider = 100000000000000000000000000000000000000;
-const slice burn_address = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
-const int WORKCHAIN = 0;
-const int ONE_TON = 1000000000;
+const int commission_devider            = 10000;
+const int reward_multiplier_devider     = 1000;
+const int distribution_speed_devider    = 24 * 60 * 60;
+const int distributed_rewards_devider   = 100000000000000000000000000000000000000;
+const slice burn_address                = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
+const int WORKCHAIN                     = 0;
+const int ONE_TON                       = 1000000000;

@@ -620,6 +620,23 @@ describe('StakingPool', () => {
         let requestsToCancel: Dictionary<number, boolean> = Dictionary.empty();
         requestsToCancel.set(blockchain.now!!, false);
         transactionRes = await stakeWallet1_1.sendCancelUnstakeRequest(user1.getSender(), requestsToCancel);
+        
+        const transferTx2 = findTransactionRequired(transactionRes.transactions, {
+            on: stakeWallet1_1.address,
+            from: user1.address,
+            op: OpCodes.CANCEL_UNSTAKE_REQUEST
+        })
+
+        let computedGeneric2: (transaction: Transaction) => TransactionComputeVm;
+        computedGeneric2 = (transaction) => {
+        if(transaction.description.type !== "generic")
+            throw("Expected generic transactionaction");
+        if(transaction.description.computePhase.type !== "vm")
+            throw("Compute phase expected")
+        return transaction.description.computePhase;
+        }
+
+        printTxGasStats(`cancel unstake request`, transferTx2)
 
         blockchain.now!! += 100;  // cur_rewards = 255 + 66 = 321
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
@@ -633,9 +650,11 @@ describe('StakingPool', () => {
         expect((await stakeWallet1_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet1_1.getStorageData()).minDeposit)
 
         let transactionRes = await stakeWallet1_1.sendTransfer( // 0
-            user1.getSender(), 80n, user2.address, user1.address, toNano(1),
+            user1.getSender(), 80n, user2.address, user1.address, toNano(0.1),
             beginCell().storeUint(0, 32).endCell()
         );
+
+        printTransactionFees(transactionRes.transactions)
 
         expect(transactionRes.transactions).toHaveTransaction({ // 1
             from: user1.address,
@@ -643,6 +662,31 @@ describe('StakingPool', () => {
             op: OpCodes.TRANSFER_JETTON,
             success: true
         })
+
+        const transferTx = findTransactionRequired(transactionRes.transactions, {
+            on: stakeWallet1_1.address,
+            from: user1.address,
+            op: OpCodes.TRANSFER_JETTON,
+            success: true
+        });
+
+        let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
+        computedGeneric = (transaction) => {
+        if(transaction.description.type !== "generic")
+            throw("Expected generic transactionaction");
+        if(transaction.description.computePhase.type !== "vm")
+            throw("Compute phase expected")
+        return transaction.description.computePhase;
+        }
+
+        let printTxGasStats: (name: string, trans: Transaction) => bigint;
+        printTxGasStats = (name, transaction) => {
+            const txComputed = computedGeneric(transaction);
+            console.log(`${name} used ${txComputed.gasUsed} gas`);
+            console.log(`${name} gas cost: ${txComputed.gasFees}`);
+            return txComputed.gasFees;
+        }
+        printTxGasStats(`stake jet trans`, transferTx);
 
         stakeWallet2_1 = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user2.address, 60))!!));
 
