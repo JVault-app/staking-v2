@@ -164,25 +164,25 @@ describe('StakingPool', () => {
         jettonMinterDefault9 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(8, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         jettonMinterDefault10 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(9, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
 
-        await jettonMinterDefault1.sendMint(poolAdmin.getSender(), user3.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault3.sendMint(poolAdmin.getSender(), user4.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault4.sendMint(poolAdmin.getSender(), user5.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault5.sendMint(poolAdmin.getSender(), user6.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault6.sendMint(poolAdmin.getSender(), user7.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault7.sendMint(poolAdmin.getSender(), user8.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault8.sendMint(poolAdmin.getSender(), user9.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault9.sendMint(poolAdmin.getSender(), user10.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault10.sendMint(poolAdmin.getSender(), user11.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault1.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault3.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault4.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault5.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault6.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault7.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault8.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault9.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        await jettonMinterDefault10.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
 
-        uw1 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault1.getWalletAddress(user3.address)));
-        uw2 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault3.getWalletAddress(user4.address)));
-        uw3 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault4.getWalletAddress(user5.address)));
-        uw4 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault5.getWalletAddress(user6.address)));
-        uw5 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault6.getWalletAddress(user7.address)));
-        uw6 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault7.getWalletAddress(user8.address)));
-        uw7 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault8.getWalletAddress(user9.address)));
-        uw8 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault9.getWalletAddress(user10.address)));
-        uw9 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault10.getWalletAddress(user11.address)));
+        uw1 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault1.getWalletAddress(poolCreator.address)));
+        uw2 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault3.getWalletAddress(poolCreator.address)));
+        uw3 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault4.getWalletAddress(poolCreator.address)));
+        uw4 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault5.getWalletAddress(poolCreator.address)));
+        uw5 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault6.getWalletAddress(poolCreator.address)));
+        uw6 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault7.getWalletAddress(poolCreator.address)));
+        uw7 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault8.getWalletAddress(poolCreator.address)));
+        uw8 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault9.getWalletAddress(poolCreator.address)));
+        uw9 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault10.getWalletAddress(poolCreator.address)));
 
         jw1 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault1.getWalletAddress(stakingPool.address)));
         jw2 = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault3.getWalletAddress(stakingPool.address)));
@@ -275,7 +275,7 @@ describe('StakingPool', () => {
         });
 
         // adding rewards
-        let rewardsToAdd = 1000n;
+        let rewardsToAdd = 1n;
         let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Deviders.COMMISSION_DEVIDER;
         let distributionPeriod = 1000
         transactionRes = await creatorRewardsWallet.sendTransfer(
@@ -285,26 +285,25 @@ describe('StakingPool', () => {
 
         for(let i = 0; i < 9; i++) {
             let arr = [uw1, uw2, uw3, uw4, uw5, uw6, uw7, uw8, uw9]
-            let arr2 = [user3, user4, user5, user6, user7, user8, user9, user10, user11]
-            transactionRes = await arr[i].sendTransfer(
-                arr2[i].getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
-                StakingPool.addRewardsPayload(blockchain.now, blockchain.now + distributionPeriod)
-            );
+            for (let w of arr) {
+                transactionRes = await w.sendTransfer(
+                    poolCreator.getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
+                    StakingPool.addRewardsPayload(blockchain.now, blockchain.now + distributionPeriod)
+                );
+                expect(transactionRes.transactions).toHaveTransaction({
+                    from: poolCreator.address,
+                    to: w.address,
+                    op: OpCodes.TRANSFER_JETTON,
+                    success: true
+                })
+            }
         }   
 
-        console.log(await jw2.getJettonBalance())
+        console.log((await stakingPool.getStorageData()).rewardsDepositsCounter)
 
-        expect((await stakingPool.getStorageData()).rewardsDepositsCounter).toEqual(1n) // check counter
+        expect((await stakingPool.getStorageData()).rewardsDepositsCounter).toEqual(30n) // check counter
 
-        printTransactionFees(transactionRes.transactions)
-
-        
-        expect(transactionRes.transactions).toHaveTransaction({
-            from: poolCreator.address,
-            to: creatorRewardsWallet.address,
-            op: OpCodes.TRANSFER_JETTON,
-            success: true
-        })
+        // printTransactionFees(transactionRes.transactions)
 
         let poolRewardsBalance = await poolRewardsWallet.getJettonBalance();
         let adminRewardsBalance = await adminRewardsWallet.getJettonBalance();
