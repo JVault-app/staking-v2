@@ -231,6 +231,17 @@ export class StakingPool implements Contract {
                 .endCell();
     }
 
+    async getData(provider: ContractProvider) {
+        let { stack } = await provider.get('get_nft_data', []);
+        return {
+            init: stack.readBoolean(),
+            index: stack.readBigNumber(),
+            collection: stack.readAddressOpt(),
+            owner: stack.readAddressOpt(),
+            content: stack.readCell()
+        }
+    }
+
     async getStorageData(provider: ContractProvider): Promise<StakingPoolConfig> {
         let { stack } = await provider.get('get_storage_data', []);
         let res: any = {
