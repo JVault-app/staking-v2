@@ -49,7 +49,7 @@ export const Gas = {
     NOTIFICATION:           10000000n,   // 0.01  TON
     JETTON_TRANSFER:        55000000n,   // 0.055 TON
     BURN_JETTONS:           50000000n,   // 0.05  TON
-    STAKE_JETTONS:          155000000n,  // 0.155 TON
+    STAKE_JETTONS:          300000000n,  // 0.155 TON
     UNSTAKE_JETTONS:        155000000n,  // 0.155 TON
     CANCEL_UNSTAKE:         70000000n,   // 0.07  TON
     SEND_COMMISSIONS:       120000000n,  // 0.12  TON

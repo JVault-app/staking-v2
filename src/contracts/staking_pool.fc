@@ -241,7 +241,7 @@ global int   storage::rewards_deposits_counter;
         send_jettons(query_id, storage::collected_commissions, sender_address, sender_address, storage::lock_wallet_address, 0,
                      mode::carry_remaining_gas, 1, begin_cell().store_uint(0, 32).store_slice("Unstake commissions claimed").end_cell());
         
-        storage::collected_commissions = 0;
+        storage::collected_commissions = 0;        
         save_data();
         return ();
     }
@@ -448,12 +448,12 @@ global int   storage::rewards_deposits_counter;
         }
 
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
-        required_gas += get_compute_fee(0, gas_consumed() + 1000);
-        ~dump(required_gas);
+        ;; required_gas += get_compute_fee(0, gas_consumed() + 1000);
+        ~strdump("Send Claimed Rewards"); ;; !!!!!!!!!!!!!!!
+        ~dump(12 * fwd_fee + get_compute_fee(0, 177480) + gas::jetton_transfer); ;; 189577612
+    
         throw_unless(exc::out_of_gas, msg_value >= gas::save_updated_rewards);
-        ~dump(gas_consumed());
         send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance);  
-        ~dump(gas_consumed());
         return ();
     }
     

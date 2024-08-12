@@ -263,7 +263,7 @@ global slice storage::minter_address;           ;; MsgAddressStd. Address of the
     
                      
         send_cell_message(storage::staking_pool_address, 0, payload, mode::carry_remaining_gas);
-    
+        
         storage::is_active = false;
         save_data();
         return ();
