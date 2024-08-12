@@ -68,6 +68,7 @@ export async function run(provider: NetworkProvider) {
         unstakeFee: toNano("0.3"),
         collectedCommissions: 0n,
         rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DEVIDER)),
+        rewardsDepositsCounter: 30n
     }
 
     let stakingPool = provider.open(StakingPool.createFromConfig({poolId: 0n, factoryAddress: poolFactory.address}, await compile('StakingPoolUninited')));

@@ -31,17 +31,6 @@ global int   storage::rewards_deposits_counter;
 
 
 () load_data() impure inline {
-<<<<<<< Updated upstream
-    slice ds = get_data().begin_parse();  ;; Bits = 32 + 267 + 267 + 1 + 267 + 16 = 850. Refs = 3.
-    storage::init?                     = ds~load_int(1);
-    storage::pool_id                   = ds~load_uint(32);
-    storage::admin_address             = ds~load_msg_addr();
-    storage::creator_address           = ds~load_msg_addr();
-    storage::lock_wallet_address       = ds~load_msg_addr();
-    storage::nft_content               = ds~load_dict();
-    storage::stake_wallet_code         = ds~load_ref();
-    storage::rewards_deposits_counter   = ds~load_uint(16);
-=======
     slice ds = get_data().begin_parse();  ;; Bits = 32 + 267 + 267 + 1 + 267 = 834. Refs = 3.
     storage::init?                 = ds~load_int(1);
     storage::pool_id               = ds~load_uint(32);
@@ -50,7 +39,6 @@ global int   storage::rewards_deposits_counter;
     storage::lock_wallet_address   = ds~load_msg_addr();
     storage::nft_content           = ds~load_maybe_ref();
     storage::stake_wallet_code     = ds~load_ref();
->>>>>>> Stashed changes
 
     slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 1 + 1 + 124 + 124 + 16 + 16 = 779. Refs = 3.
     ds.end_parse();
@@ -383,16 +371,8 @@ global int   storage::rewards_deposits_counter;
         }
         storage::collected_commissions += commission;
 
-<<<<<<< Updated upstream
-        ~strdump("req_upd_rew"); ;; done
-        ~dump(gas_consumed());
-
-        required_gas += get_compute_fee(WORKCHAIN, gas::save_updated_rewards);
-
-=======
         required_gas += get_compute_fee(WORKCHAIN, gas_consumed() + 4000);
         
->>>>>>> Stashed changes
         msg_value = max(msg_value - required_gas, gas::save_updated_rewards);
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
         send_builder_message(sender_address, msg_value, payload, mode::simple);
@@ -462,21 +442,12 @@ global int   storage::rewards_deposits_counter;
         }
 
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
-<<<<<<< Updated upstream
-        ;; required_gas += get_compute_fee(0, gas_consumed() + 1000);
-        ~strdump("Send Claimed Rewards"); ;; !!!!!!!!!!!!!!!
-        ~dump(12 * fwd_fee + get_compute_fee(0, 177480) + gas::jetton_transfer); ;; 189577612
-    
-        throw_unless(exc::out_of_gas, msg_value >= gas::save_updated_rewards);
-        send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance);  
-=======
         required_gas += get_compute_fee(0, gas_consumed() + 1000);
         
         throw_unless(exc::out_of_gas, msg_value >= gas::save_updated_rewards);
         
         send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance);  
     
->>>>>>> Stashed changes
         return ();
     }
     
@@ -526,25 +497,7 @@ slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
 }
 
 
-<<<<<<< Updated upstream
-(int, int, slice, slice, cell) get_nft_data() method_id {
-    load_data();
-    return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, storage::nft_content);
-}
-
-slice get_authority_address() method_id {
-    return null_addr();
-}
-
-int get_revoked_time() method_id {
-    return 0;
-}
-
-
-(int, int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int, int, int) get_storage_data() method_id {
-=======
 (int, int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int, int) get_storage_data() method_id {
->>>>>>> Stashed changes
     load_data();
     return (
         storage::init?,
