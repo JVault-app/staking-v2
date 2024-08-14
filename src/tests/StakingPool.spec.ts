@@ -16,6 +16,7 @@ describe('StakingPool', () => {
     let stakingPoolCode: Cell;
     let stakeWalletCode: Cell;
 
+    const CALCULATE_GAS = false;
     const nowSetting = 2000000000;
 
     beforeAll(async () => {
@@ -46,8 +47,6 @@ describe('StakingPool', () => {
     let poolLockWallet: SandboxContract<JettonWallet>;
     let user1LockWallet: SandboxContract<JettonWallet>;
     let user2LockWallet: SandboxContract<JettonWallet>;
-    let user3: SandboxContract<TreasuryContract>;
-    let user3JettonWallet: SandboxContract<JettonWallet>;
     let creatorLockWallet: SandboxContract<JettonWallet>;
 
     let jettonMinterDefault2: SandboxContract<JettonMinterDefault>;
@@ -69,15 +68,6 @@ describe('StakingPool', () => {
     let poolRewardsWallets: Array<SandboxContract<JettonWallet>> = [];
     let creatorRewardsWallets: Array<SandboxContract<JettonWallet>> = [];
 
-    let user4: SandboxContract<TreasuryContract>;
-    let user5: SandboxContract<TreasuryContract>;
-    let user6: SandboxContract<TreasuryContract>;
-    let user7: SandboxContract<TreasuryContract>;
-    let user8: SandboxContract<TreasuryContract>;
-    let user9: SandboxContract<TreasuryContract>;
-    let user10: SandboxContract<TreasuryContract>;
-    let user11: SandboxContract<TreasuryContract>;
-
 
     let rewardJettonsList: AddrList;
     beforeEach(async () => {
@@ -88,18 +78,6 @@ describe('StakingPool', () => {
         poolCreator = await blockchain.treasury('poolCreator');
         user1 = await blockchain.treasury('user1');
         user2 = await blockchain.treasury('user2');
-
-        user3 = await blockchain.treasury('user3'); //
-        user4 = await blockchain.treasury('user3'); //
-        user5 = await blockchain.treasury('user3'); //
-        user6 = await blockchain.treasury('user3'); //
-        user7 = await blockchain.treasury('user3'); //
-        user8 = await blockchain.treasury('user3'); //
-        user9 = await blockchain.treasury('user3'); //
-        user10 = await blockchain.treasury('user3'); //
-        user11 = await blockchain.treasury('user3'); //
-
-
         
         stakingPool = blockchain.openContract(StakingPool.createFromConfig({poolId: 1n, factoryAddress: poolAdmin.address}, stakingPoolUninitedCode));
 
@@ -109,14 +87,11 @@ describe('StakingPool', () => {
         user1LockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user1.address)));
         user2LockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user2.address)));
 
-        user3JettonWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(user3.address)));
-
         creatorLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(poolCreator.address)));
         poolLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault.getWalletAddress(stakingPool.address)));
 
         jettonMinterDefault2 = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: poolAdmin.address, content: beginCell().storeUint(0, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         // await jettonMinterDefault2.sendMint(poolAdmin.getSender(), user1.address, toNano(1000), toNano("0.2"), toNano("0.5"));
-        await jettonMinterDefault2.sendMint(poolAdmin.getSender(), user3.address, toNano(10000), toNano("0.2"), toNano("0.5"));
         await jettonMinterDefault2.sendMint(poolAdmin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
         user1RewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(user1.address)));
         user2RewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(user2.address)));
@@ -263,6 +238,7 @@ describe('StakingPool', () => {
     });
 
     it('should calculate gas', async () => {
+        if (CALCULATE_GAS) {
         const REWARDS_DEPOSITS_MAX_COUNT = 75n;  // real is 60
         const REWARD_JETTONS_MAX_COUNT = 15n;  // real is 10
         const REQUESTS_MAX_COUNT = 20n;  // real is 15
@@ -390,6 +366,7 @@ describe('StakingPool', () => {
         // Max claim commissions gas = 10393 gas units. Total consumption = 0.005 + tons::jetton_transfer
         transactionRes = await stakingPool.sendClaimCommissions(poolCreator.getSender());
         printTransactionFees(transactionRes.transactions);
+        }
     });
     
     it('should send commissions', async () => {

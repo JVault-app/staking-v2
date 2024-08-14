@@ -110,6 +110,8 @@ global int   storage::version;                 ;; Uint16. Version of the staking
     if (in_msg_body.slice_empty?()) { ;; ignore empty messages
         return ();
     }
+    
+    msg_value -= storage_fees();
 
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
