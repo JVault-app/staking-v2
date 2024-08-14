@@ -295,7 +295,7 @@ cell get_nft_content(int index, cell individual_content) method_id {
 
 slice get_nft_address_by_index(int index) method_id {
     load_data();
-    (_, slice pool_code_slice, _) = storage::pool_uninited_codes.udict_get_preveq?(128, index);
+    (_, slice pool_code_slice, _) = storage::pool_uninited_codes.udict_get_preveq?(32, index);
     cell pool_code = pool_code_slice~load_ref();
     cell state_init = calculate_pool_state_init(index,pool_code);
     return get_address_by_state_init(state_init);

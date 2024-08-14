@@ -44,7 +44,7 @@ export type PoolFactoryConfig = {
     collectionContent?: Maybe<Cell>;
     minRewardsCommission: bigint;
     unstakeFee: bigint;
-    feesWalletAddress: Address;
+    feesWalletAddress?: Address;
     creationFee: bigint;
     poolUninitedCodes: Dictionary<bigint, Cell>;
     poolInitedCode: Cell;
