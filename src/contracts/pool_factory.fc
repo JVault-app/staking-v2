@@ -183,7 +183,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
 
             if (inner_op = op::deploy_new_pool) {
                 throw_unless(exc::incorrect_jetton, equal_slices(sender_address, storage::fees_wallet_address));
-                throw_unless(exc::not_enough_jettons, transferred_jettons == storage::creation_fee);
+                throw_unless(exc::not_equal_creation_fee, transferred_jettons == storage::creation_fee);
                 
                 send_jettons(query_id, transferred_jettons, storage::admin_address, storage::admin_address, storage::fees_wallet_address, 
                              tons::jetton_transfer, mode::simple, 1, begin_cell().store_uint(0, 32).store_slice("JVault commission").end_cell());
@@ -267,7 +267,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
     
     if (op == op::withdraw_ton) {
         raw_reserve(tons::min_reserve, 0);
-        send_message_with_comment(storage::admin_address, 0, "TON withrawal", mode::carry_remaining_balance);
+        send_message_with_comment(storage::admin_address, 0, "TON withdrawal", mode::carry_remaining_balance);
         return ();
     }
 

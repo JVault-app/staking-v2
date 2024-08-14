@@ -3,11 +3,12 @@
 const int exc::out_of_gas                       = 13;
 const int exc::less_than_min_deposit            = 41;
 const int exc::more_than_max_deposit            = 42;
-const int exc::incorrect_jetton                 = 43;
 const int exc::tvl_limit_exceeded               = 44;
+const int exc::incorrect_jetton                 = 45;
 const int exc::not_enough_jettons               = 46;
 const int exc::incorrect_lock_period            = 47;
 const int exc::staking_not_started              = 48;
+const int exc::not_equal_creation_fee           = 49;
 const int exc::incorrect_sender                 = 50;
 const int exc::premint_closed                   = 52;
 const int exc::has_pending_request              = 56;
@@ -15,10 +16,10 @@ const int exc::user_not_in_wl                   = 57;
 const int exc::incorrect_distribution_period    = 58;
 const int exc::already_inited                   = 59;
 const int exc::not_inited                       = 60;
-const int exc::hashmap_overflow                 = 61;
+const int exc::rewards_deposits_overflow        = 61;
 
 const int exc::incorrect_rewards_commission     = 45;
-const int exc::incorrect_lock_periods           = 62;
+const int exc::incorrect_lock_periods           = 61;
 
 const int exc::discovery_fee_not_matched        = 75;
 
@@ -42,22 +43,22 @@ const int tons::deploy_minter         = 20000000;   ;; 0.02  TON
 
 ;; All gas consumtions were calculated for REWARD_JETTONS_MAX_COUNT = 76, REWARDS_DEPOSITS_MAX_COUNT = 16, UNSTAKE_REQUESTS_MAX_COUNT = 20 and slightly increased
 
-const int gas::stake_jettons = 21500;            ;; Actually 21296
-const int gas::request_update_rewards = 510000;  ;; Actually 500012. 
-;; const int gas::cancel_stake = 0;              ;; not needed as update_pool_rewards is more expensive
-const int gas::add_rewards = 21000;              ;; Actually 20784
-const int gas::claim_commissions = 10500;        ;; Actually 10393
-const int gas::send_unstaked_jettons = 7500;     ;; Actually 7480
-const int gas::send_claimed_rewards = 230000;    ;; Actually 229745
+const int gas::stake_jettons            = 21500;    ;; Actually 21296
+const int gas::request_update_rewards   = 510000;   ;; Actually 500012. 
+;; const int gas::cancel_stake          = 0;        ;; not needed as update_pool_rewards is more expensive
+const int gas::add_rewards              = 21000;    ;; Actually 20784
+const int gas::claim_commissions        = 10500;    ;; Actually 10393
+const int gas::send_unstaked_jettons    = 7500;     ;; Actually 7480
+const int gas::send_claimed_rewards     = 230000;   ;; Actually 229745
 
-const int gas::receive_from_pool = 13500;        ;; Actually 13246
-const int gas::receive_from_user = 25000;        ;; Actually 24908
-const int gas::update_rewards = 7300;            ;; Actually 7298
-const int gas::claim_rewards = 15000;            ;; Actually 14840
-const int gas::unstake_request = 20000;          ;; Actually 16759     
-const int gas::unstake_jettons = 65000;          ;; Actually < 60055
-const int gas::cancel_unstake = 60000;           ;; Actually 59352 
-const int gas::transfer_staked_jetton = 22000;   ;; Actually 21844 
+const int gas::receive_from_pool        = 13500;    ;; Actually 13246
+const int gas::receive_from_user        = 25000;    ;; Actually 24908
+const int gas::update_rewards           = 7300;     ;; Actually 7298
+const int gas::claim_rewards            = 15000;    ;; Actually 14840
+const int gas::unstake_request          = 20000;    ;; Actually 16759     
+const int gas::unstake_jettons          = 65000;    ;; Actually < 60055
+const int gas::cancel_unstake           = 60000;    ;; Actually 59352 
+const int gas::transfer_staked_jetton   = 22000;    ;; Actually 21844 
 
 
 {- OP-CODES -}

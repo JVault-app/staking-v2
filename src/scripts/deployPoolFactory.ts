@@ -18,8 +18,6 @@ export async function run(provider: NetworkProvider) {
 
     // await lockJettonMinter.sendDeploy(provider.sender(), toNano("0.05"));
 
-   
-    
     let feesJettonMinter = provider.open(JettonMinter.createFromConfig( // 0QAeREapb4fnlHq9ODCvhOTb1sWHs_vjBgroho_k-pIVnHV_
         {admin: provider.sender().address as Address, content: beginCell().storeUint(0, 32).endCell(), wallet_code: await compile('JettonWallet')}, await compile('JettonMinterDefault')));
         // await feesJettonMinter.sendMint(provider.sender(), provider.sender().address as Address, toNano(1000), toNano("0.2"), toNano("0.5"));
@@ -39,7 +37,7 @@ export async function run(provider: NetworkProvider) {
     //     minRewardsCommission: BigInt(0.005 * Number(Deviders.COMMISSION_DEVIDER)),  // 0.5%
     //     unstakeFee: toNano("0.3"),
     //     feesWalletAddress: randomAddress(),
-    //     creationFee: toNano("50"),
+    //     creationFee: toNano("25"),
     //     poolUninitedCodes: poolUninitedCodes,
     //     poolInitedCode: await compile('StakingPool'),
     //     stakeWalletCode: await compile('StakeWallet'),
@@ -47,12 +45,12 @@ export async function run(provider: NetworkProvider) {
     //     version: 0n 
     // }, await compile('PoolFactory')));
 
-    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("kQCFwlJa6nDtBAZYfk4nBaN0ria867qC0iWi5o2pS6apSJh4")))
+    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("kQCOcOStw8bZ5YDr3gL7eG6HfkkEndZ0DJgJhOf_RfUBWl6U")))
 
     let stakingPoolConfig: StakingPoolConfig = { // staking pool - kQCwcanqjhpNJ5GVucqn_hNo_7Bs6TbyUE6nmX8fWtvZ-fSC
         inited: false,
         poolId: 0n,
-        content: buildOnchainMetadata({name: "Boba", description: "Staking Boba", image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"}), //
+        content: buildOnchainMetadata({name: "Boba", description: "Staking Boba", image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png", uri: ""}), //
         factoryAddress: poolFactory.address,
         adminAddress: poolFactory.address,
         creatorAddress: provider.sender().address as Address,
@@ -68,8 +66,23 @@ export async function run(provider: NetworkProvider) {
         unstakeFee: toNano("0.3"),
         collectedCommissions: 0n,
         rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DEVIDER)),
-        rewardsDepositsCounter: 30n
+        // rewardsDepositsCounter: 30n
     }
+
+
+    // console.log((await poolFactory.getStorageData()).feesWalletAddress)
+
+    // console.log(await stakingPool.getData())
+
+    // await poolFactory.sendDeploy(provider.sender());
+
+    // await provider.waitForDeploy(poolFactory.address);
+
+    // await poolFactory.sendSetFeesWallet(provider.sender(), await feesJettonMinter.getWalletAddress(poolFactory.address));
+
+    // run methods on `poolFactory`
+
+    ///////////////// staking pool
 
     let stakingPool = provider.open(StakingPool.createFromConfig({poolId: 0n, factoryAddress: poolFactory.address}, await compile('StakingPoolUninited')));
 
@@ -83,16 +96,6 @@ export async function run(provider: NetworkProvider) {
     );
 
     await creatorFeesWallet.sendTransfer(
-        provider.sender(), toNano(50), poolFactory.address, provider.sender().address as Address, toNano("0.5"), deployPayload
+        provider.sender(), toNano(25), poolFactory.address, provider.sender().address as Address, toNano("0.5"), deployPayload
     )
-
-    // console.log(await stakingPool.getData())
-
-    // await poolFactory.sendDeploy(provider.sender());
-
-    // await provider.waitForDeploy(poolFactory.address);
-
-    // await poolFactory.sendSetFeesWallet(provider.sender(), await feesJettonMinter.getWalletAddress(poolFactory.address));
-
-    // run methods on `poolFactory`
 }
