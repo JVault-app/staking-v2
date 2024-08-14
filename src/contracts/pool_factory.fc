@@ -131,7 +131,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
                         .store_slice(my_address())
                         .store_slice(from_address)
                         .store_slice(lock_wallet_address)
-                        .store_dict(nft_content)
+                        .store_maybe_ref(nft_content)
                         .store_ref(storage::stake_wallet_code)  
                         .store_ref(
                             begin_cell()

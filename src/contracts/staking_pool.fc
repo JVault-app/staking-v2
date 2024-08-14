@@ -34,16 +34,16 @@ global int   storage::version;                 ;; Uint16. Version of the staking
 
 
 () load_data() impure inline {
-    slice ds = get_data().begin_parse();  ;; Bits = 32 + 267 + 267 + 1 + 267 + 8 = 834. Refs = 3.
-    storage::init?                  = ds~load_int(1);
-    storage::pool_id                = ds~load_uint(32);
-    storage::admin_address          = ds~load_msg_addr();
-    storage::creator_address        = ds~load_msg_addr();
-    storage::lock_wallet_address    = ds~load_msg_addr();
-    storage::nft_content            = ds~load_dict();
-    storage::stake_wallet_code      = ds~load_ref();
+    slice ds = get_data().begin_parse();  ;; Bits = 1 + 32 + 267 + 267 + 267 + 1 = 835. Refs = 3.
+    storage::init?                 = ds~load_int(1);
+    storage::pool_id               = ds~load_uint(32);
+    storage::admin_address         = ds~load_msg_addr();
+    storage::creator_address       = ds~load_msg_addr();
+    storage::lock_wallet_address   = ds~load_msg_addr();
+    storage::nft_content           = ds~load_maybe_ref();
+    storage::stake_wallet_code     = ds~load_ref();
 
-    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 8 + 1 + 1 + 124 + 124 + 16 + 16 = 787. Refs = 3.
+    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 8 + 8 + 1 + 1 + 124 + 124 + 16 + 16 = 795. Refs = 3.
     ds.end_parse();
 
     storage::tvl                    = ds2~load_coins();
@@ -72,7 +72,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
             .store_slice(storage::admin_address)
             .store_slice(storage::creator_address)
             .store_slice(storage::lock_wallet_address)
-            .store_dict(storage::nft_content)
+            .store_maybe_ref(storage::nft_content)
             .store_ref(storage::stake_wallet_code)
             .store_ref(
                 begin_cell()
@@ -335,7 +335,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
         return ();
     }
 
-    if (op == op::request_update_rewards) { ;; from stake wal op unstake request no comission ;; comp - 7297600 
+    if (op == op::request_update_rewards) { 
         raw_reserve(storage_fees(), 4);
 
         int  user_jetton_balance = in_msg_body~load_coins();
@@ -409,7 +409,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
         return ();
     }
 
-    if (op == op::send_claimed_rewards) { ;; 160151 - 64060400 - 0.065 for 1
+    if (op == op::send_claimed_rewards) {
         raw_reserve(storage_fees(), 4);
         int  user_jetton_balance = in_msg_body~load_coins();
         cell user_rewards_dict   = in_msg_body~load_dict();
@@ -418,7 +418,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
         (slice reward_jetton, _, int success) = jettons_to_claim.dict_get_min?(267);
         int required_gas = 0;
 
-        int should_update_rewards = false;  ;; надо ли удалять элементы из storage::reward_jettons для оптимизации? 
+        int should_update_rewards = false;  ;; should we delete elements from storage::reward_jettons? 
         while (success) {
             (slice rewards_info_slice, int jetton_exists) = storage::reward_jettons.dict_get?(267, reward_jetton);
             if (jetton_exists) {
@@ -488,6 +488,28 @@ global int   storage::version;                 ;; Uint16. Version of the staking
 }
 
 
+(int, int, slice, slice, cell) get_nft_data() method_id {
+    load_data();
+    ifnot(null?(storage::nft_content)) {
+        slice content_cs = storage::nft_content.begin_parse();
+        cell loaded_dict = content_cs~load_ref();
+        (slice uri, int success) = loaded_dict.udict_get?(256, "uri"H);
+        if (success) {
+            loaded_dict~udict_set_builder(256, "uri"H, begin_cell().store_slice(uri).store_number10(storage::pool_id));
+        }
+        return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, begin_cell().store_uint(0, 8).store_dict(loaded_dict).end_cell());
+    }
+    return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, storage::nft_content);
+}
+
+slice get_authority_address() method_id {
+    return null_addr();
+}
+
+int get_revoked_time() method_id {
+    return 0;
+}
+
 slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
     load_data();
     ifnot (null?(storage::whitelist)) {
@@ -507,21 +529,6 @@ slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
     cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, owner_address, lock_period, storage::stake_wallet_code);
     return get_address_by_state_init(state_init);
 }
-
-
-(int, int, slice, slice, cell) get_nft_data() method_id {
-    load_data();
-    return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, storage::nft_content);
-}
-
-slice get_authority_address() method_id {
-    return null_addr();
-}
-
-int get_revoked_time() method_id {
-    return 0;
-}
-
 
 (int, int, slice, slice, cell, slice, int, int, int, int, cell, int, int, cell, cell, int, int, int, int, int) get_storage_data() method_id {
     load_data();

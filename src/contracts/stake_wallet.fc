@@ -29,12 +29,12 @@ global int  init?;
 
 
 () load_data() impure inline {
-    slice ds = get_data().begin_parse();
+    slice ds = get_data().begin_parse();  ;; Bits = 267 + 267 + 267 = 801. Refs = 1.
     storage::staking_pool_address    = ds~load_msg_addr();
     storage::minter_address          = ds~load_msg_addr();
     storage::owner_address           = ds~load_msg_addr(); 
 
-    slice ds2 = ds~load_ref().begin_parse();
+    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 32 + 124 + 1 + 1 + 8 + 124 + 1 + 16 + 124 + 124 + 124 + 1 = 680. Refs = 3.
     ds.end_parse();
 
     storage::lock_period             = ds2~load_uint(32); 
@@ -330,7 +330,7 @@ global int  init?;
         return ();
     }
 
-    if (op == op::unstake_jettons) { ;; from tests (it should send unstaked jettons) - 11637 comp - 3095 fwd
+    if (op == op::unstake_jettons) {
         throw_unless(exc::has_pending_request, storage::is_active);
 
         int jettons_to_unstake = in_msg_body~load_coins();
@@ -455,12 +455,13 @@ global int  init?;
                                             .store_coins(forward_ton_amount)
                                             .store_coins(storage::jetton_balance)
                                             .store_dict(storage::rewards_dict)
-                                            .store_slice(in_msg_body)        ;; forward payload
+                                            .store_slice(in_msg_body)  ;; forward payload
                                         .end_cell()
                                     )
                                 .end_cell();
         cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, storage::minter_address, recipient, storage::lock_period, my_code());
-        send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::carry_remaining_gas); ;; 2357600
+
+        send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::carry_remaining_gas);
         
         storage::jetton_balance -= jetton_amount;
         storage::is_active = false;
