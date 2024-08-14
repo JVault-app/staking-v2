@@ -636,11 +636,13 @@ int equal_slices(slice a, slice b) asm "SDEQ";
 ;;; Concatenates two builders
 builder store_builder(builder to, builder from) asm "STBR";
 
-
 int send_message(cell msg, int mode) impure asm "SENDMSG";  ;; send message and get fee
 int gas_consumed() asm "GASCONSUMED";
 int get_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEE";
 int get_storage_fee(int workchain, int seconds, int bits, int cells) asm(cells bits seconds workchain) "GETSTORAGEFEE";
 int storage_fees() asm "STORAGEFEES";
 int get_forward_fee(int is_mc, int bits, int cells) asm(cells bits is_mc) "GETFORWARDFEE";  ;; "GETFORWARDFEESIMPLE";
+
+int get_original_fwd_fee(int workchain, int fwd_fee) asm(fwd_fee workchain) "GETORIGINALFWDFEE";
+
 cell my_code() asm "MYCODE";

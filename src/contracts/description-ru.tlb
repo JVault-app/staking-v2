@@ -125,6 +125,8 @@ staking_pool_storage$_
         min_deposit:Coins
         max_deposit:Coins
         reward_jettons:RewardJettons
+        reward_jettons_count:uint8
+        rewards_deposits_count:uint8
         lock_periods:LockPeriods
         whitelist:Whitelist
         unstake_fee:Coins
@@ -147,6 +149,7 @@ stake_wallet_storage$_
         jetton_balance:Coins
         rewards_dict:RewardsDict
         unstake_requests:UnstakeRequests
+        requests_counter:uint8
         total_requested_jettons:Coins
         is_active:Bool
         _:(Optional [
@@ -168,9 +171,11 @@ add_reward_jettons_msg#10676ae7
     query_id:uint64
     jetton_wallets_dict:(HashmapE 267 Bit)  // jetton_wallet_address (MsgAddress) -> nothing (int1)
 = InternalMsgBody;
-// В стейкинг-пуле проверяется, что запрос пришел с адреса создателя пула и обновляется словарь reward_jettons:
-// для каждого адреса из jetton_wallets_dict устанавливается значение distributed_rewards = 0, rewards_deposits = hme_empty,
-// если он до этого отсуствовал в reward_jettons (иначе ничего не происходит)
+// В стейкинг-пуле проверяется, что 
+// 1. Запрос пришел с адреса создателя пула
+// 2. reward_jettons_count < REWARD_JETTONS_MAX_COUNT
+// Если проверка успешная, то обновляется словарь reward_jettons: для каждого адреса из jetton_wallets_dict устанавливается
+// distributed_rewards = 0, rewards_deposits = hme_empty, если он до этого отсуствовал в reward_jettons (иначе ничего не происходит)
 
 // После сохранения адреса необходимого jetton_wallet создатель пула может отправить наградные жетоны:
 add_rewards_payload#db16ac95 start_time:uint32 end_time:uint32 = AddRewardsPayload;
@@ -179,7 +184,8 @@ add_rewards_transfer_msg$_ _:(JettonTransferMsg AddRewardsPayload) = InternalMsg
 // 1. К трансферу прикреплено достаточно газа
 // 2. Отправитель жетонов является создателем стейкинг-пула
 // 3. Transfer notification пришел от jetton_wallet, сохраненного в reward_jettons
-// 4. start_time >= now и end_time > start_time
+// 4. rewards_deposits_count < REWARDS_DEPOSITS_MAX_COUNT
+// 5. start_time >= now и end_time > start_time
 
 // Если проверка неуспешная, то жетоны возвращаются отправителю. Иначе в стейкинг-пуле обновляется словарь reward_jettons
 // (для соответствующего jetton_wallet в словарь rewards_deposits добавляется новый элемент, у которого
@@ -300,6 +306,7 @@ unstake_request#0168d4b7 query_id:uint64 jettons_to_unstake:Coins = InternalMsgB
 // 1. Сообщение пришло от владельца stake_wallet
 // 2. Газа достаточно как минимум на один обход словаря rewards_dict и отправку одного жетона.
 // 3. Кошелек активен (is_active == true)
+// 4. requests_count < UNSTAKE_REQUESTS_MAX_COUNT
 // 4. После обработки запроса jetton_balance не станет отрицательным
 
 // Если проверка успешная, то отправляется UpdateRequestMsg(tvl_change = - jettons_to_unstake, jettons_to_send = 0, commission = 0).

@@ -15,9 +15,10 @@ const int exc::user_not_in_wl                   = 57;
 const int exc::incorrect_distribution_period    = 58;
 const int exc::already_inited                   = 59;
 const int exc::not_inited                       = 60;
+const int exc::hashmap_overflow                 = 61;
 
 const int exc::incorrect_rewards_commission     = 45;
-const int exc::incorrect_lock_periods           = 61;
+const int exc::incorrect_lock_periods           = 62;
 
 const int exc::discovery_fee_not_matched        = 75;
 
@@ -25,24 +26,38 @@ const int exc::wrong_chain                      = 333;
 const int exc::unsupported_op                   = 0xffff;
 
 
-{- GAS (TODO) -}
-const int gas::min_reserve           = 20000000;   ;; 0.02  TON ✅
-const int gas::jetton_transfer       = 55000000;   ;; 0.055 TON ✅
-const int gas::burn_jettons          = 50000000;   ;; 0.05  TON ✅
+{- CONST TON VALUES -}
 
-const int gas::stake_jettons         = 155000000;  ;; 0.155 TON
-const int gas::unstake_jettons       = 155000000;  ;; 0.155 TON
-const int gas::create_staking_pool   = 150000000;  ;; 0.150 TON ✅
-const int gas::cancel_unstake        = 70000000;   ;; 0.07  TON ✅  
-const int gas::simple_update_request = 65000000;   ;; 0.065 TON ✅
-const int gas::add_rewards           = 65000000;   ;; 0.065 TON ✅
- 
-const int gas::save_updated_rewards  = 10000000;   ;; 0.01  TON ✅
-const int gas::min_excess            = 10000000;   ;; 0.01  TON ✅
-const int gas::send_staked_jettons   = 200000000;  ;; 0.2   TON ✅
+const int tons::min_reserve           = 10000000;   ;; 0.01  TON 
+const int tons::jetton_transfer       = 55000000;   ;; 0.055 TON 
+const int tons::burn_jettons          = 50000000;   ;; 0.05  TON 
 
-const int gas::deploy_pool           = 20000000;   ;; 0.02  TON ✅
-const int gas::deploy_minter         = 20000000;   ;; 0.02  TON ✅
+const int tons::create_staking_pool   = 150000000;  ;; 0.150 TON 
+const int tons::min_excess            = 10000000;   ;; 0.01  TON 
+const int tons::deploy_pool           = 20000000;   ;; 0.02  TON 
+const int tons::deploy_minter         = 20000000;   ;; 0.02  TON 
+
+
+{- GAS -}
+
+;; All gas consumtions were calculated for REWARD_JETTONS_MAX_COUNT = 76, REWARDS_DEPOSITS_MAX_COUNT = 16, UNSTAKE_REQUESTS_MAX_COUNT = 20 and slightly increased
+
+const int gas::stake_jettons = 21500;            ;; Actually 21296
+const int gas::request_update_rewards = 510000;  ;; Actually 500012. 
+;; const int gas::cancel_stake = 0;              ;; not needed as update_pool_rewards is more expensive
+const int gas::add_rewards = 21000;              ;; Actually 20784
+const int gas::claim_commissions = 10500;        ;; Actually 10393
+const int gas::send_unstaked_jettons = 7500;     ;; Actually 7480
+const int gas::send_claimed_rewards = 230000;    ;; Actually 229745
+
+const int gas::receive_from_pool = 13500;        ;; Actually 13246
+const int gas::receive_from_user = 25000;        ;; Actually 24908
+const int gas::update_rewards = 7300;            ;; Actually 7298
+const int gas::claim_rewards = 15000;            ;; Actually 14840
+const int gas::unstake_request = 20000;          ;; Actually 16759     
+const int gas::unstake_jettons = 65000;          ;; Actually < 60055
+const int gas::cancel_unstake = 60000;           ;; Actually 59352 
+const int gas::transfer_staked_jetton = 22000;   ;; Actually 21844 
 
 
 {- OP-CODES -}
@@ -113,3 +128,6 @@ const int distributed_rewards_devider   = 10000000000000000000000000000000000000
 const slice burn_address                = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
 const int WORKCHAIN                     = 0;
 const int ONE_TON                       = 1000000000;
+const int REWARD_JETTONS_MAX_COUNT      = 60;
+const int REWARDS_DEPOSITS_MAX_COUNT    = 127;
+const int UNSTAKE_REQUESTS_MAX_COUNT    = 127;

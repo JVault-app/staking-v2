@@ -45,20 +45,20 @@ export const OpCodes = {
 
 export const Gas = {
     MIN_RESERVE:            20000000n,   // 0.02  TON
-    DEPLOY_POOL:            120000000n,  // 0.12  TON
-    NOTIFICATION:           10000000n,   // 0.01  TON
+    DEPLOY_POOL:            300000000n,  // 0.12  TON
+    NOTIFICATION:           300000000n,   // 0.01  TON
     JETTON_TRANSFER:        55000000n,   // 0.055 TON
-    BURN_JETTONS:           50000000n,   // 0.05  TON
-    STAKE_JETTONS:          155000000n,  // 0.155 TON
-    UNSTAKE_JETTONS:        155000000n,  // 0.155 TON
-    CANCEL_UNSTAKE:         70000000n,   // 0.07  TON
-    SEND_COMMISSIONS:       120000000n,  // 0.12  TON
-    SIMPLE_UPDATE_REQUEST:  65000000n,   // 0.65  TON
-    ADD_REWARDS:            65000000n,   // 0.065 TON
-    APPROVE_TRANSFER:       20000000n,   // 0.02  TON
-    SAVE_UPDATED_REWARDS:   10000000n,   // 0.01  TON
+    BURN_JETTONS:           300000000n,   // 0.05  TON
+    STAKE_JETTONS:          300000000n,  // 0.155 TON
+    UNSTAKE_JETTONS:        300000000n,  // 0.155 TON
+    CANCEL_UNSTAKE:         300000000n,   // 0.07  TON
+    SEND_COMMISSIONS:       300000000n,  // 0.12  TON
+    SIMPLE_UPDATE_REQUEST:  300000000n,   // 0.065  TON
+    ADD_REWARDS:            300000000n,   // 0.065 TON
+    APPROVE_TRANSFER:       300000000n,   // 0.02  TON
+    SAVE_UPDATED_REWARDS:   300000000n,   // 0.01  TON
     MIN_EXCESS:             10000000n,   // 0.01  TON
-    SEND_STAKED_JETTONS:    200000000n,  // 0.2   TON
+    SEND_STAKED_JETTONS:    600000000n,  // 0.2   TON
 }
 
 export type AddrList = Dictionary<Address, Boolean>;

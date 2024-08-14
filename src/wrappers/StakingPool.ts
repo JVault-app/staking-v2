@@ -83,6 +83,8 @@ export type StakingPoolConfig = {
     tvl: bigint;
     tvlWithMultipliers: bigint;
     rewardJettons: Dictionary<Address, RewardJettonsValue> | null;
+    rewardJettonsCount?: bigint;
+    rewardsDepositsCount?: bigint;
     lockPeriods: Dictionary<number, LockPeriodsValue>;
     whitelist: AddrList | null;
     unstakeFee: bigint;
@@ -116,6 +118,8 @@ export function stakingPoolInitedData(config: StakingPoolConfig): Cell {
                         .storeCoins(config.minDeposit)
                         .storeCoins(config.maxDeposit)
                         .storeDict(config.rewardJettons, Dictionary.Keys.Address(), rewardJettonsValueParser())
+                        .storeUint(config.rewardJettonsCount ?? 0, 8)
+                        .storeUint(config.rewardsDepositsCount ?? 0, 8)
                         .storeDict(config.lockPeriods, Dictionary.Keys.Uint(32), lockPeriodsValueParser())
                         .storeDict(config.whitelist, Dictionary.Keys.Address(), Dictionary.Values.Bool())
                         .storeCoins(config.unstakeFee)
@@ -170,7 +174,7 @@ export class StakingPool implements Contract {
 
     async sendClaimCommissions(provider: ContractProvider, via: Sender, queryId?: number) {
         await provider.internal(via, {
-            value: Gas.JETTON_TRANSFER,
+            value: Gas.JETTON_TRANSFER + toNano('0.02'),
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().storeUint(OpCodes.CLAIM_COMMISSIONS, 32).storeUint(queryId ?? 0, 64).endCell()
         });
@@ -229,6 +233,17 @@ export class StakingPool implements Contract {
                 .endCell();
     }
 
+    async getData(provider: ContractProvider) {
+        let { stack } = await provider.get('get_nft_data', []);
+        return {
+            init: stack.readBoolean(),
+            index: stack.readBigNumber(),
+            collection: stack.readAddressOpt(),
+            owner: stack.readAddressOpt(),
+            content: stack.readCell()
+        }
+    }
+
     async getStorageData(provider: ContractProvider): Promise<StakingPoolConfig> {
         let { stack } = await provider.get('get_storage_data', []);
         let res: any = {
@@ -243,12 +258,15 @@ export class StakingPool implements Contract {
             minDeposit: stack.readBigNumber(),
             maxDeposit: stack.readBigNumber(),
             rewardJettons: stack.readCellOpt(),
+            rewardJettonsCount: stack.readBigNumber(),
+            rewardsDepositsCount: stack.readBigNumber(),
             lockPeriods: stack.readCellOpt(),
             whitelist: stack.readCellOpt(),
             unstakeFee: stack.readBigNumber(),
             collectedCommissions: stack.readBigNumber(),
             rewardsCommission: stack.readBigNumber(),
-            version: stack.readBigNumber()
+            version: stack.readBigNumber(),
+            rewardsDepositsCounter: stack.readBigNumber()
         }
         
         if (res.rewardJettons) {
