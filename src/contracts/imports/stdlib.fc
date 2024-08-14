@@ -636,15 +636,6 @@ int equal_slices(slice a, slice b) asm "SDEQ";
 ;;; Concatenates two builders
 builder store_builder(builder to, builder from) asm "STBR";
 
-(slice, int) ~retrieve_fwd_fee(slice in_msg_full_slice) inline {
-    in_msg_full_slice~load_msg_addr(); ;; skip dst
-    in_msg_full_slice~load_coins(); ;; skip value
-    in_msg_full_slice~skip_dict(); ;; skip extracurrency collection
-    in_msg_full_slice~load_coins(); ;; skip ihr_fee
-    int fwd_fee = in_msg_full_slice~load_coins();
-    return (in_msg_full_slice, fwd_fee);
-}
-
 int send_message(cell msg, int mode) impure asm "SENDMSG";  ;; send message and get fee
 int gas_consumed() asm "GASCONSUMED";
 int get_compute_fee(int workchain, int gas_used) asm(gas_used workchain) "GETGASFEE";

@@ -1,60 +1,64 @@
 #include "imports/stdlib.fc";
 #include "imports/constants.fc";
 #include "imports/utils.fc";
+#include "imports/gas.fc";
 
 
-global int   storage::init?;                 ;; Int1. Is lock wallet address set?
-global int   storage::pool_id;               ;; Uint32. Unique index for each pool factory;
-global slice storage::admin_address;         ;; MsgAddressStd. Address that will receive commissions;
-global slice storage::creator_address;       ;; MsgAddressStd. Address of this staking pool creator
-global slice storage::lock_wallet_address;   ;; MsgAddressStd. Address of jetton wallet for staking jetton
-global cell  storage::nft_content;           ;; HashmapE. Nft content
-global cell  storage::stake_wallet_code;     ;; Cell. Stake wallet code
+global int   storage::init?;                   ;; Int1. Is lock wallet address set?
+global int   storage::pool_id;                 ;; Uint32. Unique index for each pool factory;
+global slice storage::admin_address;           ;; MsgAddressStd. Address that will receive commissions;
+global slice storage::creator_address;         ;; MsgAddressStd. Address of this staking pool creator
+global slice storage::lock_wallet_address;     ;; MsgAddressStd. Address of jetton wallet for staking jetton
+global cell  storage::nft_content;             ;; HashmapE. Nft content
+global cell  storage::stake_wallet_code;       ;; Cell. Stake wallet code
 
-global int   storage::tvl;                   ;; Coins. Current TVL
-global int   storage::tvl_with_multipliers;  ;; Coins. Current TVL with multipliers taken into account
-global int   storage::min_deposit;           ;; Coins. Min staking deposit
-global int   storage::max_deposit;           ;; Coins. Max staking deposit
+global int   storage::tvl;                     ;; Coins. Current TVL
+global int   storage::tvl_with_multipliers;    ;; Coins. Current TVL with multipliers taken into account
+global int   storage::min_deposit;             ;; Coins. Min staking deposit
+global int   storage::max_deposit;             ;; Coins. Max staking deposit
 
-global cell  storage::reward_jettons;        ;; HashmapE. jetton_wallet_address (MsgAddressStd) -> distributed_rewards (uint256), HashmapE(index (uint32) -> distribution_speed (coins), start_time (uint32), end_time (uint32))
-global cell  storage::lock_periods;          ;; HashmapE. lock_period (uint32) -> cur_tvl (Coins), tvl_limit (Coins), reward_multiplier (uint16), deposit_commission (uint16), unstake_commission (uint16), minter_address (MsgAddressStd)
+global cell  storage::reward_jettons;          ;; HashmapE. jetton_wallet_address (MsgAddressStd) -> distributed_rewards (uint256), HashmapE(index (uint32) -> distribution_speed (coins), start_time (uint32), end_time (uint32))
+global int   storage::reward_jettons_count;    ;; Uint8. Current number of reward jettons
+global int   storage::rewards_deposits_count;  ;; Uint8. Current number of active rewards deposits      
 
-global cell  storage::whitelist;             ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
+global cell  storage::lock_periods;            ;; HashmapE. lock_period (uint32) -> cur_tvl (Coins), tvl_limit (Coins), reward_multiplier (uint16), deposit_commission (uint16), unstake_commission (uint16), minter_address (MsgAddressStd)
 
-global int   storage::unstake_fee;           ;; Coins. Const JVault's TON fee
-global int   storage::collected_commissions; ;; Coins. Commissions collected from instant unstakes  
+global cell  storage::whitelist;               ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
 
-global int   storage::rewards_commission;    ;; Uint16. JVault's commission as percent of staking rewards. Commission rate = commission_factor / commission_devider.
-global int   storage::version;               ;; Uint16. Version of the staking pool code
+global int   storage::unstake_fee;             ;; Coins. Const JVault's TON fee
+global int   storage::collected_commissions;   ;; Coins. Commissions collected from instant unstakes  
 
-global int   storage::rewards_deposits_counter;              
+global int   storage::rewards_commission;      ;; Uint16. JVault's commission as percent of staking rewards. Commission rate = commission_factor / commission_devider.
+global int   storage::version;                 ;; Uint16. Version of the staking pool code
+      
 
 
 () load_data() impure inline {
-    slice ds = get_data().begin_parse();  ;; Bits = 32 + 267 + 267 + 1 + 267 + 16 = 850. Refs = 3.
-    storage::init?                     = ds~load_int(1);
-    storage::pool_id                   = ds~load_uint(32);
-    storage::admin_address             = ds~load_msg_addr();
-    storage::creator_address           = ds~load_msg_addr();
-    storage::lock_wallet_address       = ds~load_msg_addr();
-    storage::nft_content               = ds~load_dict();
-    storage::stake_wallet_code         = ds~load_ref();
-    storage::rewards_deposits_counter   = ds~load_uint(16);
+    slice ds = get_data().begin_parse();  ;; Bits = 32 + 267 + 267 + 1 + 267 + 8 = 834. Refs = 3.
+    storage::init?                  = ds~load_int(1);
+    storage::pool_id                = ds~load_uint(32);
+    storage::admin_address          = ds~load_msg_addr();
+    storage::creator_address        = ds~load_msg_addr();
+    storage::lock_wallet_address    = ds~load_msg_addr();
+    storage::nft_content            = ds~load_dict();
+    storage::stake_wallet_code      = ds~load_ref();
 
-    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 1 + 1 + 124 + 124 + 16 + 16 = 779. Refs = 3.
+    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 124 + 124 + 124 + 124 + 1 + 8 + 1 + 1 + 124 + 124 + 16 + 16 = 787. Refs = 3.
     ds.end_parse();
 
-    storage::tvl                   = ds2~load_coins();
-    storage::tvl_with_multipliers  = ds2~load_coins();
-    storage::min_deposit           = ds2~load_coins();
-    storage::max_deposit           = ds2~load_coins();
-    storage::reward_jettons        = ds2~load_dict();
-    storage::lock_periods          = ds2~load_dict();
-    storage::whitelist             = ds2~load_dict();
-    storage::unstake_fee           = ds2~load_coins();
-    storage::collected_commissions = ds2~load_coins();
-    storage::rewards_commission    = ds2~load_uint(16);
-    storage::version               = ds2~load_uint(16);
+    storage::tvl                    = ds2~load_coins();
+    storage::tvl_with_multipliers   = ds2~load_coins();
+    storage::min_deposit            = ds2~load_coins();
+    storage::max_deposit            = ds2~load_coins();
+    storage::reward_jettons         = ds2~load_dict();
+    storage::reward_jettons_count   = ds2~load_uint(8);
+    storage::rewards_deposits_count = ds2~load_uint(8);
+    storage::lock_periods           = ds2~load_dict();
+    storage::whitelist              = ds2~load_dict();
+    storage::unstake_fee            = ds2~load_coins();
+    storage::collected_commissions  = ds2~load_coins();
+    storage::rewards_commission     = ds2~load_uint(16);
+    storage::version                = ds2~load_uint(16);
 
     ds2.end_parse();
 }
@@ -70,7 +74,6 @@ global int   storage::rewards_deposits_counter;
             .store_slice(storage::lock_wallet_address)
             .store_dict(storage::nft_content)
             .store_ref(storage::stake_wallet_code)
-            .store_uint(storage::rewards_deposits_counter, 16)
             .store_ref(
                 begin_cell()
                     .store_coins(storage::tvl)
@@ -78,6 +81,8 @@ global int   storage::rewards_deposits_counter;
                     .store_coins(storage::min_deposit)
                     .store_coins(storage::max_deposit)
                     .store_dict(storage::reward_jettons)
+                    .store_uint(storage::reward_jettons_count, 8)
+                    .store_uint(storage::rewards_deposits_count, 8)
                     .store_dict(storage::lock_periods)
                     .store_dict(storage::whitelist)
                     .store_coins(storage::unstake_fee)
@@ -130,7 +135,7 @@ global int   storage::rewards_deposits_counter;
             int inner_op = payload~load_uint(32);
 
             if (inner_op == op::stake_jettons) {
-                throw_unless(exc::out_of_gas, msg_value >= gas::stake_jettons);  ;; TODO
+                throw_unless(exc::out_of_gas, msg_value >= stake_required_gas(fwd_fee));
                 throw_unless(exc::not_inited, storage::init?);
                 throw_unless(exc::incorrect_jetton, equal_slices(sender_address, storage::lock_wallet_address));
                 ifnot (null?(storage::whitelist)) {
@@ -175,16 +180,22 @@ global int   storage::rewards_deposits_counter;
                 send_deploy_message(stake_wallet_address, 0, state_init, stake_payload, mode::carry_remaining_gas);
                 
                 save_data();
+
+                ~strdump("stake jettons");
+                int t = gas_consumed();
+                ~dump(gas_consumed());
+                ~dump(get_compute_fee(WORKCHAIN, t));
+
                 return ();
             } 
 
             elseif (inner_op == op::add_rewards) {
-                throw_unless(exc::out_of_gas, msg_value >= gas::add_rewards);
+                throw_unless(exc::out_of_gas, msg_value >= add_rewards_required_gas(fwd_fee));
                 throw_unless(exc::incorrect_sender, equal_slices(from_address, storage::creator_address));
                 (slice rewards_info_slice, int success) = storage::reward_jettons.dict_get?(267, sender_address);
                 throw_unless(exc::incorrect_jetton, success);
 
-                throw_unless(exc::rewards_deposits_overflow, storage::rewards_deposits_counter < REWARDS_DEPOSITS_MAX_COUNT);
+                throw_unless(exc::hashmap_overflow, storage::rewards_deposits_count < REWARDS_DEPOSITS_MAX_COUNT);
                 
                 int rewards_to_add = muldiv(transferred_jettons, commission_devider, commission_devider + storage::rewards_commission);
                 int commission = transferred_jettons - rewards_to_add;
@@ -200,14 +211,19 @@ global int   storage::rewards_deposits_counter;
                 max_index = success ? max_index + 1 : 0;
                 rewards_deposits~udict_set_builder(32, max_index, begin_cell().store_coins(distribution_speed).store_uint(start_time, 32).store_uint(end_time, 32));
 
-
                 storage::reward_jettons~dict_set_builder(267, sender_address, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
-                storage::rewards_deposits_counter += 1;
+                storage::rewards_deposits_count += 1;
 
                 send_jettons(query_id, commission, storage::admin_address, from_address, sender_address, 0, mode::carry_remaining_gas, 
                              1, begin_cell().store_uint(0, 32).store_slice("JVault's rewards commission").end_cell());
                 
                 save_data();
+
+                ~strdump("add rewards");
+                int t = gas_consumed();
+                ~dump(gas_consumed());
+                ~dump(get_compute_fee(WORKCHAIN, t));
+
                 return ();
             }
 
@@ -226,23 +242,33 @@ global int   storage::rewards_deposits_counter;
         (slice reward_jetton_wallet, _, int success) = wallets_dict.dict_get_min?(267);
         while (success) {
             force_same_workchain(reward_jetton_wallet);
-            storage::reward_jettons~dict_add_builder?(267, reward_jetton_wallet, begin_cell().store_int(0, 257));
+            if(storage::reward_jettons~dict_add_builder?(267, reward_jetton_wallet, begin_cell().store_int(0, 257))) {
+                storage::reward_jettons_count += 1;
+                throw_if(exc::hashmap_overflow, storage::reward_jettons_count > REWARD_JETTONS_MAX_COUNT);
+            };
             (reward_jetton_wallet, _, success) = wallets_dict.dict_get_next?(267, reward_jetton_wallet);
         }
 
+        send_excess(storage::creator_address, query_id, 0, mode::carry_remaining_gas | mode::ignore_errors);
         save_data();
         return ();
     }
 
     if (op == op::claim_commissions) {
+        throw_unless(exc::out_of_gas, msg_value >= claim_commissions_required_gas(fwd_fee));
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::creator_address));
-        throw_unless(exc::out_of_gas, msg_value >= gas::jetton_transfer);
 
         send_jettons(query_id, storage::collected_commissions, sender_address, sender_address, storage::lock_wallet_address, 0,
-                     mode::carry_remaining_gas, 1, begin_cell().store_uint(0, 32).store_slice("Unstake commissions claimed").end_cell());
+                     mode::carry_remaining_gas, 1, begin_cell().store_uint(0, 32).store_slice("Unstakes & deposits commissions claimed").end_cell());
         
         storage::collected_commissions = 0;        
         save_data();
+
+        ~strdump("Claim commissions");
+        int t = gas_consumed();
+        ~dump(gas_consumed());
+        ~dump(get_compute_fee(WORKCHAIN, t));
+
         return ();
     }
 
@@ -297,8 +323,6 @@ global int   storage::rewards_deposits_counter;
 
     force_stake_wallet(sender_address, my_address(), minter_address, stake_owner_address, lock_period, storage::stake_wallet_code);
     
-    ;; accept_message();  ;; accept message to prevent out of gas errors
-
     if (op == op::cancel_stake) {        
         int jettons_to_return = in_msg_body~load_coins();  ;; load transferred jettons excluding commission
         storage::lock_periods~udict_set_builder(32, lock_period, begin_cell().store_coins(period_tvl - jettons_to_return).store_slice(period_info_slice));
@@ -312,11 +336,13 @@ global int   storage::rewards_deposits_counter;
     }
 
     if (op == op::request_update_rewards) { ;; from stake wal op unstake request no comission ;; comp - 7297600 
+        raw_reserve(storage_fees(), 4);
+
         int  user_jetton_balance = in_msg_body~load_coins();
         int  tvl_change          = in_msg_body~load_int(121);
         cell user_rewards_dict   = in_msg_body~load_dict();
-        int jetton_to_send       = in_msg_body~load_coins();
-        int commission           = in_msg_body~load_coins();
+        int  jettons_to_unstake  = in_msg_body~load_coins();
+        int  commission          = in_msg_body~load_coins();
         if (in_msg_body.slice_bits()) {  ;; update request with forward
             sender_address = in_msg_body~load_msg_addr();
         }
@@ -353,18 +379,18 @@ global int   storage::rewards_deposits_counter;
             (reward_jetton, rewards_info_slice, success) = storage::reward_jettons.dict_get_next?(267, reward_jetton);
         }
 
-        int required_gas = 0;
-        if (jetton_to_send) {
+        if (jettons_to_unstake) {
+            int tmp = gas_consumed();
             if (commission) {
-                send_message_with_comment(storage::admin_address, storage::unstake_fee, "Unstake commission", mode::simple);
-                required_gas += storage::unstake_fee;
+                send_message_with_comment(storage::admin_address, storage::unstake_fee, "Unstake fee", mode::simple);
             }
             ;; update tvl for period only after unstaking, so user is able to cancel unstake requests
-            storage::lock_periods~udict_set_builder(32, lock_period, begin_cell().store_coins(period_tvl - jetton_to_send - commission).store_slice(period_info_slice));
+            storage::lock_periods~udict_set_builder(32, lock_period, begin_cell().store_coins(period_tvl - jettons_to_unstake - commission).store_slice(period_info_slice));
 
-            send_jettons(query_id, jetton_to_send, stake_owner_address, stake_owner_address, storage::lock_wallet_address, gas::jetton_transfer,
-                         mode::simple, 1, begin_cell().store_uint(0, 32).store_slice("Jettons unstaked").end_cell());
-            required_gas += gas::jetton_transfer;
+            send_jettons(query_id, jettons_to_unstake, stake_owner_address, stake_owner_address, storage::lock_wallet_address, tons::jetton_transfer,
+                         mode::pay_fees_separately, 1, begin_cell().store_uint(0, 32).store_slice("Jettons unstaked").end_cell());
+            ~strdump("unstake jettons");
+            ~dump(gas_consumed() - tmp);
         }
         if (tvl_change) {
             storage::tvl += tvl_change;
@@ -372,23 +398,19 @@ global int   storage::rewards_deposits_counter;
         }
         storage::collected_commissions += commission;
 
-        ~strdump("req_upd_rew"); ;; done
-        ~dump(gas_consumed());
-
-        required_gas += get_compute_fee(WORKCHAIN, gas::save_updated_rewards);
-
-        msg_value = max(msg_value - required_gas, gas::save_updated_rewards);
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
-        send_builder_message(sender_address, msg_value, payload, mode::simple);
-        
+        send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance);
+
         save_data();
+        ~strdump("request update rewards");
+        int t = gas_consumed();
+        ~dump(gas_consumed());
+        ~dump(get_compute_fee(WORKCHAIN, t));
         return ();
     }
 
     if (op == op::send_claimed_rewards) { ;; 160151 - 64060400 - 0.065 for 1
-        raw_reserve(0, 4);
-        ~strdump("send_claimed_rewards");
-        ~dump(msg_value);
+        raw_reserve(storage_fees(), 4);
         int  user_jetton_balance = in_msg_body~load_coins();
         cell user_rewards_dict   = in_msg_body~load_dict();
         cell jettons_to_claim    = in_msg_body~load_dict();  ;; HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
@@ -413,7 +435,7 @@ global int   storage::rewards_deposits_counter;
                         int end_time = rewards_deposit_slice~load_uint(32);
                         if (end_time <= time_now) {
                             rewards_deposits~udict_delete?(32, index);
-                            storage::rewards_deposits_counter -= 1;
+                            storage::rewards_deposits_count -= 1;
                             time_now = end_time;
                             should_update_rewards = true;
                             should_update_rewards2 = true;
@@ -434,8 +456,8 @@ global int   storage::rewards_deposits_counter;
                 int new_user_rewards = muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_devider);
                 
                 required_gas += send_jettons(query_id, new_user_rewards + prev_user_unclaimed_rewards, stake_owner_address, stake_owner_address, reward_jetton, 
-                                             gas::jetton_transfer, mode::pay_fees_separately, 1, begin_cell().store_uint(0, 32).store_slice("Claim staking rewards").end_cell());
-                required_gas += gas::jetton_transfer;
+                                             tons::jetton_transfer, mode::pay_fees_separately, 1, begin_cell().store_uint(0, 32).store_slice("Claim staking rewards").end_cell());
+                required_gas += tons::jetton_transfer;
                 if (should_update_rewards2) {
                     storage::reward_jettons~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
                 }
@@ -448,12 +470,17 @@ global int   storage::rewards_deposits_counter;
         }
 
         builder payload = begin_cell().store_uint(op::update_rewards, 32).store_uint(query_id, 64).store_dict(user_rewards_dict);
-        ;; required_gas += get_compute_fee(0, gas_consumed() + 1000);
-        ~strdump("Send Claimed Rewards"); ;; !!!!!!!!!!!!!!!
-        ~dump(12 * fwd_fee + get_compute_fee(0, 177480) + gas::jetton_transfer); ;; 189577612
     
-        throw_unless(exc::out_of_gas, msg_value >= gas::save_updated_rewards);
-        send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance);  
+        required_gas += send_builder_message(sender_address, 0, payload, mode::carry_remaining_balance); 
+
+        required_gas += get_compute_fee(WORKCHAIN, gas::update_rewards + gas_consumed() + 200);
+        throw_unless(exc::out_of_gas, msg_value >= required_gas);
+        
+        ~strdump("send claimed rewards");
+        int t = gas_consumed();
+        ~dump(gas_consumed());
+        ~dump(get_compute_fee(WORKCHAIN, t));
+ 
         return ();
     }
     
@@ -496,7 +523,7 @@ int get_revoked_time() method_id {
 }
 
 
-(int, int, slice, slice, cell, slice, int, int, int, int, cell, cell, cell, int, int, int, int, int) get_storage_data() method_id {
+(int, int, slice, slice, cell, slice, int, int, int, int, cell, int, int, cell, cell, int, int, int, int, int) get_storage_data() method_id {
     load_data();
     return (
         storage::init?,
@@ -510,12 +537,14 @@ int get_revoked_time() method_id {
         storage::min_deposit,
         storage::max_deposit,
         storage::reward_jettons,
+        storage::reward_jettons_count,
+        storage::rewards_deposits_count,
         storage::lock_periods,
         storage::whitelist,
         storage::unstake_fee,
         storage::collected_commissions,
         storage::rewards_commission,
         storage::version,
-        storage::rewards_deposits_counter
+        storage::rewards_deposits_count
     );
 }

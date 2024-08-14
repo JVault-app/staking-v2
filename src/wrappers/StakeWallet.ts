@@ -1,4 +1,4 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, toNano } from '@ton/core';
 import { AddrList, Gas, OpCodes } from './imports/constants';
 import { Maybe } from '@ton/core/dist/utils/maybe';
 import { StakingPool } from './StakingPool';
@@ -28,6 +28,7 @@ export type StakeWalletConfig = {
     jettonBalance: bigint;
     rewardsDict: Dictionary<Address, UserRewardsDictValue>;
     unstakeRequests: Dictionary<number, bigint>;
+    requestsCount: bigint;
     totalRequestedJettons: bigint;
     isActive: boolean;
     unstakeCommission: bigint;
@@ -52,7 +53,7 @@ export function stakeWalletConfigToCell(config: StakeWalletUninitedConfig | Stak
             .storeRef(
                 beginCell()
                     .storeUint(config.lockPeriod, 32)
-                    .storeUint(1, 11)
+                    .storeUint(1, 19)
                 .endCell()
             )
         .endCell();
@@ -232,6 +233,7 @@ export class StakeWallet implements Contract {
             jettonBalance: stack.readBigNumber(),
             rewardsDict: stack.readCellOpt(),
             unstakeRequests: stack.readCellOpt(),
+            requestsCount: stack.readBigNumber(),
             totalRequestedJettons: stack.readBigNumber(),
             isActive: stack.readBoolean(),
             unstakeCommission: stack.readBigNumber(),
