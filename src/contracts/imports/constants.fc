@@ -16,10 +16,10 @@ const int exc::user_not_in_wl                   = 57;
 const int exc::incorrect_distribution_period    = 58;
 const int exc::already_inited                   = 59;
 const int exc::not_inited                       = 60;
-const int exc::rewards_deposits_overflow        = 61;
+const int exc::hashmap_overflow                 = 61;
 
-const int exc::incorrect_rewards_commission     = 45;
-const int exc::incorrect_lock_periods           = 61;
+const int exc::incorrect_rewards_commission     = 62;
+const int exc::incorrect_lock_periods           = 63;
 
 const int exc::discovery_fee_not_matched        = 75;
 
