@@ -200,20 +200,13 @@ global int  init?;
             }
     
             send_excess(response_address, query_id, 0, mode::carry_remaining_balance | mode::ignore_errors);
-            ~strdump("stake_wallet: receive from user");
         }
         else {  
             send_update_request(0, received_jettons, deposit_commission, query_id, 0, mode::carry_remaining_balance);
-            ~strdump("stake_wallet: receive from pool");
         }
 
         storage::jetton_balance += received_jettons;
         save_data();
-
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-
         return ();
     }
 
@@ -239,12 +232,6 @@ global int  init?;
         send_excess(storage::owner_address, query_id, 0, mode::carry_remaining_gas | mode::ignore_errors);
         
         save_data();
-        
-        ~strdump("stake_wallet: save updated rewards");
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-        
         return ();
     }
 
@@ -288,12 +275,6 @@ global int  init?;
         
         storage::is_active = false;
         save_data();
-
-        ~strdump("stake_wallet: claim rewards");
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-
         return ();
     }
 
@@ -321,12 +302,6 @@ global int  init?;
         storage::unstake_requests~udict_set_builder(32, now(), begin_cell().store_coins(jettons_to_unstake));
 
         save_data();
-
-        ~strdump("stake_wallet: unstake_request");
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-
         return ();
     }
 
@@ -382,12 +357,6 @@ global int  init?;
         storage::total_requested_jettons -= (jettons_to_unstake - forced_jettons);
         storage::jetton_balance -= forced_jettons;
         save_data();
-
-        ~strdump("stake_wallet: unstake jettons");
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-
         return ();
     }
 
@@ -413,12 +382,6 @@ global int  init?;
         storage::jetton_balance += jettons_to_cancel;
         storage::total_requested_jettons -= jettons_to_cancel;
         save_data();
-
-        ~strdump("stake_wallet: cancel unstake");
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-
         return ();
     }
 
@@ -466,12 +429,6 @@ global int  init?;
         storage::jetton_balance -= jetton_amount;
         storage::is_active = false;
         save_data();
-
-        ~strdump("stake_wallet: transfer jettons");
-        int t = gas_consumed();
-        ~dump(gas_consumed());
-        ~dump(get_compute_fee(WORKCHAIN, t));
-
         return ();
     }
     
