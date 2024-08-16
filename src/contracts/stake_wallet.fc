@@ -127,8 +127,7 @@ global int  init?;
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     slice sender_address = cs~load_msg_addr();
-    int fwd_fee_from_in_msg = cs~retrieve_fwd_fee();
-    int fwd_fee = get_original_fwd_fee(WORKCHAIN, fwd_fee_from_in_msg); 
+    int max_fwd_fee = muldiv(get_forward_fee(WORKCHAIN, UPDATE_MSG_BITS, UPDATE_MSG_CELLS), 3, 2); 
 
     if (flags & 1) {  ;; bounced messages
         in_msg_body~skip_bits(32);
@@ -184,7 +183,7 @@ global int  init?;
             cell  sender_rewards   = payload~load_dict();
 
             ;; this order of update messages is used for preventing race condition
-            int request_update_tons = update_request_required_gas(fwd_fee);
+            int request_update_tons = update_request_required_gas(max_fwd_fee);
             send_update_request_with_forward(sender_balance, sender_rewards, sender_address, query_id, request_update_tons, mode::pay_fees_separately);
             send_update_request(0, 0, 0, query_id, request_update_tons, mode::pay_fees_separately);
             
@@ -257,7 +256,7 @@ global int  init?;
     throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::owner_address));
 
     if (op == op::claim_rewards) {
-        throw_unless(exc::out_of_gas, msg_value >= claim_rewards_required_gas(fwd_fee) + tons::jetton_transfer);
+        throw_unless(exc::out_of_gas, msg_value >= claim_rewards_required_gas(max_fwd_fee) + tons::jetton_transfer);
         throw_unless(exc::has_pending_request, storage::is_active);
         
         cell payload = begin_cell()
@@ -279,7 +278,7 @@ global int  init?;
     }
 
     if (op == op::unstake_request) {
-        throw_unless(exc::out_of_gas, msg_value >= unstake_request_required_gas(fwd_fee));
+        throw_unless(exc::out_of_gas, msg_value >= unstake_request_required_gas(max_fwd_fee));
         throw_unless(exc::has_pending_request, storage::is_active);
         throw_unless(exc::hashmap_overflow, storage::requests_count < UNSTAKE_REQUESTS_MAX_COUNT);
 
@@ -312,9 +311,9 @@ global int  init?;
         int force_unstake = in_msg_body~load_uint(1);
         in_msg_body.end_parse();
 
-        throw_unless(exc::out_of_gas, msg_value >= unstake_jettons_required_gas(fwd_fee) + force_unstake * storage::unstake_fee);
+        throw_unless(exc::out_of_gas, msg_value >= unstake_jettons_required_gas(max_fwd_fee) + force_unstake * storage::unstake_fee);
         throw_unless(exc::not_enough_jettons, jettons_to_unstake <= storage::total_requested_jettons + force_unstake * storage::jetton_balance);
-        
+
         int jettons_to_send = 0;
         int forced_jettons = jettons_to_unstake;
         (int request_time, slice requested_jettons_slice, int success) = storage::unstake_requests.udict_get_preveq?(32, now() - storage::lock_period);
@@ -361,7 +360,7 @@ global int  init?;
     }
 
     if (op == op::cancel_unstake_request) { 
-        throw_unless(exc::out_of_gas, msg_value >= cancel_unstake_required_gas(fwd_fee));
+        throw_unless(exc::out_of_gas, msg_value >= cancel_unstake_required_gas(max_fwd_fee));
         throw_unless(exc::has_pending_request, storage::is_active);
 
         int jettons_to_cancel = 0;
@@ -399,7 +398,7 @@ global int  init?;
         slice response_address = in_msg_body~load_msg_addr();
         in_msg_body~skip_dict();
         int forward_ton_amount = in_msg_body~load_coins();
-        throw_unless(exc::out_of_gas, msg_value >= jetton_transfer_required_gas(fwd_fee, forward_ton_amount));
+        throw_unless(exc::out_of_gas, msg_value >= jetton_transfer_required_gas(max_fwd_fee, forward_ton_amount));
                 
         cell transfer_payload = begin_cell()  ;; Bits = 32 + 64 + 124 + 124 + 16 + 124 + 1 + 124 + 4 + 267 = 880
                                     .store_uint(op::receive_jettons, 32)

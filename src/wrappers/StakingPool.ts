@@ -266,7 +266,6 @@ export class StakingPool implements Contract {
             collectedCommissions: stack.readBigNumber(),
             rewardsCommission: stack.readBigNumber(),
             version: stack.readBigNumber(),
-            rewardsDepositsCounter: stack.readBigNumber()
         }
         
         if (res.rewardJettons) {

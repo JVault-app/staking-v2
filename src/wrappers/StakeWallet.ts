@@ -256,4 +256,27 @@ export class StakeWallet implements Contract {
         let k: StakeWalletConfig = res;
         return k;
     }
+
+    async getRewardsDict(provider: ContractProvider): Promise<Cell> {
+        let { stack } = await provider.get('get_storage_data', []);
+
+        let res: any = { 
+            stakingPoolAddress: stack.readAddress(),
+            ownerAddress: stack.readAddress(),
+            lockPeriod: stack.readBigNumber(),
+            jettonBalance: stack.readBigNumber(),
+            rewardsDict: stack.readCellOpt(),
+            unstakeRequests: stack.readCellOpt(),
+            requestsCount: stack.readBigNumber(),
+            totalRequestedJettons: stack.readBigNumber(),
+            isActive: stack.readBoolean(),
+            unstakeCommission: stack.readBigNumber(),
+            unstakeFee: stack.readBigNumber(),
+            minDeposit: stack.readBigNumber(),
+            maxDeposit: stack.readBigNumber(),
+            whitelist: stack.readCellOpt(),
+            minterAddress: stack.readAddress()
+        }
+        return res.rewardsDict;
+    }
 }

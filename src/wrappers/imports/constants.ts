@@ -40,25 +40,26 @@ export const OpCodes = {
     SEND_COMMISSIONS:      0XB96ADAEA,
     SET_CODE:              0xe2d2d211,
     CHANGE_CREATION_FEE:   0x66D5528B,
-    CHANGE_CONTENT:        0x0ec29200
+    CHANGE_CONTENT:        0x0ec29200,
+    UPDATE_CODES:          0x85c923cf,
 };
 
 export const Gas = {
-    MIN_RESERVE:            20000000n,   // 0.02  TON
-    DEPLOY_POOL:            300000000n,  // 0.12  TON
-    NOTIFICATION:           300000000n,   // 0.01  TON
-    JETTON_TRANSFER:        55000000n,   // 0.055 TON
-    BURN_JETTONS:           300000000n,   // 0.05  TON
-    STAKE_JETTONS:          300000000n,  // 0.155 TON
-    UNSTAKE_JETTONS:        300000000n,  // 0.155 TON
-    CANCEL_UNSTAKE:         300000000n,   // 0.07  TON
-    SEND_COMMISSIONS:       300000000n,  // 0.12  TON
-    SIMPLE_UPDATE_REQUEST:  300000000n,   // 0.065  TON
-    ADD_REWARDS:            300000000n,   // 0.065 TON
-    APPROVE_TRANSFER:       300000000n,   // 0.02  TON
-    SAVE_UPDATED_REWARDS:   300000000n,   // 0.01  TON
-    MIN_EXCESS:             10000000n,   // 0.01  TON
-    SEND_STAKED_JETTONS:    600000000n,  // 0.2   TON
+    MIN_RESERVE:            20000000n,  
+    DEPLOY_POOL:            340000000n, 
+    NOTIFICATION:           340000000n, 
+    JETTON_TRANSFER:        55000000n,   
+    BURN_JETTONS:           340000000n,   
+    STAKE_JETTONS:          340000000n,  
+    UNSTAKE_JETTONS:        340000000n, 
+    CANCEL_UNSTAKE:         340000000n, 
+    SEND_COMMISSIONS:       340000000n,
+    SIMPLE_UPDATE_REQUEST:  340000000n,
+    ADD_REWARDS:            340000000n,
+    APPROVE_TRANSFER:       340000000n,
+    SAVE_UPDATED_REWARDS:   340000000n,
+    MIN_EXCESS:             10000000n,
+    SEND_STAKED_JETTONS:    630000000n,
 }
 
 export type AddrList = Dictionary<Address, Boolean>;

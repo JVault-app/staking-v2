@@ -1,11 +1,11 @@
 int update_request_required_gas(int fwd_fee) inline {
     ;; request_update_rewards -> update_rewards -> excess [optional]
-    return fwd_fee + get_compute_fee(WORKCHAIN, gas::request_update_rewards + gas::update_rewards);
+    return fwd_fee + tons::min_reserve + get_compute_fee(WORKCHAIN, gas::request_update_rewards + gas::update_rewards);
 }
 
 int stake_required_gas(int fwd_fee) inline {
     ;; stake_jettons -> receive_jettons -> request_update_rewards -> update_rewards -> excess [optional]
-    return 3 * fwd_fee + get_compute_fee(WORKCHAIN, gas::stake_jettons + gas::receive_from_pool + gas::request_update_rewards + gas::update_rewards);
+    return 3 * fwd_fee + tons::min_reserve + get_compute_fee(WORKCHAIN, gas::stake_jettons + gas::receive_from_pool + gas::request_update_rewards + gas::update_rewards);
 }
 
 int add_rewards_required_gas(int fwd_fee) inline {
@@ -20,26 +20,26 @@ int claim_commissions_required_gas(int fwd_fee) inline {
 
 int claim_rewards_required_gas(int fwd_fee) inline {
     ;; claim_rewards -> send_claimed_rewards -> update_rewards -> excess [optional]
-    return 2 * fwd_fee + get_compute_fee(WORKCHAIN, gas::claim_rewards + gas::send_claimed_rewards + gas::update_rewards);
+    return 2 * fwd_fee + tons::min_reserve + get_compute_fee(WORKCHAIN, gas::claim_rewards + gas::send_claimed_rewards + gas::update_rewards);
 }
 
 int unstake_request_required_gas(int fwd_fee) inline {
     ;; unstake_request -> request_update_rewards -> update_rewards -> excess [optional]
-    return 2 * fwd_fee + get_compute_fee(WORKCHAIN, gas::unstake_request + gas::request_update_rewards + gas::update_rewards);
+    return 2 * fwd_fee + tons::min_reserve + get_compute_fee(WORKCHAIN, gas::unstake_request + gas::request_update_rewards + gas::update_rewards);
 }
 
 int unstake_jettons_required_gas(int fwd_fee) inline {
     ;; unstake_jettons -> request_update_rewards (with unstake) -> update_rewards & jetton_transfer -> excess [optional]
-    return 3 * fwd_fee + tons::jetton_transfer + get_compute_fee(WORKCHAIN, gas::unstake_jettons + gas::request_update_rewards + gas::send_unstaked_jettons + gas::update_rewards);
+    return 3 * fwd_fee + tons::min_reserve + tons::jetton_transfer + get_compute_fee(WORKCHAIN, gas::unstake_jettons + gas::request_update_rewards + gas::send_unstaked_jettons + gas::update_rewards);
 }
 
 int cancel_unstake_required_gas(int fwd_fee) inline {
     ;; cancel_unstake_request -> request_update_rewards -> update_rewards -> excess [optional]
-    return 2 * fwd_fee + get_compute_fee(WORKCHAIN, gas::cancel_unstake + gas::request_update_rewards + gas::update_rewards);
+    return 2 * fwd_fee + tons::min_reserve + get_compute_fee(WORKCHAIN, gas::cancel_unstake + gas::request_update_rewards + gas::update_rewards);
 }
 
 int jetton_transfer_required_gas(int fwd_fee, int forward_ton) inline {
     ;; transfer_jetton -> receive_from_user -> 2 * request_update_rewards & forward_ton [optional] -> 2 * update_rewards -> excess [optional]
     forward_ton += forward_ton ? fwd_fee : 0;
-    return forward_ton + fwd_fee + get_compute_fee(WORKCHAIN, gas::transfer_staked_jetton + gas::receive_from_user + 2 * (gas::request_update_rewards + gas::update_rewards));
+    return forward_ton + fwd_fee + 2 * tons::min_reserve + get_compute_fee(WORKCHAIN, gas::transfer_staked_jetton + gas::receive_from_user + 2 * (gas::request_update_rewards + gas::update_rewards));
 }

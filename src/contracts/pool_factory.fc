@@ -229,8 +229,16 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
         return ();
     }
 
-    if (op == op::update_pool_code) {
+    if (op == op::update_uninited_code) {
         storage::pool_uninited_codes~udict_set_ref(128, storage::next_pool_id, in_msg_body~load_ref());
+        save_data();
+        return ();
+    }
+
+    if (op == op::update_codes) {
+        storage::pool_inited_code = in_msg_body~load_ref();
+        storage::stake_wallet_code = in_msg_body~load_ref();
+        storage::jetton_minter_code = in_msg_body~load_ref();
         save_data();
         return ();
     }

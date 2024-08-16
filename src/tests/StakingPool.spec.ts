@@ -9,6 +9,27 @@ import { JettonWallet } from '../wrappers/JettonWallet';
 import { findTransactionRequired, randomAddress } from '@ton/test-utils';
 import { AddrList, Deviders, Gas, OpCodes } from '../wrappers/imports/constants';
 
+
+export function collectCellStats(cell: Cell, visited:Array<string>, skipRoot: boolean = false) {
+    let bits  = skipRoot ? 0 : cell.bits.length;
+    let cells = skipRoot ? 0 : 1;
+    let hash = cell.hash().toString();
+    if (visited.includes(hash)) {
+        // We should not account for current cell data if visited
+        return {cells: 0, bits: 0};
+    }
+    else {
+        visited.push(hash);
+    }
+    for (let ref of cell.refs) {
+        let r = collectCellStats(ref, visited);
+        cells += r.cells;
+        bits += r.bits;
+    }
+    return {bits: bits, cells: cells};
+}
+
+
 describe('StakingPool', () => {
     let jettonMinterDefaultCode: Cell;
     let jettonWalletCode: Cell;
@@ -255,7 +276,8 @@ describe('StakingPool', () => {
         }
 
         let transactionRes = await stakingPool.sendAddRewardJettons(poolCreator.getSender(), rewardJettonsList);
-
+        printTransactionFees(transactionRes.transactions);
+        
         let rewardsToAdd = 1000n;
         let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Deviders.COMMISSION_DEVIDER;
         let distributionPeriod = 1000
@@ -275,12 +297,16 @@ describe('StakingPool', () => {
                 poolCreator.getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
                 StakingPool.addRewardsPayload(blockchain.now!!, blockchain.now!! + distributionPeriod)
             );
+            expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+            expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
         }
         for (let w of creatorRewardsWallets) {
             let transactionRes = await w.sendTransfer(
                 poolCreator.getSender(), rewardsToAdd + rewardsCommission, stakingPool.address, poolCreator.address, Gas.ADD_REWARDS,
                 StakingPool.addRewardsPayload(blockchain.now!!, blockchain.now!! + distributionPeriod)
             );
+            expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+            expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
         }
 
         // v2 -- deposits are distributed evenly
@@ -295,14 +321,16 @@ describe('StakingPool', () => {
 
         expect((await stakingPool.getStorageData()).rewardsDepositsCount).toEqual(REWARDS_DEPOSITS_MAX_COUNT + 1n) // check counter
         
-        // Max request unstake gas = 16759 + 500012 + 7298 = 524061 gas units. Total consumption = 0.22 TON.
+        // Max request unstake gas = 16759 + 500012 + 7040 = 524061 gas units. Total consumption = 0.22 TON.
         for (let i = 0; i < REQUESTS_MAX_COUNT; ++i) {
             blockchain.now!! += 1;
             transactionRes = await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), 10n);
-        }
+            expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+            expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
+          }
         printTransactionFees(transactionRes.transactions);
 
-        // Max cancel unstake request gas = 59352 + 500012 + 7298 = 566662 gas units. Total consumption = 0.22 TON.
+        // Max cancel unstake request gas = 59352 + 500012 + 7040 = 566662 gas units. Total consumption = 0.23 TON.
         blockchain.now!! += 1;
         let requestsToCancel: Dictionary<number, boolean> = Dictionary.empty();
         for (let i = 0; i < REQUESTS_MAX_COUNT; ++i) {
@@ -310,14 +338,16 @@ describe('StakingPool', () => {
         }
         transactionRes = await stakeWallet1_1.sendCancelUnstakeRequest(user1.getSender(), requestsToCancel);
         printTransactionFees(transactionRes.transactions)
-        
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
+
         let startUnstakeTime = blockchain.now!!;
         for (let i = 0; i < REQUESTS_MAX_COUNT; ++i) {
             blockchain.now!! += 1;
             transactionRes = await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), 10n);
         }
 
-        // Max stake gas = 21396 + 13246 + 500012 + 7298 = 541952 gas units. Total consumption = 0.241 TON + tons::jetton_transfer
+        // Max stake gas = 21396 + 13124 + 500012 + 7040 = 541572 gas units. Total consumption = 0.241 TON + tons::jetton_transfer
         blockchain.now!! += 1;
         let jettonsToStake1 = 40n;
         let lockPeriod1 = 60;
@@ -327,6 +357,8 @@ describe('StakingPool', () => {
             StakingPool.stakePayload(lockPeriod1)
         );
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
 
         // New stake wallet deployment is cheaper as it has null rewards dict
         transactionRes = await user1LockWallet.sendTransfer(
@@ -334,20 +366,27 @@ describe('StakingPool', () => {
             StakingPool.stakePayload(60 * 60 * 24)
         );
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
 
 
-        // Max claim rewards gas = 14840 + 229745 + 7298 = 251883 gas units. Total consumption = 0.275 TON + jettons_to_claim * (tons::jetton_transfer + fwd_fee)
+        // Max claim rewards gas = 14887 + 229745 + 7040 = 251672 gas units. Total consumption = 0.275 TON + jettons_to_claim * (tons::jetton_transfer + fwd_fee)
         blockchain.now!! += 1;
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
 
-        // Max send staked jettons gas = 21844 + 24908 + (500012 + 7298) * 2 = 1061372. Total consumption = 0.471 TON + forwad_ton_amount
+        // Max send staked jettons gas = 21463 + 24908 + (500012 + 7040) * 2 = 1060475. Total consumption = 0.471 TON + forwad_ton_amount
         blockchain.now!! += 1;
         transactionRes = await stakeWallet1_1.sendTransfer( 
             user1.getSender(), 80n, user2.address, user1.address, toNano(0.1),
             beginCell().storeUint(0, 32).storeStringTail("test").endCell()
         );
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
+
         stakeWallet2_1 = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user2.address, lockPeriod1))!!));
         blockchain.now!! += 1;
         transactionRes = await stakeWallet2_1.sendTransfer( 
@@ -355,17 +394,30 @@ describe('StakingPool', () => {
             beginCell().storeUint(0, 32).storeStringTail("test").endCell()
         );
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
+        
+        // approximate update_request size
+        let userRewardsDict = await stakeWallet1_1.getRewardsDict();
+        let stats = collectCellStats(userRewardsDict, []);
+        stats.bits += 916 + 124 * Number(REWARD_JETTONS_MAX_COUNT);
+        stats.cells += 1
+        console.log(stats)
 
-        // Max unstake jettons gas = 57957 + 500012 + 7480 + 7298 = 572500 gas units. Total consumption = 0.254 TON + unstake_fee + tons::jetton_transfer
+        // Max unstake jettons gas = 57957 + 500012 + 7480 + 7040 = 572747 gas units. Total consumption = 0.254 TON + unstake_fee + tons::jetton_transfer
         blockchain.now!! += 1 //lockPeriod1 - (blockchain.now!! - startUnstakeTime + Number(REQUESTS_MAX_COUNT / 2n));
         let jettonsToFreeUnstake = 10n * REQUESTS_MAX_COUNT / 2n;
-        let jettonsToForceUnstake = 430n * 4n / 5n - jettonsToFreeUnstake;
+        let jettonsToForceUnstake = 430n * 4n / 5n - jettonsToFreeUnstake - 10n;
         transactionRes = await stakeWallet1_1.sendUnstakeJettons(user1.getSender(), jettonsToFreeUnstake + jettonsToForceUnstake, true, stakingPoolConfig.unstakeFee);
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
 
         // Max claim commissions gas = 10393 gas units. Total consumption = 0.005 + tons::jetton_transfer
         transactionRes = await stakingPool.sendClaimCommissions(poolCreator.getSender());
         printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: -14});
+        expect(transactionRes.transactions).not.toHaveTransaction({exitCode: 13});
         }
     });
     
@@ -436,25 +488,6 @@ describe('StakingPool', () => {
             op: OpCodes.SEND_CLAIMED_REWARDS
         })
 
-    let computedGeneric2: (transaction: Transaction) => TransactionComputeVm;
-    computedGeneric2 = (transaction) => {
-    if(transaction.description.type !== "generic")
-        throw("Expected generic transactionaction");
-    if(transaction.description.computePhase.type !== "vm")
-        throw("Compute phase expected")
-    return transaction.description.computePhase;
-    }
-
-    let printTxGasStats: (name: string, trans: Transaction) => bigint;
-    printTxGasStats = (name, transaction) => {
-        const txComputed = computedGeneric2(transaction);
-        console.log(`${name} used ${txComputed.gasUsed} gas`);
-        console.log(`${name} gas cost: ${txComputed.gasFees}`);
-        return txComputed.gasFees;
-    }
-
-    printTxGasStats(`SEND CLAIMED`, transferTx2)
-        
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: poolRewardsWallet.address,
@@ -573,24 +606,6 @@ describe('StakingPool', () => {
             success: true
         });
 
-        let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        let printTxGasStats: (name: string, trans: Transaction) => bigint;
-        printTxGasStats = (name, transaction) => {
-            const txComputed = computedGeneric(transaction);
-            console.log(`${name} used ${txComputed.gasUsed} gas`);
-            console.log(`${name} gas cost: ${txComputed.gasFees}`);
-            return txComputed.gasFees;
-        }
-        printTxGasStats(`request upd rew`, transferTx);
-
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakingPool.address,
             to: stakeWallet1_1.address,
@@ -626,23 +641,6 @@ describe('StakingPool', () => {
             op: OpCodes.UNSTAKE_JETTONS,
             success: true
         });
-
-        let computedGeneric1: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric1 = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        printTxGasStats = (name, transaction) => {
-            const txComputed = computedGeneric1(transaction);
-            console.log(`${name} used ${txComputed.gasUsed} gas`);
-            console.log(`${name} gas cost: ${txComputed.gasFees}`);
-            return txComputed.gasFees;
-        }
-        printTxGasStats(`unstake jettons`, transferTx1);
         
         expect(transactionRes.transactions).toHaveTransaction({ // 2
             from: stakeWallet1_1.address,
@@ -698,17 +696,6 @@ describe('StakingPool', () => {
             op: OpCodes.CANCEL_UNSTAKE_REQUEST
         })
 
-        let computedGeneric2: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric2 = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        printTxGasStats(`cancel unstake request`, transferTx2)
-
         blockchain.now!! += 100;  // cur_rewards = 255 + 66 = 321
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
         let user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
@@ -740,24 +727,6 @@ describe('StakingPool', () => {
             op: OpCodes.TRANSFER_JETTON,
             success: true
         });
-
-        let computedGeneric: (transaction: Transaction) => TransactionComputeVm;
-        computedGeneric = (transaction) => {
-        if(transaction.description.type !== "generic")
-            throw("Expected generic transactionaction");
-        if(transaction.description.computePhase.type !== "vm")
-            throw("Compute phase expected")
-        return transaction.description.computePhase;
-        }
-
-        let printTxGasStats: (name: string, trans: Transaction) => bigint;
-        printTxGasStats = (name, transaction) => {
-            const txComputed = computedGeneric(transaction);
-            console.log(`${name} used ${txComputed.gasUsed} gas`);
-            console.log(`${name} gas cost: ${txComputed.gasFees}`);
-            return txComputed.gasFees;
-        }
-        printTxGasStats(`stake jet trans`, transferTx);
 
         stakeWallet2_1 = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(user2.address, 60))!!));
 

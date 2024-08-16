@@ -112,6 +112,22 @@ export class PoolFactory implements Contract {
         });        
     }
 
+    async sendChangeCodes(provider: ContractProvider, via: Sender, stakingPoolCode: Cell, stakeWalletCode: Cell, jettonMinterCode: Cell) {
+        await provider.internal(via, {
+            value: toNano("0.01"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.UPDATE_CODES, 32).storeUint(0, 64).storeRef(stakingPoolCode).storeRef(stakeWalletCode).storeRef(jettonMinterCode).endCell()
+        })
+    }
+
+    async sendSetCode(provider: ContractProvider, via: Sender, factoryCode: Cell) {
+        await provider.internal(via, {
+            value: toNano("0.01"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.SET_CODE, 32).storeUint(0, 64).storeRef(factoryCode).endCell()
+        })
+    }
+
     static getDeployPayload(lockWalletAddress: Address,
                              minDeposit: bigint | number, 
                              maxDeposit: bigint | number,

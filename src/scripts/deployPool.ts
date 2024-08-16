@@ -38,23 +38,23 @@ export async function run(provider: NetworkProvider) {
         await feesJettonMinter.sendMint(provider.sender(), provider.sender().address as Address, toNano(1000), toNano("0.2"), toNano("0.5"));
     }
     console.log("fees jetton ✅")
-    
-    let poolFactoryConfig: PoolFactoryConfig = {
-        adminAddress: provider.sender().address as Address,
-        nextPoolId: 0n,
-        collectionContent: buildOnchainMetadata({image: "https://jvault.xyz/static/images/logo256.png", description: "Test staking pool", name: "Staking Pool"}),
-        minRewardsCommission: BigInt(0.005 * Number(Deviders.COMMISSION_DEVIDER)),  // 0.5%
-        unstakeFee: toNano("0.3"),
-        feesWalletAddress: provider.sender().address,
-        creationFee: toNano("50"),
-        poolUninitedCodes: poolUninitedCodes,
-        poolInitedCode: await compile('StakingPool'),
-        stakeWalletCode: await compile('StakeWallet'),
-        jettonMinterCode: await compile('JettonMinter'),
-        version: 0n 
-    };
-    const poolFactory = provider.open(PoolFactory.createFromConfig(poolFactoryConfig, await compile('PoolFactory')));
-
+    let poolFactoryConfig: PoolFactoryConfig;
+    // let poolFactoryConfig: PoolFactoryConfig = {
+    //     adminAddress: provider.sender().address as Address,
+    //     nextPoolId: 0n,
+    //     collectionContent: buildOnchainMetadata({image: "https://jvault.xyz/static/images/logo256.png", description: "Test staking pool", name: "Staking Pool"}),
+    //     minRewardsCommission: BigInt(0.005 * Number(Deviders.COMMISSION_DEVIDER)),  // 0.5%
+    //     unstakeFee: toNano("0.3"),
+    //     feesWalletAddress: provider.sender().address,
+    //     creationFee: toNano("50"),
+    //     poolUninitedCodes: poolUninitedCodes,
+    //     poolInitedCode: await compile('StakingPool'),
+    //     stakeWalletCode: await compile('StakeWallet'),
+    //     jettonMinterCode: await compile('JettonMinter'),
+    //     version: 0n 
+    // };
+    // const poolFactory = provider.open(PoolFactory.createFromConfig(poolFactoryConfig, await compile('PoolFactory')));
+    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("kQAQmdFfoK6EmnniQSOvRmx5P7KKMmwnvRo4It_1iQXXRXOK")))
     if (! (await provider.isContractDeployed(poolFactory.address))) {
         await poolFactory.sendDeploy(provider.sender());
         await provider.waitForDeploy(poolFactory.address);    
