@@ -4,7 +4,7 @@
 
 
 global slice storage::admin_address;             ;; MsgAddressStd. Owner of the factory
-global int   storage::next_pool_id;              ;; Uint16. Next pool id
+global int   storage::next_pool_id;              ;; Uint32. Next pool id
 global cell  storage::collection_content;        ;; Cell. NFT collection onchain content
 
 global int   storage::min_rewards_commission;    ;; Uint16. Min rewards service commission rate
@@ -181,7 +181,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
             
             throw_unless(exc::out_of_gas, msg_value >= tons::create_staking_pool);
 
-            if (inner_op = op::deploy_new_pool) {
+            if (inner_op == op::deploy_new_pool) {
                 throw_unless(exc::incorrect_jetton, equal_slices(sender_address, storage::fees_wallet_address));
                 throw_unless(exc::not_enough_jettons, transferred_jettons == storage::creation_fee);
                 

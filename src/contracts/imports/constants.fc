@@ -122,10 +122,10 @@ const int mode::selfdestruct_on_empty   = 32;
 
 {- OTHER -}
 
-const int commission_devider            = 10000;
-const int reward_multiplier_devider     = 1000;
-const int distribution_speed_devider    = 24 * 60 * 60;
-const int distributed_rewards_devider   = 100000000000000000000000000000000000000;
+const int commission_divider            = 10000;
+const int reward_multiplier_divider     = 1000;
+const int distribution_speed_divider    = 24 * 60 * 60;
+const int distributed_rewards_divider   = 100000000000000000000000000000000000000;
 const slice burn_address                = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
 const int WORKCHAIN                     = 0;
 const int ONE_TON                       = 1000000000;

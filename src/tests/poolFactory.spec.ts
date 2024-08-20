@@ -72,7 +72,7 @@ describe('PoolFactory', () => {
             adminAddress: admin.address,
             nextPoolId: 0n,
             collectionContent: Cell.EMPTY,
-            minRewardsCommission: BigInt(0.005 * Number(Deviders.COMMISSION_DEVIDER)),  // 0.5%
+            minRewardsCommission: BigInt(0.005 * Number(Deviders.COMMISSION_DIVIDER)),  // 0.5%
             unstakeFee: toNano("0.3"),
             feesWalletAddress: randomAddress(),
             creationFee: toNano("50"),
@@ -88,8 +88,8 @@ describe('PoolFactory', () => {
         let lockPeriods: Dictionary<number, LockPeriodsValue> = Dictionary.empty();
         let periodsDeploy: Dictionary<number, PeriodsDeployValue> = Dictionary.empty()
         let minterAddr1 = randomAddress(0);
-        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DEVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DEVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DEVIDER)), minterAddress: minterAddr1});
-        periodsDeploy.set(60, {tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DEVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DEVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DEVIDER))});
+        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER)), minterAddress: minterAddr1});
+        periodsDeploy.set(60, {tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER))});
         let whitelist: AddrList = Dictionary.empty();
         stakingPoolConfig = {
             inited: false,
@@ -108,7 +108,7 @@ describe('PoolFactory', () => {
             whitelist: null,
             unstakeFee: toNano("0.3"),
             collectedCommissions: 0n,
-            rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DEVIDER)),
+            rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DIVIDER)),
         }
 
         stakingPool = blockchain.openContract(StakingPool.createFromConfig({poolId: 0n, factoryAddress: factory.address}, stakingPoolUninitedCode));

@@ -333,7 +333,7 @@ global int  init?;
 
         int commission = 0;
         if (forced_jettons) {
-            commission = muldiv(forced_jettons, storage::unstake_commission, commission_devider);
+            commission = muldiv(forced_jettons, storage::unstake_commission, commission_divider);
             jettons_to_send += forced_jettons - commission;
         }
 
