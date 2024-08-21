@@ -145,7 +145,6 @@ global int  init?;
     int query_id = in_msg_body~load_uint(64);
 
     if (op == op::receive_jettons) {
-        throw_unless(exc::has_pending_request, storage::is_active);
         raw_reserve(init? ? storage_fees() : tons::min_reserve, 4);
         
         ;; not in state_init so this variables can be changed after deployment
