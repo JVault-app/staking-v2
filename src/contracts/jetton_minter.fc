@@ -72,6 +72,7 @@ global cell  storage::stake_wallet_code;
             msg_body = msg_body.store_uint(0, 2);
         }
         else {
+            load_data();
             cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, my_address(), owner_address, storage::lock_period, storage::stake_wallet_code);
             msg_body = msg_body.store_slice(get_address_by_state_init(state_init));
         }

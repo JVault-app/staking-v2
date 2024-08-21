@@ -7,7 +7,7 @@ import { compile } from '@ton/blueprint';
 import { JettonMinter as JettonMinterDefault } from '../wrappers/JettonMinterDefault';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { findTransactionRequired, randomAddress } from '@ton/test-utils';
-import { AddrList, Deviders, Gas, OpCodes } from '../wrappers/imports/constants';
+import { AddrList, Dividers, Gas, OpCodes } from '../wrappers/imports/constants';
 
 
 export function collectCellStats(cell: Cell, visited:Array<string>, skipRoot: boolean = false) {
@@ -127,9 +127,9 @@ describe('StakingPool', () => {
         let minterAddr1 = randomAddress(0);
         let minterAddr2 = randomAddress(0);
         let minterAddr3 = randomAddress(0);
-        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 2000n, rewardMultiplier: 1 * Deviders.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER)), minterAddress: minterAddr1});
-        lockPeriods.set(120, {curTvl: 0n, tvlLimit: 2000n, rewardMultiplier: 2 * Deviders.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER)), minterAddress: minterAddr2});
-        lockPeriods.set(60 * 60 * 24, {curTvl: 0n, tvlLimit: 1000000n, rewardMultiplier: 10, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER)), minterAddress: minterAddr3});
+        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 2000n, rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: minterAddr1});
+        lockPeriods.set(120, {curTvl: 0n, tvlLimit: 2000n, rewardMultiplier: 2 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: minterAddr2});
+        lockPeriods.set(60 * 60 * 24, {curTvl: 0n, tvlLimit: 1000000n, rewardMultiplier: 10, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: minterAddr3});
         let whitelist: AddrList = Dictionary.empty();
         whitelist.set(user1.address, false);
         whitelist.set(user2.address, false);
@@ -150,7 +150,7 @@ describe('StakingPool', () => {
             whitelist: whitelist,
             unstakeFee: toNano("0.3"),
             collectedCommissions: 0n,
-            rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DIVIDER)),
+            rewardsCommission: BigInt(0.05 * Number(Dividers.COMMISSION_DIVIDER)),
         }
 
         // deployment
@@ -195,7 +195,7 @@ describe('StakingPool', () => {
 
         // adding rewards
         let rewardsToAdd = 1000n;
-        let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Deviders.COMMISSION_DIVIDER;
+        let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Dividers.COMMISSION_DIVIDER;
         let distributionPeriod = 1000
        
         transactionRes = await creatorRewardsWallet.sendTransfer(
@@ -246,8 +246,8 @@ describe('StakingPool', () => {
         // check that everything is ok
         stakingPoolConfig = await stakingPool.getStorageData();
         let tmp = stakingPoolConfig.rewardJettons!!.get(poolRewardsWallet.address);
-        expect(tmp?.distributedRewards).toEqual(Deviders.DISTRIBUTED_REWARDS_DIVIDER * rewardsToAdd / (10n * (jettonsToStake1 - commission1)));
-        expect(tmp?.rewardsDeposits.get(0)).toEqual({distributionSpeed: Deviders.DISTRIBUTION_SPEED_DIVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
+        expect(tmp?.distributedRewards).toEqual(Dividers.DISTRIBUTED_REWARDS_DIVIDER * rewardsToAdd / (10n * (jettonsToStake1 - commission1)));
+        expect(tmp?.rewardsDeposits.get(0)).toEqual({distributionSpeed: Dividers.DISTRIBUTION_SPEED_DIVIDER, startTime: blockchain.now, endTime: blockchain.now - 100 + distributionPeriod});
         expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 + jettonsToStake2 - commission1 - commission2);
         expect(stakingPoolConfig.tvlWithMultipliers).toEqual(jettonsToStake1 - commission1 + (jettonsToStake2 - commission2) * 2n);
         expect(stakingPoolConfig.collectedCommissions).toEqual(commission1 + commission2);
@@ -279,7 +279,7 @@ describe('StakingPool', () => {
         printTransactionFees(transactionRes.transactions);
         
         let rewardsToAdd = 1000n;
-        let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Deviders.COMMISSION_DIVIDER;
+        let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Dividers.COMMISSION_DIVIDER;
         let distributionPeriod = 1000
         
         // Max add rewards gas: 18384 gas units. Total consumption 0.022 TON + tons::jetton_transfer
@@ -624,7 +624,7 @@ describe('StakingPool', () => {
         blockchain.now!! += 100;  // cur_rewards = 180 + 75 = 255
         await stakeWallet1_1.sendUnstakeRequest(user1.getSender(), jettonsToFreeUnstake);
         let jettonsToForceUnstake = 80n;
-        let unstakeCommission = jettonsToForceUnstake * BigInt((stakingPoolConfig.lockPeriods.get(Number(stakeWalletConfig1_1.lockPeriod!!))!!).unstakeCommission) / Deviders.COMMISSION_DIVIDER;
+        let unstakeCommission = jettonsToForceUnstake * BigInt((stakingPoolConfig.lockPeriods.get(Number(stakeWalletConfig1_1.lockPeriod!!))!!).unstakeCommission) / Dividers.COMMISSION_DIVIDER;
 
         // Transactions Chain (in order)
         transactionRes = await stakeWallet1_1.sendUnstakeJettons(user1.getSender(), jettonsToFreeUnstake + jettonsToForceUnstake, true, stakingPoolConfig.unstakeFee); // 0

@@ -7,9 +7,10 @@ import { compile } from '@ton/blueprint';
 import { JettonMinter as JettonMinterDefault } from '../wrappers/JettonMinterDefault';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { randomAddress } from '@ton/test-utils';
-import { AddrList, Deviders, Gas, OpCodes } from '../wrappers/imports/constants';
+import { AddrList, Dividers, Gas, OpCodes } from '../wrappers/imports/constants';
 import exp from 'constants';
 import { PeriodsDeployValue, PoolFactory, PoolFactoryConfig } from '../wrappers/PoolFactory';
+import { JettonMinter } from '../wrappers/JettonMinter';
 
 describe('PoolFactory', () => {
     let jettonMinterDefaultCode: Cell;
@@ -39,6 +40,7 @@ describe('PoolFactory', () => {
     
     let factory: SandboxContract<PoolFactory>; 
     let stakingPool: SandboxContract<StakingPool>;
+    let stakingJettonMinter: SandboxContract<JettonMinter>;
 
     let lockJettonMinter: SandboxContract<JettonMinterDefault>;
     let poolLockWallet: SandboxContract<JettonWallet>;
@@ -50,6 +52,7 @@ describe('PoolFactory', () => {
     let stakingPoolConfig: StakingPoolConfig;
     let factoryConfig: PoolFactoryConfig;
 
+    let stakingPoolConfigInited: StakingPoolConfig;
     let rewardJettonsList: AddrList;
     beforeEach(async () => {
         blockchain = await Blockchain.create();
@@ -72,7 +75,7 @@ describe('PoolFactory', () => {
             adminAddress: admin.address,
             nextPoolId: 0n,
             collectionContent: Cell.EMPTY,
-            minRewardsCommission: BigInt(0.005 * Number(Deviders.COMMISSION_DIVIDER)),  // 0.5%
+            minRewardsCommission: BigInt(0.005 * Number(Dividers.COMMISSION_DIVIDER)),  // 0.5%
             unstakeFee: toNano("0.3"),
             feesWalletAddress: randomAddress(),
             creationFee: toNano("50"),
@@ -88,8 +91,8 @@ describe('PoolFactory', () => {
         let lockPeriods: Dictionary<number, LockPeriodsValue> = Dictionary.empty();
         let periodsDeploy: Dictionary<number, PeriodsDeployValue> = Dictionary.empty()
         let minterAddr1 = randomAddress(0);
-        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER)), minterAddress: minterAddr1});
-        periodsDeploy.set(60, {tvlLimit: 1000n, rewardMultiplier: 1 * Deviders.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Deviders.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Deviders.COMMISSION_DIVIDER))});
+        lockPeriods.set(60, {curTvl: 0n, tvlLimit: 1000n, rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: minterAddr1});
+        periodsDeploy.set(60, {tvlLimit: 1000n, rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER))});
         let whitelist: AddrList = Dictionary.empty();
         stakingPoolConfig = {
             inited: false,
@@ -108,7 +111,7 @@ describe('PoolFactory', () => {
             whitelist: null,
             unstakeFee: toNano("0.3"),
             collectedCommissions: 0n,
-            rewardsCommission: BigInt(0.05 * Number(Deviders.COMMISSION_DIVIDER)),
+            rewardsCommission: BigInt(0.05 * Number(Dividers.COMMISSION_DIVIDER)),
         }
 
         stakingPool = blockchain.openContract(StakingPool.createFromConfig({poolId: 0n, factoryAddress: factory.address}, stakingPoolUninitedCode));
@@ -139,27 +142,34 @@ describe('PoolFactory', () => {
         )
 
         // printTransactionFees(transactionRes.transactions)
-        let stakingPoolConfig2 = await stakingPool.getStorageData();
-        expect(stakingPoolConfig2.inited).toBeTruthy();
-        expect(stakingPoolConfig2.poolId).toEqual(stakingPoolConfig.poolId)
-        expect(stakingPoolConfig2.adminAddress.toString()).toEqual(factory.address.toString())
-        expect(stakingPoolConfig2.creatorAddress.toString()).toEqual(poolCreator.address.toString())
-        expect(stakingPoolConfig2.lockWalletAddress.toString()).toEqual((await lockJettonMinter.getWalletAddress(stakingPool.address)).toString());
-        expect(stakingPoolConfig2.minDeposit).toEqual(stakingPoolConfig.minDeposit)
-        expect(stakingPoolConfig2.maxDeposit).toEqual(stakingPoolConfig.maxDeposit)
-        expect(stakingPoolConfig2.tvl).toEqual(stakingPoolConfig.tvl)
-        expect(stakingPoolConfig2.tvlWithMultipliers).toEqual(stakingPoolConfig.tvlWithMultipliers)
-        expect(stakingPoolConfig2.rewardJettons).toEqual(stakingPoolConfig.rewardJettons)
-        expect(stakingPoolConfig2.whitelist).toEqual(stakingPoolConfig.whitelist)
-        expect(stakingPoolConfig2.unstakeFee).toEqual(stakingPoolConfig.unstakeFee)
-        expect(stakingPoolConfig2.collectedCommissions).toEqual(stakingPoolConfig.collectedCommissions)
-        expect(stakingPoolConfig2.rewardsCommission).toEqual(stakingPoolConfig.rewardsCommission)
+        stakingPoolConfigInited = await stakingPool.getStorageData();
+        expect(stakingPoolConfigInited.inited).toBeTruthy();
+        expect(stakingPoolConfigInited.poolId).toEqual(stakingPoolConfig.poolId)
+        expect(stakingPoolConfigInited.adminAddress.toString()).toEqual(factory.address.toString())
+        expect(stakingPoolConfigInited.creatorAddress.toString()).toEqual(poolCreator.address.toString())
+        expect(stakingPoolConfigInited.lockWalletAddress.toString()).toEqual((await lockJettonMinter.getWalletAddress(stakingPool.address)).toString());
+        expect(stakingPoolConfigInited.minDeposit).toEqual(stakingPoolConfig.minDeposit)
+        expect(stakingPoolConfigInited.maxDeposit).toEqual(stakingPoolConfig.maxDeposit)
+        expect(stakingPoolConfigInited.tvl).toEqual(stakingPoolConfig.tvl)
+        expect(stakingPoolConfigInited.tvlWithMultipliers).toEqual(stakingPoolConfig.tvlWithMultipliers)
+        expect(stakingPoolConfigInited.rewardJettons).toEqual(stakingPoolConfig.rewardJettons)
+        expect(stakingPoolConfigInited.whitelist).toEqual(stakingPoolConfig.whitelist)
+        expect(stakingPoolConfigInited.unstakeFee).toEqual(stakingPoolConfig.unstakeFee)
+        expect(stakingPoolConfigInited.collectedCommissions).toEqual(stakingPoolConfig.collectedCommissions)
+        expect(stakingPoolConfigInited.rewardsCommission).toEqual(stakingPoolConfig.rewardsCommission)
     });
 
     it('should deploy staking pool', async () => {
         // the check is done inside beforeEach
         // blockchain and stakingPool are ready to use
     });
+
+    it('should deploy working jetton minter', async () => {
+        let jettonMinterAddress = stakingPoolConfigInited.lockPeriods.get(60)!!.minterAddress;
+        stakingJettonMinter = await blockchain.openContract(JettonMinter.createFromAddress(jettonMinterAddress));
+        let transactionRes = await stakingJettonMinter.sendDiscovery(admin.getSender(), admin.address, false);
+        expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true})
+    })
     it('change creation fee', async () => {
         let newCreationFee = toNano('100')
         let transactionRes = await factory.sendChangeCreationFee(admin.getSender(), newCreationFee)
