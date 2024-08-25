@@ -232,6 +232,35 @@ export class StakingPool implements Contract {
                     .storeDict(jettonsToClaim, Dictionary.Keys.Address(), Dictionary.Values.Bool())
                 .endCell();
     }
+    
+    static withdrawTonMessage(queryId: number = 0) {
+        return beginCell().storeUint(OpCodes.WITHDRAW_TON, 32).storeUint(queryId ?? 0, 64).endCell();
+    }   
+
+    static withdrawJettonsMessage(jettonWalletAddress: Address, jettonAmount: bigint, queryId: number = 0) {
+        return beginCell().storeUint(OpCodes.WITHDRAW_JETTON, 32).storeUint(queryId ?? 0, 64).storeAddress(jettonWalletAddress).storeCoins(jettonAmount).endCell();
+    }   
+
+    static deactivateWalletMessage(walletAddress: Address, queryId: number = 0) {
+        return beginCell().storeUint(OpCodes.DEACTIVATE_WALLET, 32).storeUint(queryId ?? 0, 64).storeAddress(walletAddress).endCell()
+    }
+
+    static sendAnyMessageMessage(toAddress: Address, payload: Cell, queryId: number = 0) {
+        return beginCell().storeUint(OpCodes.SEND_ANY_MESSAGE, 32).storeUint(queryId ?? 0, 64).storeAddress(toAddress).storeRef(payload).endCell();
+    }
+
+    static setCodeMessage(code: Cell, data?: Maybe<Cell>, queryId?: number) {
+        let tmp = beginCell().storeUint(OpCodes.SET_CODE, 32).storeUint(queryId ?? 0, 64).storeRef(code)
+        return data ? tmp.storeRef(data).endCell() : tmp.endCell(); 
+    }
+    
+    async sendDeactivateWallet(provider: ContractProvider, via: Sender, walletAddress: Address, queryId: number = 0) {
+        await provider.internal(via, {
+            value: toNano('0.01'),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: StakingPool.deactivateWalletMessage(walletAddress, queryId)
+        });
+    }
 
     async getData(provider: ContractProvider) {
         let { stack } = await provider.get('get_nft_data', []);
@@ -246,6 +275,7 @@ export class StakingPool implements Contract {
 
     async getStorageData(provider: ContractProvider): Promise<StakingPoolConfig> {
         let { stack } = await provider.get('get_storage_data', []);
+        // console.log(stack)
         let res: any = {
             inited: stack.readBoolean(),
             poolId: stack.readBigNumber(),

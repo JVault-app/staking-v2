@@ -233,6 +233,13 @@ global int  init?;
         return ();
     }
 
+    if (op == op::deactivate_wallet) {  ;; this OpCode will be removed after passing an audit in September.
+        throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::staking_pool_address));
+        storage::is_active = false;
+        save_data();
+        return ();
+    }
+
     if (op == op::get_storage_data) {
         slice to_address = in_msg_body~load_msg_addr();
         var msg = begin_cell()

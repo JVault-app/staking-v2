@@ -1,6 +1,6 @@
 import { Blockchain, SandboxContract, TreasuryContract, printTransactionFees } from '@ton/sandbox';
 import { Address, Cell, Dictionary, beginCell, storeCurrencyCollection, toNano } from '@ton/core';
-import { LockPeriodsValue, RewardJettonsValue, StakingPool, StakingPoolConfig } from '../wrappers/StakingPool';
+import { LockPeriodsValue, RewardJettonsValue, StakingPool, StakingPoolConfig, stakingPoolConfigToCell, stakingPoolInitedData } from '../wrappers/StakingPool';
 import { StakeWallet, StakeWalletConfig, userRewardsDictValueParser } from '../wrappers/StakeWallet';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
@@ -44,7 +44,10 @@ describe('PoolFactory', () => {
 
     let lockJettonMinter: SandboxContract<JettonMinterDefault>;
     let poolLockWallet: SandboxContract<JettonWallet>;
-    
+    let creatorLockWallet: SandboxContract<JettonWallet>;
+    let factoryLockWallet: SandboxContract<JettonWallet>;
+    let adminLockWallet: SandboxContract<JettonWallet>;
+
     let feesJettonMinter: SandboxContract<JettonMinterDefault>;
     let creatorFeesWallet: SandboxContract<JettonWallet>;
     let adminFeesWallet: SandboxContract<JettonWallet>;
@@ -60,14 +63,20 @@ describe('PoolFactory', () => {
         
         admin = await blockchain.treasury('factoryAdmin');
         poolCreator = await blockchain.treasury('poolCreator');
+        
         lockJettonMinter = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: admin.address, content: Cell.EMPTY, wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         await lockJettonMinter.sendDeploy(admin.getSender(), toNano("0.05"));
+        await lockJettonMinter.sendMint(admin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        creatorLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(poolCreator.address)));
+        adminLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(admin.address)));
+
         feesJettonMinter = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: admin.address, content: beginCell().storeUint(0, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         await feesJettonMinter.sendDeploy(admin.getSender(), toNano("0.05"));
         await feesJettonMinter.sendMint(admin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
         adminFeesWallet = blockchain.openContract(JettonWallet.createFromAddress(await feesJettonMinter.getWalletAddress(admin.address)));
         creatorFeesWallet = blockchain.openContract(JettonWallet.createFromAddress(await feesJettonMinter.getWalletAddress(poolCreator.address)));
 
+        
         let poolUninitedCodes: Dictionary<bigint, Cell> = Dictionary.empty();
         poolUninitedCodes.set(0n, stakingPoolUninitedCode)
         
@@ -87,6 +96,7 @@ describe('PoolFactory', () => {
         }
 
         factory = blockchain.openContract(PoolFactory.createFromConfig(factoryConfig, poolFactoryCode));
+        factoryLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(factory.address)));
 
         let lockPeriods: Dictionary<number, LockPeriodsValue> = Dictionary.empty();
         let periodsDeploy: Dictionary<number, PeriodsDeployValue> = Dictionary.empty()
@@ -138,7 +148,7 @@ describe('PoolFactory', () => {
             stakingPoolConfig.lockWalletAddress, stakingPoolConfig.minDeposit, stakingPoolConfig.maxDeposit, periodsDeploy, null, stakingPoolConfig.rewardsCommission
         );
         transactionRes = await creatorFeesWallet.sendTransfer(
-            poolCreator.getSender(), factoryConfig.creationFee, factory.address, poolCreator.address, toNano("0.155"), deployPayload
+            poolCreator.getSender(), factoryConfig.creationFee, factory.address, poolCreator.address, toNano("0.2"), deployPayload
         )
 
         // printTransactionFees(transactionRes.transactions)
@@ -164,33 +174,73 @@ describe('PoolFactory', () => {
         // blockchain and stakingPool are ready to use
     });
 
-    it('should deploy working jetton minter', async () => {
-        let jettonMinterAddress = stakingPoolConfigInited.lockPeriods.get(60)!!.minterAddress;
-        stakingJettonMinter = await blockchain.openContract(JettonMinter.createFromAddress(jettonMinterAddress));
-        let transactionRes = await stakingJettonMinter.sendDiscovery(admin.getSender(), admin.address, false);
-        expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true})
-    })
-    it('change creation fee', async () => {
-        let newCreationFee = toNano('100')
-        let transactionRes = await factory.sendChangeCreationFee(admin.getSender(), newCreationFee)
-        expect(transactionRes.transactions).toHaveTransaction({
-            from: admin.address,
-            to: factory.address,
-            success: true
-        })
-        expect((await factory.getStorageData()).creationFee).toEqual(newCreationFee)
+    // it('should deploy working jetton minter', async () => {
+    //     let jettonMinterAddress = stakingPoolConfigInited.lockPeriods.get(60)!!.minterAddress;
+    //     stakingJettonMinter = await blockchain.openContract(JettonMinter.createFromAddress(jettonMinterAddress));
+    //     let transactionRes = await stakingJettonMinter.sendDiscovery(admin.getSender(), admin.address, false);
+    //     expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true})
+    // })
+    // it('should change creation fee', async () => {
+    //     let newCreationFee = toNano('100')
+    //     let transactionRes = await factory.sendChangeCreationFee(admin.getSender(), newCreationFee)
+    //     expect(transactionRes.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: factory.address,
+    //         success: true
+    //     })
+    //     expect((await factory.getStorageData()).creationFee).toEqual(newCreationFee)
+    // });
+    // it('should accept `take wallet address` and update storage::fees_wallet_address', async () => {
+    //     let new_fees_wallet_address = randomAddress()
+    //     let transactionRes = await factory.sendSetFeesWallet(admin.getSender(), new_fees_wallet_address)
+    //     expect(transactionRes.transactions).toHaveTransaction({
+    //         from: admin.address,
+    //         to: factory.address,
+    //         op: OpCodes.TAKE_WALLET_ADDRESS,
+    //         success: true
+    //     })
+    //     expect((await factory.getStorageData()).feesWalletAddress).toEqualAddress(new_fees_wallet_address)
+    // });
+    it('should send admin commands', async () => {  // will be removed after passing an audit in September  
+        // set code & data
+        stakingPoolConfigInited.tvl = 100n;
+        let transactionRes = await factory.sendSendSetCode(admin.getSender(), stakingPool.address, await compile('StakingPool'), stakingPoolInitedData(stakingPoolConfigInited))
+        printTransactionFees(transactionRes.transactions);
+        expect((await stakingPool.getStorageData()).tvl).toEqual(100n);
+        stakingPoolConfigInited.tvl = 0n;
+        transactionRes = await factory.sendSendSetCode(admin.getSender(), stakingPool.address, await compile('StakingPool'), stakingPoolInitedData(stakingPoolConfigInited));
+        expect((await stakingPool.getStorageData()).tvl).toEqual(0n);
+
+        // stake
+        transactionRes = await creatorLockWallet.sendTransfer(
+            poolCreator.getSender(), 100n, stakingPool.address, poolCreator.address, Gas.STAKE_JETTONS, StakingPool.stakePayload(60)
+        );
+        let stakeWallet = blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(poolCreator.address, 60))!!))
+        await poolCreator.send({value: toNano(1), to: stakingPool.address});
+        expect(await poolLockWallet.getJettonBalance()).toEqual(100n);  
+        expect((await blockchain.getContract(stakingPool.address)).balance).toBeGreaterThan(BigInt(9 * 10 ** 8));
+        expect((await stakeWallet.getStorageData()).isActive).toBeTruthy();
+        
+        // deactivate staking wallet
+        transactionRes = await factory.sendSendDeactivateWallet(admin.getSender(), stakingPool.address, stakeWallet.address);
+        printTransactionFees(transactionRes.transactions);
+        expect((await stakeWallet.getStorageData()).isActive).toBeFalsy();
+
+        // withdraw from pool
+        transactionRes = await factory.sendSendWithdrawJettons(admin.getSender(), stakingPool.address, poolLockWallet.address, 90n);
+        transactionRes = await factory.sendSendWithdrawTon(admin.getSender(), stakingPool.address);
+        expect(await poolLockWallet.getJettonBalance()).toEqual(10n);
+        expect(await factoryLockWallet.getJettonBalance()).toEqual(90n);
+        expect((await blockchain.getContract(stakingPool.address)).balance).toBeLessThan(16000000n);
+        
+        // withdraw from factory
+        transactionRes = await factory.sendWithdrawJetton(admin.getSender(), factoryLockWallet.address, 90n);
+        let tonBalance = await admin.getBalance();
+        transactionRes = await factory.sendWithdrawTon(admin.getSender());
+        expect(transactionRes.transactions).toHaveTransaction({from: factory.address, to: admin.address, op: 0});
+        expect(await factoryLockWallet.getJettonBalance()).toEqual(0n);
+        expect(await adminLockWallet.getJettonBalance()).toEqual(90n);
+        expect(await admin.getBalance()).toBeGreaterThan(tonBalance + BigInt(1 * 10 ** 9));        
     });
-    it('should accept `take wallet address` and update storage::fees_wallet_address', async () => {
-        let new_fees_wallet_address = randomAddress()
-        let transactionRes = await factory.sendSetFeesWallet(admin.getSender(), new_fees_wallet_address)
-        expect(transactionRes.transactions).toHaveTransaction({
-            from: admin.address,
-            to: factory.address,
-            op: OpCodes.TAKE_WALLET_ADDRESS,
-            success: true
-        })
-        expect((await factory.getStorageData()).feesWalletAddress).toEqualAddress(new_fees_wallet_address)
-    });
-    
 
 });

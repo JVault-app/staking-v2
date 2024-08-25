@@ -15,6 +15,13 @@ export const OpCodes = {
     TAKE_WALLET_ADDRESS:     0XD1735400,
     BURN_JETTON:             0X595F07BC,
     
+    // management
+    SEND_ANY_MESSAGE:        0xa47d989c,
+    SET_CODE:                0xe2d2d211,
+    WITHDRAW_TON:            0x37726bdb,
+    WITHDRAW_JETTON:         0x11c09682,
+    DEACTIVATE_WALLET:       0x4b14c485,
+
     // Staking pool,
     STAKE_JETTONS:           0XE3A06989,
     ADD_REWARDS:             0XDB16AC95,
@@ -38,7 +45,6 @@ export const OpCodes = {
     // Pools admin,
     DEPLOY_NEW_POOL:       0XDA861F17,
     SEND_COMMISSIONS:      0XB96ADAEA,
-    SET_CODE:              0xe2d2d211,
     CHANGE_CREATION_FEE:   0x66D5528B,
     CHANGE_CONTENT:        0x0ec29200,
     UPDATE_CODES:          0x85c923cf,

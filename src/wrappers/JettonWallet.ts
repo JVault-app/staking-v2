@@ -63,11 +63,12 @@ export class JettonWallet implements Contract {
                         toAddress: Address,
                         responseAddress:Address,
                         forwardTonAmount: bigint,
-                        forwardPayload?: Maybe<Cell>) {
+                        forwardPayload?: Maybe<Cell>,
+                        value?: bigint) {
         await provider.internal(via, {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: JettonWallet.transferMessage(jettonAmount, toAddress, responseAddress, forwardTonAmount, forwardPayload),
-            value: Gas.JETTON_TRANSFER + forwardTonAmount
+            value: value ?? Gas.JETTON_TRANSFER + forwardTonAmount
         });
     }
     /*

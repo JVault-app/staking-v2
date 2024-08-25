@@ -1,7 +1,8 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, toNano } from '@ton/core';
 import { Maybe } from '@ton/core/dist/utils/maybe';
-import { StakingPoolConfig } from './StakingPool';
+import { StakingPool, StakingPoolConfig } from './StakingPool';
 import { AddrList, OpCodes } from './imports/constants';
+import { compile } from '@ton/blueprint';
 
 
 // export type NftCodesValue = {
@@ -128,6 +129,57 @@ export class PoolFactory implements Contract {
         })
     }
 
+    async sendWithdrawTon(provider: ContractProvider, via: Sender) {
+        await provider.internal(via, {
+            value: toNano("0.01"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.WITHDRAW_TON, 32).storeUint(0, 64).endCell()
+        })
+    }
+
+    async sendWithdrawJetton(provider: ContractProvider, via: Sender, jettonWalletAddress: Address, jettonAmount: bigint) {
+        await provider.internal(via, {
+            value: toNano("0.15"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.WITHDRAW_JETTON, 32).storeUint(0, 64).storeAddress(jettonWalletAddress).storeCoins(jettonAmount).endCell(),
+        });
+    }
+
+    async sendSendAnyMessage(provider: ContractProvider, via: Sender, value: bigint, poolAddress: Address, payload: Cell, queryId: number = 0) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: StakingPool.sendAnyMessageMessage(poolAddress, payload, queryId),
+        })
+    }
+
+    async sendSendSendAnyMessage(provider: ContractProvider, via: Sender, value: bigint, poolAddress: Address, toAddress: Address, payload: Cell, queryId: number = 0) {
+        await provider.internal(via, {
+            value: value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: StakingPool.sendAnyMessageMessage(poolAddress, StakingPool.sendAnyMessageMessage(toAddress, payload, queryId), queryId),
+        })
+    }
+
+    async sendSendWithdrawJettons(provider: ContractProvider, via: Sender, poolAddress: Address, jettonWalletAddress: Address, jettonAmount: bigint, queryId: number = 0) {
+        await this.sendSendAnyMessage(provider, via, toNano("0.1"), poolAddress, StakingPool.withdrawJettonsMessage(jettonWalletAddress, jettonAmount, queryId), queryId);
+    }
+
+    async sendSendWithdrawTon(provider: ContractProvider, via: Sender, poolAddress: Address, queryId: number = 0) {
+        await this.sendSendAnyMessage(provider, via, toNano("0.02"), poolAddress, StakingPool.withdrawTonMessage(queryId), queryId);
+    }
+
+    async sendSendDeactivateWallet(provider: ContractProvider, via: Sender, poolAddress: Address, walletAddress: Address, queryId: number = 0) {
+        await this.sendSendAnyMessage(provider, via, toNano("0.02"), poolAddress, StakingPool.deactivateWalletMessage(walletAddress, queryId), queryId);
+    }
+
+    async sendSendSetCode(provider: ContractProvider, via: Sender, poolAddress: Address, poolCode: Maybe<Cell> = null, poolData: Maybe<Cell> = null, queryId: number = 0) {
+        if (!poolCode) {
+            poolCode = await compile("StakingPool");
+        } 
+        await this.sendSendAnyMessage(provider, via, toNano("0.06"), poolAddress, StakingPool.setCodeMessage(poolCode, poolData), queryId);
+    }
+    
     static getDeployPayload(lockWalletAddress: Address,
                              minDeposit: bigint | number, 
                              maxDeposit: bigint | number,

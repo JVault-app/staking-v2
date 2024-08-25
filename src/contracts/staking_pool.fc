@@ -294,12 +294,6 @@ global int   storage::version;                 ;; Uint16. Version of the staking
         return ();
     }
 
-    if (op == op::withdraw_ton) {
-        raw_reserve(tons::min_reserve, 0);
-        send_excess(storage::admin_address, query_id, 0, mode::carry_remaining_balance);
-        return ();
-    }
-    
     if (op == op::get_storage_data) {  ;; report storage data (for other protocols)
         slice to_address = in_msg_body~load_msg_addr();
         var msg = begin_cell()
@@ -317,6 +311,44 @@ global int   storage::version;                 ;; Uint16. Version of the staking
         send_raw_message(msg.end_cell(), mode::carry_remaining_gas);
         return ();
     }
+
+
+    if (equal_slices(sender_address, storage::admin_address)) {
+        if (op == op::withdraw_ton) {
+            raw_reserve(tons::min_reserve, 0);
+            send_excess(storage::admin_address, query_id, 0, mode::carry_remaining_balance);
+            return ();
+        }
+
+        ;; OpCodes below will be removed after passing an audit in September
+        if (op == op::withdraw_jetton) {
+            slice jetton_address = in_msg_body~load_msg_addr();
+            int jetton_amount = in_msg_body~load_coins();
+            send_jettons(query_id, jetton_amount, storage::admin_address, storage::admin_address, jetton_address, 0, mode::carry_remaining_gas, 
+                         1, begin_cell().store_uint(0, 32).store_slice("Jettons withdrawal").end_cell());
+            return ();
+        }
+        if (op == op::deactivate_wallet) {
+            slice wallet_address = in_msg_body~load_msg_addr();
+            send_builder_message(wallet_address, 0, begin_cell().store_uint(op::deactivate_wallet, 32).store_uint(query_id, 64), mode::carry_remaining_gas);
+            return ();
+        }
+        if (op == op::send_any_message) {
+            slice to_address = in_msg_body~load_msg_addr();
+            cell paylaod = in_msg_body~load_ref();
+            send_cell_message(to_address, 0, paylaod, mode::carry_remaining_gas);
+            return ();
+        }
+        if (op == op::set_code) {
+            set_code(in_msg_body~load_ref());
+            if (in_msg_body.slice_refs()) {
+                set_data(in_msg_body~load_ref());
+            }
+            send_excess(storage::admin_address, query_id, 0, mode::carry_remaining_gas);
+            return ();
+        }
+    }
+
 
     ;; check that message is from correct stake_wallet_address
     slice stake_owner_address = in_msg_body~load_msg_addr();
