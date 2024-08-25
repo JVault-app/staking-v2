@@ -102,9 +102,9 @@ global int  init?;
 }
 
 
-(int) send_update_request_with_forward(int jetton_balance, cell rewards_dict, slice forward_address, int query_id, int msg_value, int sending_mode) impure inline {
+(int) send_update_request_with_forward(int jetton_balance, cell rewards_dict, slice forward_address, slice from_address, int query_id, int msg_value, int sending_mode) impure inline {
     storage::is_active = false;
-    cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 4 + 4 + 267 = 916. Refs = 1.
+    cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 4 + 4 + 267 = 916. Refs = 2.
                         .store_uint(op::request_update_rewards, 32)
                         .store_uint(query_id, 64)
                         .store_slice(storage::owner_address)
@@ -112,9 +112,9 @@ global int  init?;
                         .store_coins(jetton_balance)
                         .store_int(0, 121)
                         .store_dict(rewards_dict)
-                        .store_coins(0)
-                        .store_coins(0)
+                        .store_uint(0, 8)  ;; == store_coins(0).store_coins(0)
                         .store_slice(forward_address)
+                        .store_ref(begin_cell().store_slice(from_address).end_cell())
                     .end_cell();
     return send_cell_message(storage::staking_pool_address, msg_value, payload, sending_mode);
 }
@@ -183,7 +183,7 @@ global int  init?;
 
             ;; this order of update messages is used for preventing race condition
             int request_update_tons = update_request_required_gas(max_fwd_fee);
-            send_update_request_with_forward(sender_balance, sender_rewards, sender_address, query_id, request_update_tons, mode::pay_fees_separately);
+            send_update_request_with_forward(sender_balance, sender_rewards, sender_address, from_address, query_id, request_update_tons, mode::pay_fees_separately);
             send_update_request(0, 0, 0, query_id, request_update_tons, mode::pay_fees_separately);
             
             if (forward_amount) {
