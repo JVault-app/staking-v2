@@ -68,8 +68,6 @@ const int op::get_static_data        = 0x2fcb26a2;
 const int op::report_static_data     = 0x8b771735;
 const int op::get_storage_data       = 0x5b88e5cc;
 const int op::report_storage_data    = 0xaab4a8ef;
-const int op::withdraw_ton           = 0x37726bdb;
-const int op::withdraw_jetton        = 0x11c09682;
 const int op::excesses               = 0xd53276db;
 
 ;; Jettons
@@ -78,6 +76,13 @@ const int op::transfer_notification  = 0x7362d09c;
 const int op::provide_wallet_address = 0x2c76b973;
 const int op::take_wallet_address    = 0xd1735400;
 const int op::burn_jetton            = 0x595f07bc;
+
+;; Management
+const int op::send_any_message       = 0xa47d989c;
+const int op::set_code               = 0xe2d2d211;
+const int op::withdraw_ton           = 0x37726bdb;
+const int op::withdraw_jetton        = 0x11c09682;
+const int op::deactivate_wallet      = 0x4b14c485;
 
 ;; Staking pool
 const int op::stake_jettons          = 0xe3a06989;
@@ -103,10 +108,10 @@ const int op::confirm_transfer       = 0xbc85eb11;
 const int op::update_uninited_code   = 0x7c2e94e0;
 const int op::deploy_new_pool        = 0xda861f17;
 const int op::send_commissions       = 0xb96adaea;
-const int op::set_code               = 0xe2d2d211;
 const int op::change_creation_fee    = 0x66d5528b;
 const int op::change_content         = 0x0ec29200;
 const int op::update_codes           = 0x85c923cf;
+
 
 {- MESSAGE MODES -}
 
