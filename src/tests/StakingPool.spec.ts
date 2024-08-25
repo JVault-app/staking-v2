@@ -787,7 +787,7 @@ describe('StakingPool', () => {
         })
         expect(transactionRes.transactions).toHaveTransaction({ // 10
             from: stakeWallet2_1.address,
-            to: stakeWallet2_1_OwnerAddress,
+            to: stakeWallet1_1_OwnerAddress,
             op: OpCodes.EXCESSES,
             success: true
         })

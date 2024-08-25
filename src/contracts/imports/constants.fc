@@ -58,8 +58,8 @@ const int gas::unstake_jettons        = 65000;   ;; Actually < 60055
 const int gas::cancel_unstake         = 65000;   ;; Actually 59271 
 const int gas::transfer_staked_jetton = 23000;   ;; Actually 21463 
 
-const int UPDATE_MSG_BITS  = 11200;
-const int UPDATE_MSG_CELLS = 35;
+const int UPDATE_MSG_BITS  = 11500;
+const int UPDATE_MSG_CELLS = 36;
 
 {- OP-CODES -}
 
