@@ -183,8 +183,8 @@ global int  init?;
 
             ;; this order of update messages is used for preventing race condition
             int request_update_tons = update_request_required_gas(max_fwd_fee);
-            send_update_request_with_forward(sender_balance, sender_rewards, sender_address, from_address, query_id, request_update_tons, mode::pay_fees_separately);
-            send_update_request(0, 0, 0, query_id, request_update_tons, mode::pay_fees_separately);
+            send_update_request_with_forward(sender_balance, sender_rewards, sender_address, response_address, query_id, request_update_tons, mode::pay_fees_separately);
+            send_update_request_with_forward(0, storage::rewards_dict, my_address(), response_address, query_id, request_update_tons, mode::pay_fees_separately);
             
             if (forward_amount) {
                 cell notification_payload = begin_cell()
@@ -226,8 +226,8 @@ global int  init?;
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::staking_pool_address));
         
         storage::rewards_dict = in_msg_body~load_dict();
+        send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::carry_remaining_gas | mode::ignore_errors);
         storage::is_active = true;
-        send_excess(storage::owner_address, query_id, 0, mode::carry_remaining_gas | mode::ignore_errors);
         
         save_data();
         return ();

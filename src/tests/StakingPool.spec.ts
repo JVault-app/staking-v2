@@ -713,7 +713,7 @@ describe('StakingPool', () => {
         );
 
         printTransactionFees(transactionRes.transactions)
-
+        
         expect(transactionRes.transactions).toHaveTransaction({ // 1
             from: user1.address,
             to: stakeWallet1_1.address,
@@ -789,8 +789,12 @@ describe('StakingPool', () => {
             from: stakeWallet2_1.address,
             to: stakeWallet1_1_OwnerAddress,
             op: OpCodes.EXCESSES,
+            value(x) {
+                return (x!! > 19n * 10n ** 7n);
+            },
             success: true
         })
+
 
         expect(stakeWalletConfig1_1.jettonBalance).toEqual(240n);
         expect(stakeWalletConfig2_1.jettonBalance).toEqual(80n);
