@@ -11,8 +11,8 @@ import { StakeWallet, stakeWalletInitData } from '../wrappers/StakeWallet';
 
 
 export async function run(provider: NetworkProvider) {
-    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQDbVcYqi4vPL_h37o4p-syYSIridQzotg_asck57ziU1ClS")));
-    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("kQCCIiv9b6ZNAKnyIZ6p4YhvALJ1bdf-oyFntT-ual5BdNZZ")));
+    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
+    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQCqXC2ctGm-y4dDEseavJ2mwuZMksEI_jGi8msA2BNM19Br")));
     const stakeWalletAddress = (await stakingPool.getWalletAddress(Address.parse("0QB6ocEGor9tEFpCUehWZQO_VJHWMAV7BHg4u5E3RH-BotWe"), 3 * 60 * 60 * 24))!!;
     let stakeWallet = await provider.open(StakeWallet.createFromAddress(stakeWalletAddress));
     let stakeWalletConfig = await stakeWallet.getStorageData();

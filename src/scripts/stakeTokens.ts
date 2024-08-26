@@ -10,8 +10,8 @@ import { buildOnchainMetadata } from '../wrappers/imports/buildOnchain';
 
 
 export async function run(provider: NetworkProvider) {
-    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("kQCCIiv9b6ZNAKnyIZ6p4YhvALJ1bdf-oyFntT-ual5BdNZZ"))) //
-    const lockJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("kQDp7vL4SZvstANyUd--dr0kbQB876S8taEabdescqAHDNNh")));
+    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQCqXC2ctGm-y4dDEseavJ2mwuZMksEI_jGi8msA2BNM19Br"))) //
+    const lockJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("EQC8FoZMlBcZhZ6Pr9sHGyHzkFv9y2B5X9tN61RvucLRzFZz")));
     const lockPeriod = 60 * 60 * 24 * 3;
     const jettonsToStake = 612623808080809n; 
 

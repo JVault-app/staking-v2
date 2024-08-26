@@ -10,7 +10,11 @@ import { buildOnchainMetadata } from '../wrappers/imports/buildOnchain';
 
 
 export async function run(provider: NetworkProvider) {
-    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("kQDbVcYqi4vPL_h37o4p-syYSIridQzotg_asck57ziU1JLY")));
+    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
+    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("UQCqXC2ctGm-y4dDEseavJ2mwuZMksEI_jGi8msA2BNM142u")));
+    // const jettonWalletAddress = Address.parse("")
     // await poolFactory.sendSetCode(provider.sender(), await compile("PoolFactory"));
     await poolFactory.sendWithdrawTon(provider.sender());
+    // await poolFactory.sendSendWithdrawTon(provider.sender(), stakingPool.address);
+    // await poolFactory.sendSendWithdrawJettons(provider.sender(), stakingPool.address, jettonWalletAddress, 0n)
 }

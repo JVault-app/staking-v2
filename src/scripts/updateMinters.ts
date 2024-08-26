@@ -10,7 +10,10 @@ import { buildOnchainMetadata } from '../wrappers/imports/buildOnchain';
 
 
 export async function run(provider: NetworkProvider) {
-    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
-    // await poolFactory.sendSetCode(provider.sender(), await compile("PoolFactory"));
-    await poolFactory.sendChangeCodes(provider.sender(), await compile("StakingPool"), await compile("StakeWallet"), await compile("JettonMinter"));
+    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQCqXC2ctGm-y4dDEseavJ2mwuZMksEI_jGi8msA2BNM19Br"))) //
+    const stakingJettonMinterAddress = Address.parse("EQCHw6pHLU6NAzrNZmfD9vMhcQK9g9Qmo3M8m1tqvqdGQvGi")
+
+    let transactionRes = await stakingPool.sendGetStorageData(
+        provider.sender(), toNano("0.1"), stakingJettonMinterAddress, beginCell().storeUint(0, 32).endCell()
+    );
 }
