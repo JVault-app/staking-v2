@@ -43,6 +43,8 @@ global cell  storage::stake_wallet_code;
         throw_unless(exc::incorrect_sender, equal_slices(staking_pool_address, sender_address));
 
         slice pool_data = in_msg_body~load_ref().begin_parse();
+        pool_data~skip_bits(1 + 32 + 267 * 3);
+        pool_data~skip_dict();
         pool_data~load_ref();
         pool_data = pool_data~load_ref().begin_parse();
         set_data(
