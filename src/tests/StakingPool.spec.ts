@@ -789,7 +789,10 @@ describe('StakingPool', () => {
             from: stakeWallet2_1.address,
             to: stakeWallet1_1_OwnerAddress,
             op: OpCodes.EXCESSES,
-            success: true
+            success: true,
+            value(x) {
+                return (x! > toNano("0.19"))
+            },
         })
 
         expect(stakeWalletConfig1_1.jettonBalance).toEqual(240n);
