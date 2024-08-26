@@ -37,10 +37,13 @@ global cell  storage::stake_wallet_code;
     int op = in_msg_body~load_uint(32);
     if (op == op::report_storage_data) {
         slice ds = get_data().begin_parse();
+
         ds~load_coins();
         slice staking_pool_address = ds~load_msg_addr();
         throw_unless(exc::incorrect_sender, equal_slices(staking_pool_address, sender_address));
+
         slice pool_data = in_msg_body~load_ref().begin_parse();
+        pool_data~load_ref();
         pool_data = pool_data~load_ref().begin_parse();
         set_data(
             begin_cell()
@@ -49,6 +52,10 @@ global cell  storage::stake_wallet_code;
                .store_slice(ds)
             .end_cell()
         );
+        
+        int query_id = in_msg_body~load_uint(64);
+        send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::carry_remaining_gas);
+        return ();
     }
 
     if (op == op::provide_wallet_address) {

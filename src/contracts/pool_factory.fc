@@ -265,6 +265,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
         storage::stake_wallet_code = in_msg_body~load_ref();
         storage::jetton_minter_code = in_msg_body~load_ref();
         storage::version += 1;
+        send_excess(sender_address, query_id, 0, mode::carry_remaining_gas);
         save_data();
         return ();
     }

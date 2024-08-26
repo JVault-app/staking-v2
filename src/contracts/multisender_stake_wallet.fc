@@ -24,6 +24,7 @@ global int   storage::min_deposit;              ;; Coins. Minimal stake amount
 global int   storage::max_deposit;              ;; Coins. Maximum stake amount
 global cell  storage::whitelist;                ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
 global slice storage::minter_address;           ;; MsgAddressStd. Address of the jetton minter (master). Is used only for TEP-74 compatibility
+global cell  storage::my_code;
 
 global int  init?;
 
@@ -53,6 +54,7 @@ global int  init?;
         storage::min_deposit             = ds2~load_coins();
         storage::max_deposit             = ds2~load_coins();
         storage::whitelist               = ds2~load_dict();
+        storage::my_code = ds2~load_dict();
     }
 
     ds2.end_parse();
@@ -78,6 +80,7 @@ global int  init?;
                     .store_coins(storage::min_deposit)
                     .store_coins(storage::max_deposit)
                     .store_dict(storage::whitelist)
+                    .store_dict(storage::my_code)
                 .end_cell()
             )
         .end_cell()
@@ -174,7 +177,7 @@ global int  init?;
         
         ifnot (equal_slices(sender_address, storage::staking_pool_address)) {
             slice from_address = in_msg_body~load_msg_addr();
-            force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, my_code());
+            force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, storage::my_code);
             slice payload = in_msg_body~load_ref().begin_parse();
             slice response_address = payload~load_msg_addr();
             int   forward_amount   = payload~load_coins();
@@ -210,7 +213,7 @@ global int  init?;
 
     if (op == op::cancel_stake) {
         slice from_address = in_msg_body~load_msg_addr();
-        force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, my_code());
+        force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, storage::my_code);
         in_msg_body~skip_bits(32);
 
         send_message_with_comment(storage::owner_address, 0, "Transfer was unsuccessful", mode::carry_remaining_gas);
@@ -399,7 +402,7 @@ global int  init?;
     }
 
     if (op == op::transfer_jetton) {
-        throw_unless(exc::has_pending_request, storage::is_active);
+        ;; throw_unless(exc::has_pending_request, storage::is_active);
         int jetton_amount = in_msg_body~load_coins();
         throw_unless(exc::not_enough_jettons, jetton_amount <= storage::jetton_balance);
         throw_unless(exc::less_than_min_deposit, jetton_amount >= storage::min_deposit);
@@ -435,7 +438,7 @@ global int  init?;
                                         .end_cell()
                                     )
                                 .end_cell();
-        cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, storage::minter_address, recipient, storage::lock_period, my_code());
+        cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, storage::minter_address, recipient, storage::lock_period, storage::my_code);
 
         send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::carry_remaining_gas);
         
@@ -455,7 +458,7 @@ global int  init?;
         storage::jetton_balance,
         storage::owner_address,
         storage::minter_address,
-        my_code()
+        storage::my_code
     );
 }
 

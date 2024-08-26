@@ -59,6 +59,31 @@ export function stakeWalletConfigToCell(config: StakeWalletUninitedConfig | Stak
         .endCell();
 }
 
+export function stakeWalletInitData(config: StakeWalletConfig, walletCode?: Cell): Cell {
+    return beginCell()
+            .storeAddress(config.stakingPoolAddress)
+            .storeAddress(config.minterAddress)
+            .storeAddress(config.ownerAddress)
+            .storeRef(
+                beginCell()
+                    .storeUint(config.lockPeriod, 32)
+                    .storeCoins(config.jettonBalance)
+                    .storeDict(config.rewardsDict, Dictionary.Keys.Address(), userRewardsDictValueParser())
+                    .storeDict(config.unstakeRequests, Dictionary.Keys.Uint(32), Dictionary.Values.BigVarUint(16))
+                    .storeUint(config.requestsCount, 8)
+                    .storeCoins(config.totalRequestedJettons)
+                    .storeBit(config.isActive)
+                    .storeUint(config.unstakeCommission, 16)
+                    .storeCoins(config.unstakeFee)
+                    .storeCoins(config.minDeposit)
+                    .storeCoins(config.maxDeposit)
+                    .storeDict(config.whitelist, Dictionary.Keys.Address(), Dictionary.Values.Bool())
+                    .storeBuilder(walletCode ? beginCell().storeMaybeRef(walletCode) : beginCell())
+                .endCell()
+            )
+        .endCell();
+}
+
 export class StakeWallet implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
 

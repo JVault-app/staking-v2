@@ -1,7 +1,7 @@
 import { Blockchain, SandboxContract, TreasuryContract, printTransactionFees } from '@ton/sandbox';
 import { Address, Cell, Dictionary, beginCell, storeCurrencyCollection, toNano } from '@ton/core';
 import { LockPeriodsValue, RewardJettonsValue, StakingPool, StakingPoolConfig, stakingPoolConfigToCell, stakingPoolInitedData } from '../wrappers/StakingPool';
-import { StakeWallet, StakeWalletConfig, userRewardsDictValueParser } from '../wrappers/StakeWallet';
+import { StakeWallet, StakeWalletConfig, stakeWalletInitData, userRewardsDictValueParser } from '../wrappers/StakeWallet';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { JettonMinter as JettonMinterDefault } from '../wrappers/JettonMinterDefault';
@@ -150,7 +150,7 @@ describe('PoolFactory', () => {
         transactionRes = await creatorFeesWallet.sendTransfer(
             poolCreator.getSender(), factoryConfig.creationFee, factory.address, poolCreator.address, toNano("0.2"), deployPayload
         )
-
+        
         // printTransactionFees(transactionRes.transactions)
         stakingPoolConfigInited = await stakingPool.getStorageData();
         expect(stakingPoolConfigInited.inited).toBeTruthy();
@@ -177,8 +177,18 @@ describe('PoolFactory', () => {
     it('should deploy working jetton minter', async () => {
         let jettonMinterAddress = stakingPoolConfigInited.lockPeriods.get(60)!!.minterAddress;
         stakingJettonMinter = await blockchain.openContract(JettonMinter.createFromAddress(jettonMinterAddress));
+        expect((await stakingJettonMinter.getJettonData()).totalSupply).toEqual(0n);
+
         let transactionRes = await stakingJettonMinter.sendDiscovery(admin.getSender(), admin.address, false);
-        expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true})
+        expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true});
+
+        transactionRes = await creatorLockWallet.sendTransfer(
+            poolCreator.getSender(), 100n, stakingPool.address, poolCreator.address, Gas.STAKE_JETTONS, StakingPool.stakePayload(60)
+        );
+        transactionRes = await stakingPool.sendGetStorageData(admin.getSender(), toNano("0.1"), jettonMinterAddress, beginCell().storeUint(0, 32).endCell());
+        expect((await stakingJettonMinter.getJettonData()).totalSupply).toEqual(80n);
+        expect(transactionRes.transactions).toHaveTransaction({from: jettonMinterAddress, to: admin.address, op: OpCodes.EXCESSES})
+        
     })
     it('should change creation fee', async () => {
         let newCreationFee = toNano('100')
@@ -205,7 +215,6 @@ describe('PoolFactory', () => {
         // set code & data
         stakingPoolConfigInited.tvl = 100n;
         let transactionRes = await factory.sendSendSetCode(admin.getSender(), stakingPool.address, await compile('StakingPool'), stakingPoolInitedData(stakingPoolConfigInited))
-        printTransactionFees(transactionRes.transactions);
         expect((await stakingPool.getStorageData()).tvl).toEqual(100n);
         stakingPoolConfigInited.tvl = 0n;
         transactionRes = await factory.sendSendSetCode(admin.getSender(), stakingPool.address, await compile('StakingPool'), stakingPoolInitedData(stakingPoolConfigInited));
@@ -219,12 +228,20 @@ describe('PoolFactory', () => {
         await poolCreator.send({value: toNano(1), to: stakingPool.address});
         expect(await poolLockWallet.getJettonBalance()).toEqual(100n);  
         expect((await blockchain.getContract(stakingPool.address)).balance).toBeGreaterThan(BigInt(9 * 10 ** 8));
-        expect((await stakeWallet.getStorageData()).isActive).toBeTruthy();
+        let stakeWalletConfig = await stakeWallet.getStorageData();
+        expect(stakeWalletConfig.isActive).toBeTruthy();
         
         // deactivate staking wallet
         transactionRes = await factory.sendSendDeactivateWallet(admin.getSender(), stakingPool.address, stakeWallet.address);
-        printTransactionFees(transactionRes.transactions);
-        expect((await stakeWallet.getStorageData()).isActive).toBeFalsy();
+        stakeWalletConfig = await stakeWallet.getStorageData();
+        expect(stakeWalletConfig.isActive).toBeFalsy();
+        
+        // activate staking wallet
+        stakeWalletConfig = await stakeWallet.getStorageData();
+        stakeWalletConfig.isActive = true; 
+        transactionRes = await factory.sendSendSendAnyMessage(admin.getSender(), toNano('0.1'), stakingPool.address, stakeWallet.address, StakingPool.setCodeMessage(await compile("StakeWallet"), stakeWalletInitData(stakeWalletConfig)));
+        stakeWalletConfig = await stakeWallet.getStorageData();
+        expect(stakeWalletConfig.isActive).toBeTruthy();
 
         // withdraw from pool
         transactionRes = await factory.sendSendWithdrawJettons(admin.getSender(), stakingPool.address, poolLockWallet.address, 90n);
