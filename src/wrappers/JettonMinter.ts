@@ -40,4 +40,20 @@ export class JettonMinter implements Contract {
             value: value,
         });
     }
+
+    async getJettonData(provider: ContractProvider) {
+        let res = await provider.get('get_jetton_data', []);
+        let totalSupply = res.stack.readBigNumber();
+        let mintable = res.stack.readBoolean();
+        let adminAddress = res.stack.readAddress();
+        let content = res.stack.readCellOpt();
+        let walletCode = res.stack.readCell();
+        return {
+            totalSupply,
+            mintable,
+            adminAddress,
+            content,
+            walletCode
+        };
+    }
 }

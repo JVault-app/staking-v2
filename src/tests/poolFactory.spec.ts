@@ -44,7 +44,8 @@ describe('PoolFactory', () => {
 
     let lockJettonMinter: SandboxContract<JettonMinterDefault>;
     let poolLockWallet: SandboxContract<JettonWallet>;
-    
+    let creatorLockWallet: SandboxContract<JettonWallet>;
+
     let feesJettonMinter: SandboxContract<JettonMinterDefault>;
     let creatorFeesWallet: SandboxContract<JettonWallet>;
     let adminFeesWallet: SandboxContract<JettonWallet>;
@@ -62,12 +63,15 @@ describe('PoolFactory', () => {
         poolCreator = await blockchain.treasury('poolCreator');
         lockJettonMinter = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: admin.address, content: Cell.EMPTY, wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         await lockJettonMinter.sendDeploy(admin.getSender(), toNano("0.05"));
+        await lockJettonMinter.sendMint(admin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
+        creatorLockWallet = blockchain.openContract(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(poolCreator.address)));
+
         feesJettonMinter = blockchain.openContract(JettonMinterDefault.createFromConfig({admin: admin.address, content: beginCell().storeUint(0, 32).endCell(), wallet_code: jettonWalletCode}, jettonMinterDefaultCode));
         await feesJettonMinter.sendDeploy(admin.getSender(), toNano("0.05"));
         await feesJettonMinter.sendMint(admin.getSender(), poolCreator.address, toNano(1000), toNano("0.2"), toNano("0.5"));
         adminFeesWallet = blockchain.openContract(JettonWallet.createFromAddress(await feesJettonMinter.getWalletAddress(admin.address)));
         creatorFeesWallet = blockchain.openContract(JettonWallet.createFromAddress(await feesJettonMinter.getWalletAddress(poolCreator.address)));
-
+        
         let poolUninitedCodes: Dictionary<bigint, Cell> = Dictionary.empty();
         poolUninitedCodes.set(0n, stakingPoolUninitedCode)
         
@@ -167,8 +171,18 @@ describe('PoolFactory', () => {
     it('should deploy working jetton minter', async () => {
         let jettonMinterAddress = stakingPoolConfigInited.lockPeriods.get(60)!!.minterAddress;
         stakingJettonMinter = await blockchain.openContract(JettonMinter.createFromAddress(jettonMinterAddress));
+        expect((await stakingJettonMinter.getJettonData()).totalSupply).toEqual(0n);
+
         let transactionRes = await stakingJettonMinter.sendDiscovery(admin.getSender(), admin.address, false);
-        expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true})
+        expect(transactionRes.transactions).toHaveTransaction({op: OpCodes.TAKE_WALLET_ADDRESS, success: true});
+
+        transactionRes = await creatorLockWallet.sendTransfer(
+            poolCreator.getSender(), 100n, stakingPool.address, poolCreator.address, Gas.STAKE_JETTONS, StakingPool.stakePayload(60)
+        );
+        transactionRes = await stakingPool.sendGetStorageData(admin.getSender(), toNano("0.1"), jettonMinterAddress, beginCell().storeUint(0, 32).endCell());
+        expect((await stakingJettonMinter.getJettonData()).totalSupply).toEqual(80n);
+        expect(transactionRes.transactions).toHaveTransaction({from: jettonMinterAddress, to: admin.address, op: OpCodes.EXCESSES})
+        
     })
     it('change creation fee', async () => {
         let newCreationFee = toNano('100')
