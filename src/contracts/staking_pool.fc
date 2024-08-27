@@ -374,15 +374,17 @@ global int   storage::version;                 ;; Uint16. Version of the staking
                         rewards_deposits~udict_delete?(32, index);
                         time_now = end_time;
                     }
+                    else {
+                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                    }
                     distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
-                    rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
                 }
                 (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
             }
 
             (slice user_rewards_slice, int success3) = user_rewards_dict.dict_get?(267, reward_jetton);
             (int user_distributed_rewards, int user_unclaimed_rewards) = success3 ? (user_rewards_slice~load_uint(256), user_rewards_slice~load_coins()) : (0, 0);
-            user_unclaimed_rewards += muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_divider);
+            user_unclaimed_rewards += muldiv(muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_divider), reward_multiplier, reward_multiplier_divider);
 
             storage::reward_jettons~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
             user_rewards_dict~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(user_unclaimed_rewards));
@@ -443,8 +445,10 @@ global int   storage::version;                 ;; Uint16. Version of the staking
                             should_update_rewards = true;
                             should_update_rewards2 = true;
                         }
+                        else {
+                            rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                        }
                         distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
-                        rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
                     }
                     (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
                 }
@@ -456,7 +460,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
                     user_distributed_rewards = user_rewards_slice~load_uint(256);
                     prev_user_unclaimed_rewards = user_rewards_slice~load_coins();
                 }
-                int new_user_rewards = muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_divider);
+                int new_user_rewards = muldiv(muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_divider), reward_multiplier, reward_multiplier_divider);
                 
                 required_gas += send_jettons(query_id, new_user_rewards + prev_user_unclaimed_rewards, stake_owner_address, stake_owner_address, reward_jetton, 
                                              tons::jetton_transfer, mode::pay_fees_separately, 1, begin_cell().store_uint(0, 32).store_slice("Claim staking rewards").end_cell());
