@@ -206,5 +206,23 @@ describe('PoolFactory', () => {
         expect((await factory.getStorageData()).feesWalletAddress).toEqualAddress(new_fees_wallet_address)
     });
     
+    it('should handle non-discoverable jettons', async () => {
+        stakingPoolConfig.lockWalletAddress = randomAddress();
+        let periodsDeploy: Dictionary<number, PeriodsDeployValue> = Dictionary.empty()
+        let minterAddr1 = randomAddress(0);
+        periodsDeploy.set(60, {tvlLimit: 1000n, rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER))});
 
+        let deployPayload = PoolFactory.getDeployPayload(
+            stakingPoolConfig.lockWalletAddress, stakingPoolConfig.minDeposit, stakingPoolConfig.maxDeposit, periodsDeploy, null, stakingPoolConfig.rewardsCommission
+        );
+        let transactionRes = await creatorFeesWallet.sendTransfer(
+            poolCreator.getSender(), factoryConfig.creationFee, factory.address, poolCreator.address, toNano("0.155"), deployPayload
+        )
+        stakingPool = await blockchain.openContract(StakingPool.createFromAddress(await factory.getNftAddressByIndex(1)));
+        // printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).toHaveTransaction({from: stakingPool.address, to: poolCreator.address, op: 0});
+
+        transactionRes = await stakingPool.sendSetLockWallet(poolCreator.getSender(), poolLockWallet.address);
+        expect(transactionRes.transactions).toHaveTransaction({from: stakingPool.address, to: poolCreator.address, op: 0});
+    });
 });

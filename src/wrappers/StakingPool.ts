@@ -152,6 +152,13 @@ export class StakingPool implements Contract {
         });
     }
     
+    async sendSetLockWallet(provider: ContractProvider, via: Sender, lockWalletAddress: Address, queryId: number = 0) {
+        await provider.internal(via, {
+            value: toNano("0.01"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.TAKE_WALLET_ADDRESS, 32).storeUint(queryId, 64).storeAddress(lockWalletAddress).endCell(),
+        });
+    }
     static stakePayload(lockPeriod: number | bigint): Cell {
         return beginCell().storeUint(OpCodes.STAKE_JETTONS, 32).storeUint(lockPeriod, 32).endCell();
     }
