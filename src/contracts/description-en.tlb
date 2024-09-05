@@ -1,0 +1,452 @@
+//=======================================================================
+/// BASIC
+// https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb
+nothing$_ {X: Type} = Optional X;
+something$_ {X: Type} value:X = Optional X;
+
+unit$_ = Unit;
+bool_false$0 = Bool;
+bool_true$1 = Bool;
+bool_false$0 = BoolFalse;
+bool_true$1 = BoolTrue;
+nothing$0 {X:Type} = Maybe X;
+just$1 {X:Type} value:X = Maybe X;
+left$0 {X:Type} {Y:Type} value:X = Either X Y;
+right$1 {X:Type} {Y:Type} value:Y = Either X Y;
+
+bit$_ (## 1) = Bit;
+
+nothing$0 {X:Type} = Maybe X;
+just$1 {X:Type} value:X = Maybe X;
+
+hm_edge#_ {n:#} {X:Type} {l:#} {m:#} label:(HmLabel ~l n)
+          {n = (~m) + l} node:(HashmapNode m X) = Hashmap n X;
+
+hmn_leaf#_ {X:Type} value:X = HashmapNode 0 X;
+hmn_fork#_ {n:#} {X:Type} left:^(Hashmap n X)
+           right:^(Hashmap n X) = HashmapNode (n + 1) X;
+
+hml_short$0 {m:#} {n:#} len:(Unary ~n) {n <= m} s:(n * Bit) = HmLabel ~n m;
+hml_long$10 {m:#} n:(#<= m) s:(n * Bit) = HmLabel ~n m;
+hml_same$11 {m:#} v:Bit n:(#<= m) = HmLabel ~n m;
+
+unary_zero$0 = Unary ~0;
+unary_succ$1 {n:#} x:(Unary ~n) = Unary ~(n + 1);
+
+hme_empty$0 {n:#} {X:Type} = HashmapE n X;
+hme_root$1 {n:#} {X:Type} root:^(Hashmap n X) = HashmapE n X;
+
+left$0 {X:Type} {Y:Type} value:X = Either X Y;
+right$1 {X:Type} {Y:Type} value:Y = Either X Y;
+
+addr_none$00 = MsgAddressExt;
+addr_extern$01 len:(## 9) external_address:(bits len)
+             = MsgAddressExt;
+anycast_info$_ depth:(#<= 30) { depth >= 1 }
+   rewrite_pfx:(bits depth) = Anycast;
+addr_std$10 anycast:(Maybe Anycast)
+   workchain_id:int8 address:bits256 = MsgAddressStd;
+addr_var$11 anycast:(Maybe Anycast) addr_len:(## 9)
+   workchain_id:int32 address:(bits addr_len) = MsgAddressVar;
+_ _:MsgAddressStd = MsgAddressInt;
+_ _:MsgAddressVar = MsgAddressInt;
+_ _:MsgAddressInt = MsgAddress;
+_ _:MsgAddressExt = MsgAddress;
+
+var_uint$_ {n:#} len:(#< n) value:(uint (len * 8))
+         = VarUInteger n;
+var_int$_ {n:#} len:(#< n) value:(int (len * 8))
+        = VarInteger n;
+nanograms$_ amount:(VarUInteger 16) = Grams;
+
+_ grams:Grams = Coins;
+
+optional_nothing$_ {X: Type} = Optional X;
+optional_something$_ {X: Type} value:X = Optional X;
+
+//=======================================================================
+/// jettons
+
+jetton_transfer_notification#7362d09c {Payload: Type}
+    query_id:uint64
+    amount:Coins
+    sender:MsgAddress
+    forward_payload:(Either Payload ^Payload)
+= JettonTransferNotificationMsg Payload;
+
+transfer#0f8a7ea5 {Payload: Type}
+    query_id:uint64
+    amount:Coins
+    destination:MsgAddress
+    response_destination:MsgAddress
+    custom_payload:(Maybe ^Cell)
+    forward_ton_amount:Coins
+    forward_payload:(Either Payload ^Payload)
+= JettonTransferMsg Payload;
+
+provide_wallet_address#2c76b973
+    query_id:uint64
+    owner_address:MsgAddress
+    include_address:Bool
+= ProvideWalletMsg;
+
+take_wallet_address#d1735400
+    query_id:uint64
+    wallet_address:MsgAddress
+    owner_address:(Maybe ^MsgAddress)
+= TakeWalletMsg;
+
+//=======================================================================
+/// StakingV2
+
+// Common
+whitelist$_ _:(HashmapE 267 Bit) = Whitelist;  // user_address (MsgAddressStd) -> nothing (int1)
+
+// Staking pool storage
+reward_jettons$_
+    _:(HashmapE 267 [distributed_rewards: uint256 rewards_deposits:(HashmapE 32 [distribution_speed:Coins start_time:uint32 end_time:uint32])])
+= RewardJettons;  // key is pool's jetton wallet address
+
+lock_periods$_ _:(HashmapE 32 [cur_tvl:Coins tvl_limit:Coins
+                  reward_multiplier:uint16 deposit_commission:uint16
+                  unstake_commission:uint16 minter_address:MsgAddressStd]) = LockPeriods;
+
+staking_pool_storage$_
+    init:int1
+    pool_id:uint32
+    admin_address:MsgAddressStd
+    creator_address:MsgAddressStd
+    lock_wallet_address:MsgAddressStd
+    nft_content:(Maybe ^Cell)
+    stake_wallet_code:^Cell
+    _:^[
+        tvl:Coins
+        tvl_with_multipliers:Coins
+        min_deposit:Coins
+        max_deposit:Coins
+        reward_jettons:RewardJettons
+        reward_jettons_count:uint8
+        rewards_deposits_count:uint8
+        lock_periods:LockPeriods
+        whitelist:Whitelist
+        unstake_fee:Coins
+        collected_commissions:Coins
+        rewards_commission:uint16
+        version:uint16
+    ]
+= StakingPoolStorage;
+
+// Stake wallet storage
+rewards_dict$_ _:(HashmapE 267 [last_distributed_rewards:uint256 unclaimed_rewards:Coins]) = RewardsDict;  // key is pool's jetton wallet address
+unstake_requests$_ _:(HashmapE 32 Coins) = UnstakeRequests;  // request_time -> jettons_to_unstake
+
+stake_wallet_storage$_
+    staking_pool_address:MsgAddressStd
+    minter_address:MsgAddressStd
+    owner_address:MsgAddressStd
+    _:^[
+        lock_period:uint32
+        jetton_balance:Coins
+        rewards_dict:RewardsDict
+        unstake_requests:UnstakeRequests
+        requests_counter:uint8
+        total_requested_jettons:Coins
+        is_active:Bool
+        _:(Optional [
+            unstake_commission:uint16
+            unstake_fee:Coins
+            min_deposit:Coins
+            max_deposit:Coins
+            whitelist:Whitelist
+        ])
+    ]
+= StakeWalletStorage;
+
+
+// Adding rewards process
+
+// If adding rewards in a particular token is the first time (if the jetton_wallet address is missing from the reward_jettons dictionary),
+// the staking pool creator must save it in a smart contract before sending tokens using the add_reward_jettons_msg:
+add_reward_jettons_msg#10676ae7
+    query_id:uint64
+    jetton_wallets_dict:(HashmapE 267 Bit)  // jetton_wallet_address (MsgAddress) -> nothing (int1)
+= InternalMsgBody;
+// In the staking pool, it is verified that 
+// 1. The request came from the address of the pool creator
+// 2. reward_jettons_count < REWARD_JETTONS_MAX_COUNT
+// If the check is successful, the reward_jettons dictionary is updated: for each address from jetton_wallets_dict, it is set
+// distributed_rewards = 0, rewards_deposits = hme_empty, if it was previously absent in reward_jettons (otherwise nothing happens)
+
+// After saving the address of the required jetton_wallet, the pool creator can send reward tokens:
+add_rewards_payload#db16ac95 start_time:uint32 end_time:uint32 = AddRewardsPayload;
+add_rewards_transfer_msg$_ _:(JettonTransferMsg AddRewardsPayload) = InternalMsgBody;
+// On staking_pool.fc it is checked that
+// 1. Enough gas is attached to the transfer
+// 2. The sender of the tokens is the creator of the staking pool
+// 3. Transfer notification came from a jetton_wallet stored in reward_jettons
+// 4. rewards_deposits_count < REWARDS_DEPOSITS_MAX_COUNT
+// 5. start_time >= now and end_time > start_time
+
+// If the check fails, the tokens are returned to the sender. Otherwise, the reward_jettons dictionary is updated in the staking pool
+// (for the corresponding jetton_wallet, a new element is added to the rewards_deposits dictionary, which has
+// distribution_speed = transferred_jettons * distribution_speed_devider / (end_time - start_time))
+// Next, a commission is sent to the address of the staking pool administrator and the transaction chain ends here.
+rewards_commission_transfer_msg$_ _:(JettonTransferMsg Cell) = InternalMsgBody;
+
+
+// Staking process
+
+// User sends the desired tokens to staking_pool.fc (stake_transfer_msg), specifying the desired lock period:
+stake_payload#e3a06989 lock_period:uint32 = StakePayload;
+stake_transfer_msg$_ _:(JettonTransferMsg StakePayload) = InternalMsgBody;
+// On the smart contract staking_pool.fc it is checked that
+// 0. The pool is initialised (lock_wallet_address => init? = true)
+// 1. Enough gas is attached to the transfer
+// 2. Correct tokens are received (jetton_transfer_notification came from the saved address)
+// 3. User is in whitelist or whitelist == null()
+// 4. The number of tokens received is greater than the minimum deposit and less than the maximum. (commission is taken into account when comparing with the maximum)
+// 5. The lock period exists in the lock_periods dictionary
+
+// In case of unsuccessful check, tokens are sent back to the user.
+// If the check is successful, the TVL change is stored in the lock_periods dictionary on the staking_pool.fc contract
+// for the corresponding period a message is sent to deploy the user's stake_wallet.
+receive_jettons_msg#d68a4ac1
+    query_id:uint64
+    min_deposit:Coins
+    max_deposit:Coins
+    unstake_commission:uint16
+    unstake_fee:Coins
+    jettons_to_stake:Coins    // transferred jettons excluding commission
+    deposit_commission:Coins
+= InternalMsgBody;
+// On stake_wallet it is checked that
+// 1. the wallet is active (is_active == true)
+// 2. Message received from the staking pool address
+// 3. The total number of tokens (just received + already staked) does not exceed max_deposit
+
+// If the deposit exceeds the maximum, stake_wallet sends cancel_stake_msg to the staking pool address:
+cancel_stake_msg#9eada1d9 query_id:uint64 jettons_to_stake:Coins deposit_commission:Coins = CancelStakeMsg;
+_ _:CancelStakeMsg = InternalMsgBody;
+// the staking pool in turn reduces the TVL for the corresponding lock_period by jettons_to_stake and returns the
+// jettons_to_stake + deposit_commission tokens to the user, and the transaction chain ends here.
+return_jettons_msg$_ _:(JettonTransferMsg Cell) = InternalMsgBody;
+
+// Otherwise, changes are saved in the stake_wallet.fc contract (jetton_balance, min_deposit, max_deposit, unstake_commission,
+// unstake_fee, whitelist) and a request is sent to update the user's TVL pool and rewards. Until a response is received, the wallet is deactivated.
+update_request_msg#f5c5baa3
+    query_id:uint64
+    owner_address:MsgAddressStd
+    lock_period:uint32
+    balance_before_request:Coins  // user balance before the transaction
+    tvl_change:int121             // changes in the TVL of the staking pool
+    rewards_dict:RewardsDict      // user awards saved in stake_wallet
+    jettons_to_send:Coins         // number of tokens to be sent to the user (in case of unstake)
+    commission:Coins              // commission for deposit or instant untstake
+= UpdateRequestMsg;
+_ _:UpdateRequestMsg = InternalMsgBody;
+// In this case tvl_change = jettons_to_stake, jettons_to_send = 0, commission = deposit_commission.
+// The tvl, tvl_with_multipliers, reward_jettons, collected_commissions are updated on the staking pool contract, and the rewards are calculated
+// of the user since the previous update.
+
+// Each element of the reward_jettons dictionary is updated as follows:
+// The rewards_deposit list is traversed and at each step the rewards distributed since
+// start_time rewards, also start_time is replaced by the current time, or if time_now >= end_time, the item is removed from the list.
+
+// The user's updated rewards (per token) are calculated as
+// unclaimed_rewards + (cur_distributed_rewards - prev_distributed_rewards) * balance_before_request / distributed_rewards_devider
+
+// After the request is processed, an update_rewards_msg is sent to stake_wallet:
+update_rewards_msg#ae9307ce query_id:uint64 rewards_dict:RewardsDict = UpdateUserRewardsMsg;
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+// On the stake_wallet contract, it checks that the message came from staking_pool.fc, updates rewards_dict and sets is_active = true.
+// After that the unused gas is sent to the wallet owner and the transaction chain is completed:
+excess_msg#d53276db query_id:uint64 = ExcessMsg;
+_ _:ExcessMsg = InternalMsgBody;
+
+
+// Claim rewards process
+
+// The user can claim the accumulated rewards at any time. To do this, he sends claim_rewards_msg to his stake_wallet address:
+claim_rewards_msg#78d9f109
+    query_id:uint64
+    owner_address:MsgAddressStd
+    lock_period:uint32
+    jettons_to_claim:(HashmapE 267 Bit)  // jetton_wallet_address (MsgAddressStd -> nothing (int1))
+= InternalMsgBody;
+// On the stake_wallet.fc contract it is checked that
+// 1. the message came from the owner of stake_wallet
+// 2. Gas is sufficient for at least one round of the rewards_dict dictionary and the sending of one token.
+// 3. The wallet is active (is_active == true)
+
+// If the check is successful, the stake_wallet is deactivated and a send_claimed_rewards message is sent to the staking pool address:
+send_claimed_rewards_msg#44bc1fe3
+    query_id:uint64
+    owner_address:MsgAddressStd
+    lock_period:uint32
+    jetton_balance:Coins
+    rewards_dict:RewardsDict
+    jettons_to_claim:(HashmapE 267 Bit) // jetton_wallet_address (MsgAddressStd -> nothing (int1))
+= InternalMsgBody;
+// The processing of the claim request is similar to update_request_msg, except that the user is 
+// his unclaimed rewards are sent (in this case, unclaimed_rewards = 0 is set everywhere in the rewards_dict dictionary),
+// and the TVL is not changed in the staking pool. In addition, a check is made to make sure that there is enough gas to send all the 
+// requested tokens. Otherwise, an exception is thrown, and when processing the bounced message on the stake_wallet contract 
+// is set is_active = True. If the check is successful, the update_rewards_msg message is sent 
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+// it is processed as usual, the unused gas is sent to the stake_wallet owner, and the transaction chain ends:
+_ _:ExcessMsg = InternalMsgBody;
+
+
+// Request unstake process
+
+// A user can request a free ‘pending’ unstake of any number of his tokens.
+// To do this, he sends unstake_request_msg to stake_wallet:
+unstake_request#0168d4b7 query_id:uint64 jettons_to_unstake:Coins = InternalMsgBody;
+// On the stake_wallet.fc contract it is checked that
+// 1. the message came from the owner of stake_wallet
+// 2. Gas is sufficient for at least one round of the rewards_dict dictionary and the sending of one token.
+// 3. The wallet is active (is_active == true)
+// 4. requests_count < UNSTAKE_REQUESTS_MAX_COUNT
+// 4. The jetton_balance will not become negative after the request is processed
+
+// If the check is successful, UpdateRequestMsg(tvl_change = - jettons_to_unstake, jettons_to_send = 0, commission = 0) is sent.
+// This is followed by decreasing jetton_balance, increasing total_requested_jettons, and writing a new request to unstake_requests,
+// is_active = false. UpdateRequestMsg is processed in the standard way and the transaction chain is completed:
+_ _:UpdateRequestMsg = InternalMsgBody;
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+_ _:ExcessMsg = InternalMsgBody;
+// It is important to note that tokens requested for free unstake will immediately stop being awarded
+
+
+// Unstake process
+
+// A user can send a request for an instant unstake of tokens. To do this, he sends unstake_msg to stake_wallet:
+unstake_msg#499a9262 jettons_to_unstake:Coins force_unstake:Bool = InternalMsgBody;
+// On the stake_wallet.fc contract it is checked that
+// 1. the message came from the owner of stake_wallet
+// 2. msg_value >= force_unstake * storage::unstake_fee + gas::unstake_jettons .
+// 3. Wallet is active (is_active == true)
+// 4. jettons_to_unstake <= storage::total_requested_jettons + force_unstake * storage::jetton_balance
+
+// If the check is successful, then
+// 1. The maximum number of requests for free unstake made earlier than now() - lock_period is removed.
+// Let's denote the number of these tokens as free_jettons.
+// 2. If there are not enough unlocked tokens and force_unstake == true, some tokens are subtracted from jetton_balance.
+// Let's denote the number of these tokens as forced_jettons.
+// 3. The commission is calculated: commission = forced_jettons * unstake_commission / commission_devider
+// 4. UpdateRewardsMsg(jettons_to_send = requested_jettons - commission, tvl_change = - forced_jettons, commission = commission) is sent.
+// In this case tvl_change = - forced_jettons, since the other changes were saved when processing unstake_requests
+// 5. jetton_balance is reduced by forced_jettons, total_requested_jettons is reduced by free_jettons
+// 6. set is_active = false
+_ _:UpdateRequestMsg = InternalMsgBody;
+
+// UpdateRequestMsg is processed in the standard way, except that:
+// 1. If commission > 0, the collected_commissions variable is incremented and unstake_fee is sent to admin_address
+// 2. Tokens requested for unstake are sent to the owner of stake_wallet
+unstaked_transfer_msg$_ _:(JettonTransferMsg Cell) = InternalMsgBody;
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+_ _:ExcessMsg = InternalMsgBody;
+// This completes the transaction chain
+
+
+// Cancelling unstake request process
+
+// The user can cancel an existing unstake request so that the rewards for the requested tokens will start accruing again
+// To do so, it sends cancel_unstake_request_msg to stake_wallet:
+cancel_unstake_request_msg#a4910f1a
+    query_id:uint64
+    requests_to_cancel:(HashmapE 32 int1) // request_time (uint32) -> nothing (int1)
+= InternalMsgBody;
+// On the stake_wallet.fc contract it is checked that
+// 1. the message came from the owner of stake_wallet
+// 2. Gas is sufficient to process the request.
+// 3. The wallet is active (is_active == true)
+
+// If the check is successful, then
+// 1. All items with the keys of the requests_to_cancel dictionary are removed from unstake_requests.
+// Let's denote the sum of tokens in cancelled requests by jettons_to_cancel.
+// 2. Sends UpdateRewardsMsg(jettons_to_send = commission = 0, tvl_change = jettons_to_cancel)
+// 3. jetton_balance is increased by jettons_to_cancel, total_requested_jettons is decreased by jettons_to_cancel
+// 4. Set is_active = false
+_ _:UpdateRequestMsg = InternalMsgBody;
+
+// UpdateRequestMsg is processed in the standard way and the transaction chain ends here:
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+_ _:ExcessMsg = InternalMsgBody;
+
+
+// Staked jettons transfer process
+
+// A user can send stake tokens to another user. To do this, he should send a standard message
+// for token transfer:
+simple_transfer_msg$_ _:(JettonTransferMsg Cell) = InternalMsgBody;
+// On the stake_wallet contract, it is checked that:
+// 1. The message came from the owner of stake_wallet
+// 2. Gas is sufficient to process the request.
+// 3. The wallet is active (is_active == true)
+// 4. min_deposit <= jetton_amount <= jetton_balance
+// 5. The recipient is in whitelist, or whitelist == null
+
+// If all checks are successful, jetton_balance is reduced by jetton_amount, is_active = false and
+// internal_transfer_msg is sent to the recipient's stake_wallet address:
+internal_transfer_msg#d68a4ac1
+    query_id:uint64
+    min_deposit:Coins
+    max_deposit:Coins
+    unstake_commission:uint16
+    unstake_fee:Coins
+    whitelist:Whitelist
+    jetton_amount:Coins
+    _:^[
+        response_address:MsgAddressStd
+        forward_ton_amount:Coins
+        forward_payload:^Cell
+        balance_before_transfer:Coins
+    ]
+= InternalMsgBody;
+// On the recipient's stake_wallet contract, it is checked that
+// 1. the wallet is active (is_active == true)
+// 2. The sender is another stake_wallet contract from the same staking pool
+// 3. The total number of tokens (just received + already staked) does not exceed max_deposit
+
+// If the check is not successful, a cancel_stake_msg message is sent to the stake_wallet address of the token sender:
+_ _:CancelStakeMsg = InternalMsgBody;
+// When cancel_stake_msg is processed, it is checked that it is sent from a valid address, and if it is successful
+// jetton_balance returns to the state before the transfer attempt and is set to is_active = true.
+// The user receives an unused gas with an error message.
+failed_transfer_msg#00000000 comment:Cell = InternalMsgBody;
+
+// If the check is passed, then
+// 1. transfer_notification is sent according to the TEP-74 standard.
+// 2. A request is sent to update the rewards in the sender's wallet:
+update_request_with_forward_msg#f5c5baa3
+    query_id:uint64
+    owner_address:MsgAddressStd    // address of the recipient of the staked tokens
+    lock_period:uint32
+    sender_balance:Coins           // balance of the sender of tokens before they are sent
+    tvl_change:int121              // changing in the TVL of the staking pool (always 0)
+    rewards_dict:RewardsDict       // the sender's awards saved in stake_wallet
+    jettons_to_send:Coins          // tokens to be sent (always 0)
+    forward_address:MsgAddressStd  // sender's stake_wallet address
+= UpdateRequestWithForwardMsg;
+// This request is sent in exactly the same way as UpdateRequestMsg, except that the information about the rewards comes
+// to the forward_address (i.e. to the address of the token sender)
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+_ _:ExcessMsg = InternalMsgBody;
+// 2. UpdateRequestMsg(jettons_to_send = tvl_change = commission = 0) is sent (handled in the standard way):
+_ _:UpdateUserRewardsMsg = InternalMsgBody;
+_ _:ExcessMsg = InternalMsgBody;
+// 3. Contract data is updated (jetton_balance, min_deposit, max_deposit, unstake_commission, unstake_fee, whitelist)
+// 4. Unused gas is sent to response_address.
+_ _:ExcessMsg = InternalMsgBody;
+// This completes the transaction chain
+
+
+// Claim collected commissions process
+// The creator of the staking pool can take the accumulated commissions from deposits and early unstakes (also for the purpose of
+// adding them as rewards in the future). To do this, he sends claim_commissions_msg to the staking pool address:
+claim_commissions_msg#bca8f067 query_id:uint64 = InternalMsgBody;
+
+// On the staking pool contract, it is checked that the message came from the pool creator, then the collected_commissions variable
+// is reset to zero and the collected commissions are sent:
+_ _:(JettonTransferMsg Cell) = InternalMsgBody;
