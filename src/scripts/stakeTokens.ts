@@ -11,11 +11,12 @@ import { buildOnchainMetadata } from '../wrappers/imports/buildOnchain';
 
 export async function run(provider: NetworkProvider) {
     const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQDgOwSfRZYbDS6LJftQ0hwlan3VORQAbsYNhOk_pNh0Uyqi"))) //
-    const lockJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("EQC6yg4oNOKaY9-JxXGvAfPWyQX4W6UpIR-4QAFvcpmXhRJX")));
+    const lockJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("EQBH-lTgGoe6x-wBoZGbOSBdVjfImvLEA2bueS_JR3GBsqFb")));
     const lockPeriod = 604800;
     const jettonsToStake = toNano(10n); 
 
     let lockWallet = provider.open(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(provider.sender().address as Address)));
+    // await lockWallet.sendTransfer(provider.sender(), 100n, Address.parse("EQCVU4jFv4D7lkWSc8VMP4YMK_xm0w_IW93YC7PT1DKPmTKX"), provider.sender().address!!, 1n, null, toNano("0.07"))
     let transactionRes = await lockWallet.sendTransfer(
         provider.sender(), jettonsToStake, stakingPool.address, provider.sender().address!!, Gas.STAKE_JETTONS, StakingPool.stakePayload(lockPeriod)
     );

@@ -585,9 +585,9 @@ describe('StakingPool', () => {
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
         transactionRes = await stakeWallet1_2.sendClaimRewards(user1.getSender(), rewardJettonsList);
         printTransactionFees(transactionRes.transactions)
-        console.log(transactionRes.transactions[2].vmLogs)
+        // console.log(transactionRes.transactions[2].vmLogs)
         user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
-        console.log(user1RewardsBalance)
+        // console.log(user1RewardsBalance)
         expect(user1RewardsBalance).toEqual(10000n - 2n);
     });
     
