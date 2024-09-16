@@ -20,3 +20,5 @@ src/*.vsix
 
 # VIM
 Session.vim
+
+src/.env
