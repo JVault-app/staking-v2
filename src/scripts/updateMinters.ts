@@ -21,13 +21,13 @@ export async function run(provider: NetworkProvider) {
             const poolAddress = await poolFactory.getNftAddressByIndex(i);
             const stakingPool = provider.open(StakingPool.createFromAddress(poolAddress))
             const lockPeriods = (await stakingPool.getStorageData()).lockPeriods;
-            if (lockPeriods.values().length != 1) {
+            if (lockPeriods.values().length != 1 && i < 23) {
                 continue
             }
             for (let periodData of lockPeriods.values()) {
                 const jettonMinter = provider.open(JettonMinter.createFromAddress(periodData.minterAddress));
                 const prevTvl = await jettonMinter.getTotalSupply();
-                if ((!prevTvl && periodData.curTvl) || (prevTvl && Math.abs(Number(periodData.curTvl - prevTvl) / Number(prevTvl)) > 0.05)) {
+                if ((!prevTvl && periodData.curTvl) || (prevTvl && Math.abs(Number(periodData.curTvl - prevTvl) / Number(prevTvl)) > 0.1)) {
                     console.log(`Updating ${jettonMinter.address}; prev TVL = ${prevTvl / 1000000000n}; new TVL = ${periodData.curTvl / 1000000000n}`);
                     // await sleep(5000);
                     try {

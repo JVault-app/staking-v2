@@ -41,15 +41,22 @@ global cell  storage::stake_wallet_code;
         ds~load_coins();
         slice staking_pool_address = ds~load_msg_addr();
         throw_unless(exc::incorrect_sender, equal_slices(staking_pool_address, sender_address));
-
+        int lock_period = ds.preload_uint(32);
         slice pool_data = in_msg_body~load_ref().begin_parse();
         pool_data~skip_bits(1 + 32 + 267 * 3);
         pool_data~skip_dict();
         pool_data~load_ref();
         pool_data = pool_data~load_ref().begin_parse();
+        pool_data~load_coins();
+        pool_data~load_coins();
+        pool_data~load_coins();
+        pool_data~load_coins();
+        pool_data~skip_dict();
+        cell lock_periods = pool_data~load_ref();
+        (slice period_info, _) = lock_periods.udict_get?(32, lock_period);
         set_data(
             begin_cell()
-               .store_coins(pool_data~load_coins())
+               .store_coins(period_info~load_coins())
                .store_slice(staking_pool_address)
                .store_slice(ds)
             .end_cell()

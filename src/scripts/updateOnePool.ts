@@ -11,9 +11,9 @@ import { buildOnchainMetadata } from '../wrappers/imports/buildOnchain';
 
 export async function run(provider: NetworkProvider) {
     const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
-    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQCiLpX9GzpcVf0rxXTBwMDp3wQdb2ThOk-rrJ75tLYsbRKZ")));
+    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQANRYlp7LlD6lvEcGpDPlvCjEaLW8llGJNeDrf7Mem1rxMJ")));
     let stakingPoolConfig = await stakingPool.getStorageData();
-    stakingPoolConfig.creatorAddress = Address.parse("UQDDTZbtGRu1C7IaFFOY_jvR-CqHmvzkC1ngKwJ4YvbtZZEV")
+    // stakingPoolConfig.creatorAddress = Address.parse("UQDDTZbtGRu1C7IaFFOY_jvR-CqHmvzkC1ngKwJ4YvbtZZEV")
     stakingPoolConfig.rewardsCommission /= 4n;
     let tmp = await stakingPool.getData();
     stakingPoolConfig.content = tmp.content;

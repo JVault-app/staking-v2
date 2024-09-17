@@ -139,7 +139,7 @@ export class PoolFactory implements Contract {
 
     async sendWithdrawJetton(provider: ContractProvider, via: Sender, jettonWalletAddress: Address, jettonAmount: bigint) {
         await provider.internal(via, {
-            value: toNano("0.15"),
+            value: toNano("0.1"),
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().storeUint(OpCodes.WITHDRAW_JETTON, 32).storeUint(0, 64).storeAddress(jettonWalletAddress).storeCoins(jettonAmount).endCell(),
         });
