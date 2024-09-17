@@ -167,7 +167,7 @@ global int  init?;
                                 .store_coins(received_jettons)
                                 .store_coins(deposit_commission)
                             .end_cell();          
-            send_cell_message(sender_address, 0, cancel_payload, mode::carry_remaining_gas);
+            send_cell_message(sender_address, 0, cancel_payload, mode::carry_remaining_balance);
     
             return ();
         }
