@@ -14,10 +14,10 @@ import { getSeqno, lastBlockSeqno } from './helpers';
 export async function run(provider: NetworkProvider) {
     const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
     const lastPoolId = Number((await poolFactory.getStorageData()).nextPoolId) - 1;
-    const excludedIndexes = [5, 6, 12, 16, 21, 22];
+    const excludedIndexes = [5, 6, 12, 16, 21];
     let curSeqno = await getSeqno(provider);
     let totalBalance = 0n;
-    for (let i = 7; i <= lastPoolId; i ++) {
+    for (let i = 1; i <= lastPoolId; i ++) {
         if (!excludedIndexes.includes(i)) {
             const poolAddress = await poolFactory.getNftAddressByIndex(i);
             const stakingPool = provider.open(StakingPool.createFromAddress(poolAddress))

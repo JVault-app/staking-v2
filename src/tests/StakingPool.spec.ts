@@ -38,7 +38,7 @@ describe('StakingPool', () => {
     let stakingPoolCode: Cell;
     let stakeWalletCode: Cell;
 
-    const CALCULATE_GAS = false;
+    const CALCULATE_GAS = true;
     const nowSetting = 2000000000;
 
     beforeAll(async () => {
@@ -468,9 +468,11 @@ describe('StakingPool', () => {
     it('should send rewards', async () => {
         //////////////////////////////////////////////////////////////////////////////////////////////////////// 1
         // Transaction Chain (in order)
+        let balanceBefore = (await blockchain.getContract(stakeWallet1_1.address)).balance
         let transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList); // 0 ;; next
-        
         printTransactionFees(transactionRes.transactions)
+
+        // printTransactionFees(transactionRes.transactions)
 
         stakeWalletConfig1_1 = await stakeWallet1_1.getStorageData();
         let user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
@@ -584,11 +586,10 @@ describe('StakingPool', () => {
         blockchain.now!! += 1000;
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
         transactionRes = await stakeWallet1_2.sendClaimRewards(user1.getSender(), rewardJettonsList);
-        printTransactionFees(transactionRes.transactions)
-        // console.log(transactionRes.transactions[2].vmLogs)
         user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
         // console.log(user1RewardsBalance)
         expect(user1RewardsBalance).toEqual(10000n - 2n);
+        console.log((await blockchain.getContract(stakeWallet1_1.address)).balance - balanceBefore)
     });
     
     it('should send unstaked jettons', async () => {
@@ -726,8 +727,6 @@ describe('StakingPool', () => {
             user1.getSender(), 80n, user2.address, user1.address, toNano(0.1),
             beginCell().storeUint(0, 32).endCell()
         );
-
-        printTransactionFees(transactionRes.transactions)
         
         expect(transactionRes.transactions).toHaveTransaction({ // 1
             from: user1.address,
