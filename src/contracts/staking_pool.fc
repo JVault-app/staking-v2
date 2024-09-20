@@ -390,9 +390,9 @@ global int   storage::version;                 ;; Uint16. Version of the staking
             sender_address       = in_msg_body~load_msg_addr();
             stake_owner_address  = in_msg_body~load_ref().begin_parse();
         }
-        
+
+        int time_now = now();
         (slice reward_jetton, slice rewards_info_slice, int success) = storage::reward_jettons.dict_get_min?(267);
-        
         while (success) {
             int distributed_rewards = rewards_info_slice~load_uint(256);
             cell rewards_deposits = rewards_info_slice~load_dict();
@@ -401,17 +401,17 @@ global int   storage::version;                 ;; Uint16. Version of the staking
             while (success2) {
                 int distribution_speed = rewards_deposit_slice~load_coins();
                 int start_time         = rewards_deposit_slice~load_uint(32);
-                int time_now           = now();
                 if (start_time < time_now) {
                     int end_time = rewards_deposit_slice~load_uint(32);
                     if (end_time <= time_now) {
                         rewards_deposits~udict_delete?(32, index);
-                        time_now = end_time;
+                        storage::rewards_deposits_count -= 1;
+                        distributed_rewards += get_distributed_rewards(distribution_speed, start_time, end_time);
                     }
                     else {
                         rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                        distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
                     }
-                    distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
                 }
                 (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
             }
@@ -457,6 +457,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
         (slice reward_jetton, _, int success) = jettons_to_claim.dict_get_min?(267);
         int required_gas = 0;
 
+        int time_now = now();
         int should_update_rewards = false;  ;; should we delete elements from storage::reward_jettons? 
         while (success) {
             (slice rewards_info_slice, int jetton_exists) = storage::reward_jettons.dict_get?(267, reward_jetton);
@@ -469,7 +470,6 @@ global int   storage::version;                 ;; Uint16. Version of the staking
                 while (success2) {
                     int distribution_speed = rewards_deposit_slice~load_coins();
                     int start_time         = rewards_deposit_slice~load_uint(32);
-                    int time_now           = now();
                     if (start_time < time_now) {
                         int end_time = rewards_deposit_slice~load_uint(32);
                         if (end_time <= time_now) {
@@ -479,10 +479,7 @@ global int   storage::version;                 ;; Uint16. Version of the staking
                             should_update_rewards = true;
                             should_update_rewards2 = true;
                         }
-                        else {
-                            rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
-                        }
-                        distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
+                        distributed_rewards += get_distributed_rewards(distribution_speed, start_time, end_time <= time_now ? end_time : time_now);
                     }
                     (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
                 }
