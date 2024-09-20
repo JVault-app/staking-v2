@@ -255,7 +255,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
     }
 
     if (op == op::update_uninited_code) {
-        storage::pool_uninited_codes~udict_set_ref(128, storage::next_pool_id, in_msg_body~load_ref());
+        storage::pool_uninited_codes~udict_set_ref(32, storage::next_pool_id, in_msg_body~load_ref());
         save_data();
         return ();
     }
