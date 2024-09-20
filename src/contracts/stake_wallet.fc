@@ -144,8 +144,9 @@ global int  init?;
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
 
+    raw_reserve(tons::min_reserve, 2);
+
     if (op == op::receive_jettons) {
-        raw_reserve(init? ? storage_fees() : tons::min_reserve, 4);
         
         ;; not in state_init so this variables can be changed after deployment
         storage::min_deposit        = in_msg_body~load_coins();
@@ -213,7 +214,7 @@ global int  init?;
         force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, my_code());
         in_msg_body~skip_bits(32);
 
-        send_message_with_comment(storage::owner_address, 0, "Transfer was unsuccessful", mode::carry_remaining_gas);
+        send_message_with_comment(storage::owner_address, 0, "Transfer was unsuccessful", mode::carry_remaining_balance);
         
         storage::jetton_balance += in_msg_body~load_coins();
         storage::is_active = true;
@@ -226,7 +227,7 @@ global int  init?;
         throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::staking_pool_address));
         
         storage::rewards_dict = in_msg_body~load_dict();
-        send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::carry_remaining_gas | mode::ignore_errors);
+        send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::carry_remaining_balance | mode::ignore_errors);
         storage::is_active = true;
         
         save_data();
@@ -247,7 +248,7 @@ global int  init?;
                     .store_ref(get_data())
                     .store_slice(in_msg_body);
 
-        send_raw_message(msg.end_cell(), mode::carry_remaining_gas);
+        send_raw_message(msg.end_cell(), mode::carry_remaining_balance);
         return ();
     }
 
@@ -269,7 +270,7 @@ global int  init?;
                         .end_cell();
     
                      
-        send_cell_message(storage::staking_pool_address, 0, payload, mode::carry_remaining_gas);
+        send_cell_message(storage::staking_pool_address, 0, payload, mode::carry_remaining_balance);
         
         storage::is_active = false;
         save_data();
@@ -284,7 +285,7 @@ global int  init?;
         int jettons_to_unstake = in_msg_body~load_coins();
         in_msg_body.end_parse();
 
-        send_update_request(0,  - jettons_to_unstake, 0, query_id, 0, mode::carry_remaining_gas);
+        send_update_request(0,  - jettons_to_unstake, 0, query_id, 0, mode::carry_remaining_balance);
 
         storage::jetton_balance -= jettons_to_unstake;
         storage::total_requested_jettons += jettons_to_unstake;
@@ -350,7 +351,7 @@ global int  init?;
             }
         } 
         
-        send_update_request(jettons_to_send, - forced_jettons, commission, query_id, 0, mode::carry_remaining_gas);
+        send_update_request(jettons_to_send, - forced_jettons, commission, query_id, 0, mode::carry_remaining_balance);
         
         storage::total_requested_jettons -= (jettons_to_unstake - forced_jettons);
         storage::jetton_balance -= forced_jettons;
@@ -375,7 +376,7 @@ global int  init?;
         }
 
         
-        send_update_request(0, jettons_to_cancel, 0, query_id, 0, mode::carry_remaining_gas); 
+        send_update_request(0, jettons_to_cancel, 0, query_id, 0, mode::carry_remaining_balance); 
     
         storage::jetton_balance += jettons_to_cancel;
         storage::total_requested_jettons -= jettons_to_cancel;
@@ -422,7 +423,7 @@ global int  init?;
                                 .end_cell();
         cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, storage::minter_address, recipient, storage::lock_period, my_code());
 
-        send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::carry_remaining_gas);
+        send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::carry_remaining_balance);
         
         storage::jetton_balance -= jetton_amount;
         storage::is_active = false;
