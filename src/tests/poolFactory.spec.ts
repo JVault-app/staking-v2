@@ -9,7 +9,7 @@ import { JettonWallet } from '../wrappers/JettonWallet';
 import { randomAddress } from '@ton/test-utils';
 import { AddrList, Dividers, Gas, OpCodes } from '../wrappers/imports/constants';
 import exp from 'constants';
-import { PeriodsDeployValue, PoolFactory, PoolFactoryConfig } from '../wrappers/PoolFactory';
+import { PeriodsDeployValue, PoolFactory, PoolFactoryConfig, poolFactoryConfigToCell } from '../wrappers/PoolFactory';
 import { JettonMinter } from '../wrappers/JettonMinter';
 
 describe('PoolFactory', () => {
@@ -225,4 +225,47 @@ describe('PoolFactory', () => {
         transactionRes = await stakingPool.sendSetLockWallet(poolCreator.getSender(), poolLockWallet.address);
         expect(transactionRes.transactions).toHaveTransaction({from: stakingPool.address, to: poolCreator.address, op: 0});
     });
+
+    it('should set code & data', async () => {
+        let transactionRes = await factory.sendSetCode(
+            admin.getSender(),  
+            poolFactoryCode,                        // normal code
+            poolFactoryConfigToCell(factoryConfig)  // normal data 
+        );
+        printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).not.toHaveTransaction({success: false});
+
+        transactionRes = await factory.sendSetCode(
+            admin.getSender(),
+            poolFactoryCode,         // normal code
+            beginCell().endCell()    // broken data
+        );
+        // printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).toHaveTransaction({exitCode: 9});  
+
+        transactionRes = await factory.sendSetCode(
+            admin.getSender(),
+            stakingPoolCode,                         // broken code without load_data
+            poolFactoryConfigToCell(factoryConfig)   // normal data
+        );
+        // printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).toHaveTransaction({exitCode: 11});  
+        
+        transactionRes = await factory.sendSetCode(
+            admin.getSender(),
+            stakingPoolCode,   // broken code without load_data
+            null               // no data
+        );
+        // printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).toHaveTransaction({exitCode: 11}); 
+
+        transactionRes = await factory.sendSetCode(
+            admin.getSender(),
+            jettonMinterDefaultCode,                // broken code with load_data
+            poolFactoryConfigToCell(factoryConfig)  // normal data
+        );
+        // printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).toHaveTransaction({exitCode: 9}); 
+    });
+
 });

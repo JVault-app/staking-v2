@@ -20,7 +20,7 @@ global cell  storage::jetton_minter_code;        ;; Cell. Code of the jetton_min
 global int   storage::version;                   ;; Uint16. Current version of smart contract
 
 
-() load_data() impure inline {
+() load_data() impure {
     slice ds = get_data().begin_parse();  ;; bits = 267 + 32 + 1 + 16 + 124 + 267 + 124 = 831; refs = 2;
     storage::admin_address          = ds~load_msg_addr();
     storage::next_pool_id           = ds~load_uint(32);
@@ -270,10 +270,14 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
     }
 
     if (op == op::set_code) {
-        set_code(in_msg_body~load_ref());
+        cell code = in_msg_body~load_ref();
+        set_c3(code.begin_parse().bless());
         if (in_msg_body.slice_refs()) {
             set_data(in_msg_body~load_ref());
         }
+        load_data();
+        set_code(code);
+        send_message_with_comment(storage::admin_address, 0, "Code updated", mode::carry_remaining_balance);
         return ();
     }
 
