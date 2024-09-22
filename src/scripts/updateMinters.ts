@@ -14,9 +14,9 @@ import { getSeqno } from './helpers';
 export async function run(provider: NetworkProvider) {
     const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
     const lastPoolId = Number((await poolFactory.getStorageData()).nextPoolId) - 1;
-    const excludedIndexes = [0, 5, 6, 12, 21];
+    const excludedIndexes = [0, 3, 5, 6, 21];
     let curSeqno = await getSeqno(provider);
-    for (let i = 1; i <= lastPoolId; i ++) {
+    for (let i = 18; i <= lastPoolId; i ++) {
         if (!excludedIndexes.includes(i)) {
             const poolAddress = await poolFactory.getNftAddressByIndex(i);
             const stakingPool = provider.open(StakingPool.createFromAddress(poolAddress))
@@ -32,12 +32,19 @@ export async function run(provider: NetworkProvider) {
                     // await sleep(5000);
                     try {
                         await stakingPool.sendGetStorageData(provider.sender(), toNano("0.04"), jettonMinter.address, beginCell().storeUint(0, 32).endCell());
-                        while (curSeqno == await getSeqno(provider)) {
+                        let timeout = 100; 
+                        while (curSeqno == await getSeqno(provider) && timeout) {
                             await sleep(1000);
+                            --timeout;
                         }
                         curSeqno = await getSeqno(provider);
-                        console.log(`transaction ${i} confirmed`)
-                    }
+                        if (timeout) {
+                            console.log(`transaction ${i} confirmed`)
+                        }
+                        else {
+                            console.log('transaction rejected (timeout)')
+                        }
+                        }
                     catch {
                         console.log('transaction rejected')
                     }

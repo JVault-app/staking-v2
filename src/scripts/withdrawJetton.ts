@@ -13,5 +13,5 @@ export async function run(provider: NetworkProvider) {
     
     const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
     const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQAbbvEka-WfyrG1yXpnDNW72fkzNY6iplU12JVcPvXWE8R0")));
-    await poolFactory.sendWithdrawJetton(provider.sender(), Address.parse("EQA9f0dE9HzfpzPY6yjzjomRHzoCa40gQlS4VwnNoP2lkFAG"), 200000000000n)
+    await poolFactory.sendWithdrawJetton(provider.sender(), Address.parse("EQCC2NrD-Q-6U0CXitmJuB3fknnPF12y7jezYRvfb24sJPN8"), 100000000n)
 }

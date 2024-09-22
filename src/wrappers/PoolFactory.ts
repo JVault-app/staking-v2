@@ -121,11 +121,11 @@ export class PoolFactory implements Contract {
         })
     }
 
-    async sendSetCode(provider: ContractProvider, via: Sender, factoryCode: Cell) {
+    async sendSetCode(provider: ContractProvider, via: Sender, factoryCode: Cell, factoryData: Maybe<Cell>) {
         await provider.internal(via, {
-            value: toNano("0.01"),
+            value: toNano("0.02"),
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().storeUint(OpCodes.SET_CODE, 32).storeUint(0, 64).storeRef(factoryCode).endCell()
+            body: beginCell().storeUint(OpCodes.SET_CODE, 32).storeUint(0, 64).storeRef(factoryCode).storeMaybeRef(factoryData).endCell()
         })
     }
 

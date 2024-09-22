@@ -2,7 +2,7 @@ import { Address, beginCell, Cell, Dictionary, toNano } from '@ton/core';
 import { PeriodsDeployValue, PoolFactory, PoolFactoryConfig } from '../wrappers/PoolFactory';
 import { compile, NetworkProvider } from '@ton/blueprint';
 import { randomAddress } from '@ton/test-utils';
-import { Dividers } from '../wrappers/imports/constants';
+import { AddrList, Dividers, Gas } from '../wrappers/imports/constants';
 import { LockPeriodsValue, StakingPool, StakingPoolConfig } from '../wrappers/StakingPool';
 import { JettonMinter } from '../wrappers/JettonMinterDefault';
 import { JettonWallet } from '../wrappers/JettonWallet';
@@ -13,29 +13,30 @@ export async function run(provider: NetworkProvider) {
     let poolUninitedCodes: Dictionary<bigint, Cell> = Dictionary.empty();
         poolUninitedCodes.set(0n, await compile('StakingPoolUninited'))
 
+    let lockJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("kQAL-9-Vep8AKfae1N2zFnFiYIFUQYGejGuVgI69IE4BlzKF")));
     // let lockJettonMinter = provider.open(JettonMinter.createFromConfig( // kQDamuyGkf1L-LE04a2R8IaGYv3gCKlX030iNWnCM5UBpRVo
-    //     {admin: provider.sender().address as Address, content: buildOnchainMetadata({symbol: "TEST", name: "JVault test token"}), wallet_code: await compile('JettonWallet')}, await compile('JettonMinterDefault')));
+        // {admin: provider.sender().address as Address, content: buildOnchainMetadata({symbol: "TEST", name: "JVault test token"}), wallet_code: await compile('JettonWallet')}, await compile('JettonMinterDefault')));
 
     // if (! (await provider.isContractDeployed(lockJettonMinter.address))) {
     //     await lockJettonMinter.sendDeploy(provider.sender(), toNano("0.05"));
     //     await provider.waitForDeploy(lockJettonMinter.address);
     // }
-    // let lockWallet = provider.open(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(provider.sender().address as Address)));
-    // if (await lockWallet.getJettonBalance() < toNano(100000000000)) {
+    let lockWallet = provider.open(JettonWallet.createFromAddress(await lockJettonMinter.getWalletAddress(provider.sender().address as Address)));
+    // if (await lockWallet.getJettonBalance() < toNano(1000000)) {
     //     await lockJettonMinter.sendMint(provider.sender(), Address.parse("EQAJiONidzHCTKNMeyXtfBzY3zCZwKjkukrsMhkn2su7DoV0"), toNano(100000000), toNano("0.2"), toNano("0.5"));
     // }
     console.log("lock jetton ✅")
 
-    let feesJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("EQC8FoZMlBcZhZ6Pr9sHGyHzkFv9y2B5X9tN61RvucLRzFZz")))
-    // let feesJettonMinter = provider.open(JettonMinter.createFromConfig( // 0QAeREapb4fnlHq9ODCvhOTb1sWHs_vjBgroho_k-pIVnHV_
-    //     {admin: provider.sender().address as Address, content: buildOnchainMetadata({name: "JVault test token #2", symbol: "JVT", image: "https://jvault.xyz/static/images/logo200.png"}), wallet_code: await compile('JettonWallet')}, await compile('JettonMinterDefault')));
+    // let feesJettonMinter = provider.open(JettonMinter.createFromAddress(Address.parse("0QAeREapb4fnlHq9ODCvhOTb1sWHs_vjBgroho_k-pIVnHV_")))
+    let feesJettonMinter = provider.open(JettonMinter.createFromConfig( // 0QAeREapb4fnlHq9ODCvhOTb1sWHs_vjBgroho_k-pIVnHV_
+        {admin: provider.sender().address as Address, content: buildOnchainMetadata({name: "JVault test token #2", symbol: "JVT", image: "https://jvault.xyz/static/images/logo200.png"}), wallet_code: await compile('JettonWallet')}, await compile('JettonMinterDefault')));
 
     if (! (await provider.isContractDeployed(feesJettonMinter.address))) {
         await feesJettonMinter.sendDeploy(provider.sender(), toNano("0.05"));
         await provider.waitForDeploy(feesJettonMinter.address);
     }
     let feesWallet = provider.open(JettonWallet.createFromAddress(await feesJettonMinter.getWalletAddress(provider.sender().address as Address)));
-    // if (await feesWallet.getJettonBalance() < toNano(1000000000000)) {
+    // if (await feesWallet.getJettonBalance() < toNano(10000000)) {
     //     await feesJettonMinter.sendMint(provider.sender(), Address.parse("EQAJiONidzHCTKNMeyXtfBzY3zCZwKjkukrsMhkn2su7DoV0"), toNano(100000000), toNano("0.2"), toNano("0.5"));
     // }
     console.log("fees jetton ✅")
@@ -68,47 +69,67 @@ export async function run(provider: NetworkProvider) {
     }
     console.log("factory ✅")
     
-    // let lockPeriods: Dictionary<number, LockPeriodsValue> = Dictionary.empty();
-    // const lockPeriod1 = 60;
-    // const lockPeriod2 = lockPeriod1 * 60 * 24 * 3;
-    // lockPeriods.set(lockPeriod1, {curTvl: 0n, tvlLimit: toNano(100), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: randomAddress(0)});
-    // lockPeriods.set(lockPeriod2, {curTvl: 0n, tvlLimit: toNano(10), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: randomAddress(0)});
+    let lockPeriods: Dictionary<number, LockPeriodsValue> = Dictionary.empty();
+    const lockPeriod1 = 60;
+    const lockPeriod2 = lockPeriod1 * 60 * 24 * 3;
+    lockPeriods.set(lockPeriod1, {curTvl: 0n, tvlLimit: toNano(100), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: randomAddress(0)});
+    lockPeriods.set(lockPeriod1 * 2, {curTvl: 0n, tvlLimit: toNano(1), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER * 2, depositCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: randomAddress(0)});
+    lockPeriods.set(lockPeriod2, {curTvl: 0n, tvlLimit: toNano(10), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER * 1.5, depositCommission: Math.round(0.5 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.15 * Number(Dividers.COMMISSION_DIVIDER)), minterAddress: randomAddress(0)});
     
-    // let periodsDeploy: Dictionary<number, PeriodsDeployValue> = Dictionary.empty()
-    // periodsDeploy.set(lockPeriod1, {tvlLimit: toNano(100), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), jettonContent: buildOnchainMetadata({name: "Abob1",decimals: "9",image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"})});
-    // periodsDeploy.set(lockPeriod2, {tvlLimit: toNano(10), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), jettonContent: buildOnchainMetadata({name: "Abob2",decimals: "9",image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"})});
+    let periodsDeploy: Dictionary<number, PeriodsDeployValue> = Dictionary.empty()
+    periodsDeploy.set(lockPeriod1, {tvlLimit: toNano(100), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER, depositCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), jettonContent: buildOnchainMetadata({name: "st-TOKEN-60",decimals: "9",image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"})});
+    periodsDeploy.set(lockPeriod1 * 2, {tvlLimit: toNano(1), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER * 2, depositCommission: Math.round(0.1 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.2 * Number(Dividers.COMMISSION_DIVIDER)), jettonContent: buildOnchainMetadata({name: "st-TOKEN-120",decimals: "9",image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"})});
+    periodsDeploy.set(lockPeriod2, {tvlLimit: toNano(10), rewardMultiplier: 1 * Dividers.REWARDS_DIVIDER * 1.5, depositCommission: Math.round(0.5 * Number(Dividers.COMMISSION_DIVIDER)), unstakeCommission: Math.round(0.15 * Number(Dividers.COMMISSION_DIVIDER)), jettonContent: buildOnchainMetadata({name: "AAAA",decimals: "9",image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"})});
 
-    // let stakingPoolConfig: StakingPoolConfig = { // staking pool - kQCwcanqjhpNJ5GVucqn_hNo_7Bs6TbyUE6nmX8fWtvZ-fSC
-    //     inited: false,
-    //     poolId: 0n,
-    //     content: buildOnchainMetadata({name: "Boba", description: "Staking Boba", image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"}), //
-    //     factoryAddress: poolFactory.address,
-    //     adminAddress: poolFactory.address,
-    //     creatorAddress: provider.sender().address as Address,
-    //     stakeWalletCode: await compile('StakeWallet'),
-    //     lockWalletAddress: lockJettonMinter.address,
-    //     minDeposit: 2n,
-    //     maxDeposit: toNano(10),
-    //     tvl: 0n,
-    //     tvlWithMultipliers: 0n,
-    //     rewardJettons: null,
-    //     lockPeriods: lockPeriods,
-    //     whitelist: null,
-    //     unstakeFee: toNano("0.3"),
-    //     collectedCommissions: 0n,
-    //     rewardsCommission: BigInt(0.05 * Number(Dividers.COMMISSION_DIVIDER)),
-    // }
+    let stakingPoolConfig: StakingPoolConfig = { // staking pool - kQCwcanqjhpNJ5GVucqn_hNo_7Bs6TbyUE6nmX8fWtvZ-fSC
+        inited: false,
+        poolId: 0n,
+        content: buildOnchainMetadata({name: "NAME", description: "DESCRIPTION", image: "https://media.tenor.com/4cTJ4sDdIn0AAAAe/aboba.png"}), //
+        factoryAddress: poolFactory.address,
+        adminAddress: poolFactory.address,
+        creatorAddress: provider.sender().address as Address,
+        stakeWalletCode: await compile('StakeWallet'),
+        lockWalletAddress: lockJettonMinter.address,
+        minDeposit: 2n,
+        maxDeposit: toNano(10),
+        tvl: 0n,
+        tvlWithMultipliers: 0n,
+        rewardJettons: null,
+        lockPeriods: lockPeriods,
+        whitelist: null,
+        unstakeFee: toNano("0.3"),
+        collectedCommissions: 0n,
+        rewardsCommission: BigInt(0.05 * Number(Dividers.COMMISSION_DIVIDER)),
+    }
 
-    // let deployPayload = PoolFactory.getDeployPayload(
-    //     stakingPoolConfig.lockWalletAddress, stakingPoolConfig.minDeposit, stakingPoolConfig.maxDeposit, periodsDeploy, null, stakingPoolConfig.rewardsCommission, stakingPoolConfig.content
-    // );
+    let deployPayload = PoolFactory.getDeployPayload(
+        stakingPoolConfig.lockWalletAddress, stakingPoolConfig.minDeposit, stakingPoolConfig.maxDeposit, periodsDeploy, null, stakingPoolConfig.rewardsCommission, stakingPoolConfig.content
+    );
 
     // await feesWallet.sendTransfer(
     //     provider.sender(), toNano(50), poolFactory.address, provider.sender().address as Address, toNano("0.5"), deployPayload
     // )
-    // let stakingPool = provider.open(StakingPool.createFromConfig({poolId: poolFactoryConfig.nextPoolId, factoryAddress: poolFactory.address}, await compile('StakingPoolUninited')));
-    // await provider.waitForDeploy(stakingPool.address, 30);
-    // console.log("staking pool ✅")
-    // console.log(await stakingPool.getData())
+    let stakingPool = provider.open(StakingPool.createFromConfig({poolId: poolFactoryConfig.nextPoolId - 1n, factoryAddress: poolFactory.address}, await compile('StakingPoolUninited')));
+    await provider.waitForDeploy(stakingPool.address, 30);
+    console.log("staking pool ✅")
+    console.log(await stakingPool.getData())
+
+    let poolRewardsWalletAddress = await lockJettonMinter.getWalletAddress(stakingPool.address);
+    let rewardJettonsList: AddrList;
+    rewardJettonsList = Dictionary.empty();
+    rewardJettonsList.set(poolRewardsWalletAddress, false);
+    // await stakingPool.sendAddRewardJettons(provider.sender(), rewardJettonsList); 
+
+    let rewardsToAdd = toNano(700);
+    let rewardsCommission = rewardsToAdd * stakingPoolConfig.rewardsCommission / Dividers.COMMISSION_DIVIDER;
+    let distributionPeriod = 1000
+   
+    await lockWallet.sendTransfer(
+        provider.sender(), rewardsToAdd + rewardsCommission, stakingPool.address, provider.sender().address!!, Gas.ADD_REWARDS,
+        StakingPool.addRewardsPayload(Math.round(Date.now() / 1000) + 60 * 60 * 24, Math.round(Date.now() / 1000) + 60 * 60 * 24 + 60 * 60 * 24 * 7)
+    );
     
+//     await lockWallet.sendTransfer(
+//             provider.sender(), toNano(100000), Address.parse("kQAL-9-Vep8AKfae1N2zFnFiYIFUQYGejGuVgI69IE4BlzKF"), provider.sender().address!!, Gas.ADD_REWARDS,
+//         );
 }

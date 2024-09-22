@@ -14,7 +14,7 @@ import { getSeqno, lastBlockSeqno } from './helpers';
 export async function run(provider: NetworkProvider) {
     const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
     const lastPoolId = Number((await poolFactory.getStorageData()).nextPoolId) - 1;
-    const excludedIndexes = [5, 6, 12, 16, 21];
+    const excludedIndexes = [5, 6, 12, 21];
     let curSeqno = await getSeqno(provider);
     let totalBalance = 0n;
     for (let i = 1; i <= lastPoolId; i ++) {
@@ -22,16 +22,23 @@ export async function run(provider: NetworkProvider) {
             const poolAddress = await poolFactory.getNftAddressByIndex(i);
             const stakingPool = provider.open(StakingPool.createFromAddress(poolAddress))
             const poolBalance = BigInt((await provider.api().getAccountLite(await lastBlockSeqno(provider), poolAddress)).account.balance.coins);
-            if (poolBalance >= toNano("0.1")) {
+            if (poolBalance >= toNano("0.5")) {
                 totalBalance += poolBalance;
                 console.log(`Harvest ${Number(poolBalance) / 1e9} from ${poolAddress} (poolId = ${i});`);
                 try {
                     await poolFactory.sendSendWithdrawTon(provider.sender(), poolAddress);
-                    while (curSeqno == await getSeqno(provider)) {
+                    let timeout = 100; 
+                    while (curSeqno == await getSeqno(provider) && timeout) {
                         await sleep(1000);
+                        --timeout;
                     }
                     curSeqno = await getSeqno(provider);
-                    console.log(`transaction ${i} confirmed`)
+                    if (timeout) {
+                        console.log(`transaction ${i} confirmed`)
+                    }
+                    else {
+                        console.log('transaction rejected (timeout)')
+                    }
                 }
                 catch {
                     console.log('transaction rejected')
