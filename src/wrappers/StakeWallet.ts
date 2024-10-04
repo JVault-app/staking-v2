@@ -263,7 +263,7 @@ export class StakeWallet implements Contract {
             unstakeRequests: stack.readCellOpt(),
             requestsCount: stack.readBigNumber(),
             totalRequestedJettons: stack.readBigNumber(),
-            isActive: stack.readBoolean(),
+            isActive: Boolean(stack.readNumber()),
             unstakeCommission: stack.readBigNumber(),
             unstakeFee: stack.readBigNumber(),
             minDeposit: stack.readBigNumber(),
@@ -276,7 +276,7 @@ export class StakeWallet implements Contract {
             res.rewardsDict = res.rewardsDict.beginParse().loadDictDirect(Dictionary.Keys.Address(), userRewardsDictValueParser());  
         }
         if (res.unstakeRequests) {
-            res.unstakeRequests = res.unstakeRequests.beginParse().loadDictDirect(Dictionary.Keys.Uint(32), Dictionary.Values.BigVarUint(16));
+            res.unstakeRequests = res.unstakeRequests.beginParse().loadDictDirect(Dictionary.Keys.Uint(32), Dictionary.Values.BigVarUint(4));
         }
         if (res.whitelist) {
             res.whitelist = res.whitelist.beginParse().loadDictDirect(Dictionary.Keys.Address(), Dictionary.Values.Bool());

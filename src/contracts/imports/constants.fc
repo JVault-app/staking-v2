@@ -40,7 +40,7 @@ const int tons::deploy_minter         = 20000000;   ;; 0.02  TON
 
 {- GAS -}
 
-;; All gas consumtions were calculated for REWARD_JETTONS_MAX_COUNT = 76, REWARDS_DEPOSITS_MAX_COUNT = 16, UNSTAKE_REQUESTS_MAX_COUNT = 20 and slightly increased
+;; All gas consumtions were calculated for REWARD_JETTONS_MAX_COUNT = 16, REWARDS_DEPOSITS_MAX_COUNT = 76, UNSTAKE_REQUESTS_MAX_COUNT = 20 and slightly increased
 
 const int gas::stake_jettons          = 21500;   ;; Actually 21296
 const int gas::request_update_rewards = 510000;  ;; Actually 500012
