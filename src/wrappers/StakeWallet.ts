@@ -1,7 +1,7 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, toNano } from '@ton/core';
-import { AddrList, Gas, OpCodes } from './imports/constants';
+import { AddrList, Dividers, Gas, OpCodes } from './imports/constants';
 import { Maybe } from '@ton/core/dist/utils/maybe';
-import { StakingPool } from './StakingPool';
+import { StakingPool, StakingPoolConfig } from './StakingPool';
 
 
 export type UserRewardsDictValue = {
@@ -58,6 +58,7 @@ export function stakeWalletConfigToCell(config: StakeWalletUninitedConfig | Stak
             )
         .endCell();
 }
+
 
 export class StakeWallet implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
@@ -221,6 +222,33 @@ export class StakeWallet implements Contract {
             body: StakeWallet.transferMessage(jettonAmount, toAddress, responseAddress, forwardTonAmount, forwardPayload),
             value: Gas.SEND_STAKED_JETTONS + forwardTonAmount
         });
+    }
+
+    static getAvailableRewards(stakeWalletConfig: StakeWalletConfig, poolConfig: StakingPoolConfig) {
+        if (!poolConfig.rewardJettons) {
+            return {}
+        }
+
+        const timeNow = Math.floor(Date.now() / 1000);
+        const rewardMultiplier = poolConfig.lockPeriods.get(Number(stakeWalletConfig.lockPeriod))!!.rewardMultiplier;
+
+        let res: {[key: string]: bigint} = {};
+        for (const rewardJettonWallet of poolConfig.rewardJettons!!.keys()) {
+            const poolRewardsInfo = poolConfig.rewardJettons.get(rewardJettonWallet)!!;
+            const userRewardsInfo = stakeWalletConfig.rewardsDict.get(rewardJettonWallet);
+            let unclaimedRewards = userRewardsInfo ? userRewardsInfo.unclaimedRewards : 0n;
+            const userDistributedRewards = userRewardsInfo ? userRewardsInfo.distributedRewards : 0n;
+            let poolDistributedRewards = poolRewardsInfo.distributedRewards;
+            for (let i of poolRewardsInfo.rewardsDeposits.keys()) {
+                const rewardDeposit = poolRewardsInfo.rewardsDeposits.get(i)!!;
+                if (rewardDeposit.startTime < timeNow && poolConfig.tvlWithMultipliers) {
+                    poolDistributedRewards += rewardDeposit.distributionSpeed * BigInt(Math.min(timeNow, rewardDeposit.endTime) - rewardDeposit.startTime) * Dividers.DISTRIBUTED_REWARDS_DIVIDER / (Dividers.DISTRIBUTION_SPEED_DIVIDER * poolConfig.tvlWithMultipliers);
+                }
+            }
+            unclaimedRewards += (poolDistributedRewards - userDistributedRewards) * stakeWalletConfig.jettonBalance * BigInt(rewardMultiplier) / (Dividers.DISTRIBUTED_REWARDS_DIVIDER * BigInt(Dividers.REWARDS_DIVIDER));
+            res[rewardJettonWallet.toString()] = unclaimedRewards;
+        }
+        return res;
     }
 
     async getStorageData(provider: ContractProvider): Promise<StakeWalletConfig> {
