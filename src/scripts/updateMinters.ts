@@ -14,7 +14,7 @@ import { getSeqno } from './helpers';
 export async function run(provider: NetworkProvider) {
     const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
     const lastPoolId = Number((await poolFactory.getStorageData()).nextPoolId) - 1;
-    const excludedIndexes = [0, 3, 5, 6, 21];
+    const excludedIndexes = [0, 3, 5, 6, 21, 41, 42, 43, 50];
     let curSeqno = await getSeqno(provider);
     for (let i = 18; i <= lastPoolId; i ++) {
         if (!excludedIndexes.includes(i)) {

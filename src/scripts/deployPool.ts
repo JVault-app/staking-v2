@@ -126,7 +126,7 @@ export async function run(provider: NetworkProvider) {
    
     await lockWallet.sendTransfer(
         provider.sender(), rewardsToAdd + rewardsCommission, stakingPool.address, provider.sender().address!!, Gas.ADD_REWARDS,
-        StakingPool.addRewardsPayload(Math.round(Date.now() / 1000) + 60 * 60 * 24, Math.round(Date.now() / 1000) + 60 * 60 * 24 + 60 * 60 * 24 * 7)
+        StakingPool.addRewardsPayload(Math.round(Date.now() / 1000) + 60 *5 , Math.round(Date.now() / 1000) +60 * 5 + 60 * 60 * 24 * 7)
     );
     
 //     await lockWallet.sendTransfer(

@@ -22,7 +22,7 @@ export async function run(provider: NetworkProvider) {
             const poolAddress = await poolFactory.getNftAddressByIndex(i);
             const stakingPool = provider.open(StakingPool.createFromAddress(poolAddress))
             const poolBalance = BigInt((await provider.api().getAccountLite(await lastBlockSeqno(provider), poolAddress)).account.balance.coins);
-            if (poolBalance >= toNano("0.5")) {
+            if (poolBalance >= toNano("0.9")) {
                 totalBalance += poolBalance;
                 console.log(`Harvest ${Number(poolBalance) / 1e9} from ${poolAddress} (poolId = ${i});`);
                 try {

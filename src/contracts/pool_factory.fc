@@ -278,7 +278,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
         }
         load_data();
         set_code(code);
-        send_message_with_comment(storage::admin_address, 0, "Code updated", mode::carry_remaining_balance);
+        send_message_with_comment(storage::admin_address, 0, "Code updated", mode::carry_remaining_gas);
         return ();
     }
 

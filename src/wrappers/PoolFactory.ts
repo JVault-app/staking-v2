@@ -141,7 +141,7 @@ export class PoolFactory implements Contract {
         await provider.internal(via, {
             value: toNano("0.1"),
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().storeUint(OpCodes.WITHDRAW_JETTON, 32).storeUint(0, 64).storeAddress(jettonWalletAddress).storeCoins(jettonAmount).endCell(),
+            body: beginCell().storeUint(OpCodes.WITHDRAW_JETTON, 32).storeUint(0, 64).storeAddress(jettonWalletAddress).storeCoins(jettonAmount).storeUint(0, 32).storeStringTail("Withdraw fees").endCell(),
         });
     }
 
