@@ -41,6 +41,8 @@ function periodsDeployValueParser(): DictionaryValue<PeriodsDeployValue> {
 
 export type PoolFactoryConfig = {
     adminAddress: Address;
+    ownerAddress: Address;
+
     nextPoolId: bigint;
     collectionContent?: Maybe<Cell>;
     minRewardsCommission: bigint;
@@ -57,7 +59,6 @@ export type PoolFactoryConfig = {
 
 export function poolFactoryConfigToCell(config: PoolFactoryConfig): Cell {
     return beginCell()
-                .storeAddress(config.adminAddress)
                 .storeUint(config.nextPoolId, 32)
                 .storeMaybeRef(config.collectionContent)
                 .storeUint(config.minRewardsCommission, 16)
@@ -66,6 +67,8 @@ export function poolFactoryConfigToCell(config: PoolFactoryConfig): Cell {
                 .storeCoins(config.creationFee)
                 .storeRef(
                     beginCell()
+                        .storeAddress(config.adminAddress)
+                        .storeAddress(config.ownerAddress)
                         .storeDict(config.poolUninitedCodes, Dictionary.Keys.BigUint(32), Dictionary.Values.Cell())
                         .storeRef(config.poolInitedCode)
                         .storeRef(config.stakeWalletCode)
@@ -166,7 +169,11 @@ export class PoolFactory implements Contract {
     }
 
     async sendSendWithdrawTon(provider: ContractProvider, via: Sender, poolAddress: Address, queryId: number = 0) {
-        await this.sendSendAnyMessage(provider, via, toNano("0.02"), poolAddress, StakingPool.withdrawTonMessage(queryId), queryId);
+        await provider.internal(via, {
+            value: toNano("0.02"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.SEND_WITHDRAW_TON, 32).storeUint(0, 64).storeAddress(poolAddress).endCell()
+        });
     }
 
     async sendSendDeactivateWallet(provider: ContractProvider, via: Sender, poolAddress: Address, walletAddress: Address, queryId: number = 0) {
@@ -202,9 +209,9 @@ export class PoolFactory implements Contract {
 
     async getStorageData(provider: ContractProvider): Promise<PoolFactoryConfig> {
         let { stack } = await provider.get('get_storage_data', []);
-
         return { 
             adminAddress: stack.readAddress(),
+            ownerAddress: stack.readAddress(),
             nextPoolId: stack.readBigNumber(),
             collectionContent: stack.readCellOpt(),
             minRewardsCommission: stack.readBigNumber(),

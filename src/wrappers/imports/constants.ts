@@ -19,6 +19,7 @@ export const OpCodes = {
     SEND_ANY_MESSAGE:        0xa47d989c,
     SET_CODE:                0xe2d2d211,
     WITHDRAW_TON:            0x37726bdb,
+    SEND_WITHDRAW_TON:       0xe5b8268f,
     WITHDRAW_JETTON:         0x11c09682,
     DEACTIVATE_WALLET:       0x4b14c485,
 
@@ -65,7 +66,7 @@ export const Gas = {
     APPROVE_TRANSFER:       340000000n,
     SAVE_UPDATED_REWARDS:   340000000n,
     MIN_EXCESS:             10000000n,
-    SEND_STAKED_JETTONS:    630000000n,
+    SEND_STAKED_JETTONS:    550000000n,
 }
 
 export type AddrList = Dictionary<Address, Boolean>;

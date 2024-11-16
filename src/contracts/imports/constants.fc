@@ -111,6 +111,7 @@ const int op::send_commissions       = 0xb96adaea;
 const int op::change_creation_fee    = 0x66d5528b;
 const int op::change_content         = 0x0ec29200;
 const int op::update_codes           = 0x85c923cf;
+const int op::send_withdraw_ton      = 0xe5b8268f;
 
 
 {- MESSAGE MODES -}

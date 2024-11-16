@@ -40,10 +40,7 @@ function parseStack(stack: TupleReader) {
     let k: StakeWalletConfig = res;
     return k;
 }
-export async function run(provider: NetworkProvider) {
-    console.log(parseStack((await provider.api().runMethod(40445383, Address.parse("EQCdpzoFTnPKgo2VhmbNmxq521iWMZt5kTb4OSRoqJccPW-d"), 'get_storage_data')).reader))
-    console.log(parseStack((await provider.api().runMethod(40446198, Address.parse("EQCdpzoFTnPKgo2VhmbNmxq521iWMZt5kTb4OSRoqJccPW-d"), 'get_storage_data')).reader))
-    
-    // const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
-    // await poolFactory.sendChangeCreationFee(provider.sender(), toNano("50"));
+export async function run(provider: NetworkProvider) {    
+    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
+    await poolFactory.sendChangeCreationFee(provider.sender(), toNano("50"));
 }

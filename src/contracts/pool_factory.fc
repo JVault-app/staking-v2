@@ -3,7 +3,9 @@
 #include "imports/utils.fc";
 
 
-global slice storage::admin_address;             ;; MsgAddressStd. Owner of the factory
+global slice storage::admin_address;             ;; MsgAddressStd. Admin of the factory (can collect fees)
+global slice storage::owner_address;             ;; MsgAddressStd. Owner of the factory (can update codes and send messages to pools)
+
 global int   storage::next_pool_id;              ;; Uint32. Next pool id
 global cell  storage::collection_content;        ;; Cell. NFT collection onchain content
 
@@ -21,8 +23,7 @@ global int   storage::version;                   ;; Uint16. Current version of s
 
 
 () load_data() impure {
-    slice ds = get_data().begin_parse();  ;; bits = 267 + 32 + 1 + 16 + 124 + 267 + 124 = 831; refs = 2;
-    storage::admin_address          = ds~load_msg_addr();
+    slice ds = get_data().begin_parse();  ;; bits = 32 + 1 + 16 + 124 + 267 + 124 = 564; refs = 2;
     storage::next_pool_id           = ds~load_uint(32);
     storage::collection_content     = ds~load_dict();
 
@@ -31,10 +32,12 @@ global int   storage::version;                   ;; Uint16. Current version of s
     storage::fees_wallet_address    = ds~load_msg_addr();
     storage::creation_fee           = ds~load_coins();
 
-    slice ds2 = ds~load_ref().begin_parse();
+    slice ds2 = ds~load_ref().begin_parse();  ;; bits = 267 + 267 + 1 + 16 = 551; refs = 4
     ds.end_parse();
     
-    storage::pool_uninited_codes    = ds2~load_dict(); ;; bits 16 + 124 = 140; refs = 4
+    storage::admin_address          = ds2~load_msg_addr();
+    storage::owner_address          = ds2~load_msg_addr();
+    storage::pool_uninited_codes    = ds2~load_dict();
     storage::pool_inited_code       = ds2~load_ref();
     storage::stake_wallet_code      = ds2~load_ref();
     storage::jetton_minter_code     = ds2~load_ref();
@@ -46,7 +49,6 @@ global int   storage::version;                   ;; Uint16. Current version of s
 () save_data() impure inline {
     set_data(
         begin_cell()
-            .store_slice(storage::admin_address)
             .store_uint(storage::next_pool_id, 32)
             .store_dict(storage::collection_content)
             .store_uint(storage::min_rewards_commission, 16)
@@ -55,6 +57,8 @@ global int   storage::version;                   ;; Uint16. Current version of s
             .store_coins(storage::creation_fee)
             .store_ref(
                 begin_cell()
+                    .store_slice(storage::admin_address)
+                    .store_slice(storage::owner_address)
                     .store_dict(storage::pool_uninited_codes)
                     .store_ref(storage::pool_inited_code)
                     .store_ref(storage::stake_wallet_code)
@@ -227,8 +231,32 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
     }
 
     ;; Admin commands
-    throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::admin_address));
+    throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::admin_address) | equal_slices(sender_address, storage::owner_address));
     
+    if (op == op::withdraw_ton) {
+        raw_reserve(tons::min_reserve, 0);
+        send_message_with_comment(storage::admin_address, 0, "TON withrawal", mode::carry_remaining_balance);
+        return ();
+    }
+
+    if (op == op::withdraw_jetton) {
+        slice jetton_to_withdraw = in_msg_body~load_msg_addr();
+        int jetton_amount = in_msg_body~load_coins();
+
+        send_jettons(query_id, jetton_amount, storage::admin_address, storage::admin_address, jetton_to_withdraw, 0, mode::carry_remaining_gas,
+                     msg_value - tons::jetton_transfer, begin_cell().store_slice(in_msg_body).end_cell());
+        return ();
+    }
+
+    if (op == op::send_withdraw_ton) {
+        slice pool_address = in_msg_body~load_msg_addr();
+        send_builder_message(pool_address, 0, begin_cell().store_uint(op::withdraw_ton, 32).store_uint(query_id, 64), mode::carry_remaining_gas);
+        return ();
+    }
+
+    ;; Owner commands
+    throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::owner_address));
+
     if (op == op::take_wallet_address) { ;; change fees wallet address
         storage::fees_wallet_address = in_msg_body~load_msg_addr();
         save_data();
@@ -278,22 +306,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
         }
         load_data();
         set_code(code);
-        send_message_with_comment(storage::admin_address, 0, "Code updated", mode::carry_remaining_gas);
-        return ();
-    }
-
-    if (op == op::withdraw_ton) {
-        raw_reserve(tons::min_reserve, 0);
-        send_message_with_comment(storage::admin_address, 0, "TON withrawal", mode::carry_remaining_balance);
-        return ();
-    }
-
-    if (op == op::withdraw_jetton) {
-        slice jetton_to_withdraw = in_msg_body~load_msg_addr();
-        int jetton_amount = in_msg_body~load_coins();
-
-        send_jettons(query_id, jetton_amount, storage::admin_address, storage::admin_address, jetton_to_withdraw, 0, mode::carry_remaining_gas,
-                     msg_value - tons::jetton_transfer, begin_cell().store_slice(in_msg_body).end_cell());
+        send_message_with_comment(storage::owner_address, 0, "Code updated", mode::carry_remaining_gas);
         return ();
     }
 
@@ -330,10 +343,11 @@ slice get_nft_address_by_index(int index) method_id {
 }
 
 
-(slice, int, cell, int, int, slice, int, cell, cell, cell, cell, int) get_storage_data() method_id {
+(slice, slice, int, cell, int, int, slice, int, cell, cell, cell, cell, int) get_storage_data() method_id {
     load_data();
     return (
         storage::admin_address,
+        storage::owner_address,
         storage::next_pool_id,
         storage::collection_content,
         storage::min_rewards_commission,

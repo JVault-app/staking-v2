@@ -10,9 +10,8 @@ import { buildOnchainMetadata } from '../wrappers/imports/buildOnchain';
 
 
 export async function run(provider: NetworkProvider) {
-    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I")));
-    const stakingPool = provider.open(StakingPool.createFromAddress(Address.parse("EQCqXC2ctGm-y4dDEseavJ2mwuZMksEI_jGi8msA2BNM19Br")));
+    const poolFactory = provider.open(PoolFactory.createFromAddress(Address.parse("kQDbVcYqi4vPL_h37o4p-syYSIridQzotg_asck57ziU1JLY")));
     const walletAddress = Address.parse("EQCdpzoFTnPKgo2VhmbNmxq521iWMZt5kTb4OSRoqJccPW-d")
     const sendPayload = StakingPool.sendAnyMessageMessage(walletAddress, Cell.fromBase64("te6cckEBAQEALQAAVdaKSsEX9gblW2sAflBKgXyABp8pXNXwAAD6QR4aMAMCvrDCA78ocZDuOXyubVCx"))
-    await poolFactory.sendSendAnyMessage(provider.sender(), toNano("0.4"), stakingPool.address, sendPayload); //stakingPoolInitedData(stakingPoolConfig));
+    await poolFactory.sendSendAnyMessage(provider.sender(), toNano("0.4"), Address.parse("EQCqXC2ctGm-y4dDEseavJ2mwuZMksEI_jGi8msA2BNM19Br"), sendPayload); //stakingPoolInitedData(stakingPoolConfig));
 }
