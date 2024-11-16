@@ -77,6 +77,7 @@ describe('PoolFactory', () => {
         
         factoryConfig = {
             adminAddress: admin.address,
+            ownerAddress: admin.address,
             nextPoolId: 0n,
             collectionContent: Cell.EMPTY,
             minRewardsCommission: BigInt(0.005 * Number(Dividers.COMMISSION_DIVIDER)),  // 0.5%

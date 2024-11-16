@@ -42,6 +42,8 @@ export const OpCodes = {
     CHANGE_CREATION_FEE:   0x66D5528B,
     CHANGE_CONTENT:        0x0ec29200,
     UPDATE_CODES:          0x85c923cf,
+    WITHDRAW_TON:          0X37726BDB,
+    WITHDRAW_JETTON:       0X11C09682,    
 };
 
 export const Gas = {

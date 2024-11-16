@@ -1,7 +1,8 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, toNano } from '@ton/core';
 import { Maybe } from '@ton/core/dist/utils/maybe';
-import { StakingPoolConfig } from './StakingPool';
+import { StakingPool, StakingPoolConfig } from './StakingPool';
 import { AddrList, OpCodes } from './imports/constants';
+import { compile } from '@ton/blueprint';
 
 
 // export type NftCodesValue = {
@@ -40,6 +41,8 @@ function periodsDeployValueParser(): DictionaryValue<PeriodsDeployValue> {
 
 export type PoolFactoryConfig = {
     adminAddress: Address;
+    ownerAddress: Address;
+
     nextPoolId: bigint;
     collectionContent?: Maybe<Cell>;
     minRewardsCommission: bigint;
@@ -56,7 +59,6 @@ export type PoolFactoryConfig = {
 
 export function poolFactoryConfigToCell(config: PoolFactoryConfig): Cell {
     return beginCell()
-                .storeAddress(config.adminAddress)
                 .storeUint(config.nextPoolId, 32)
                 .storeMaybeRef(config.collectionContent)
                 .storeUint(config.minRewardsCommission, 16)
@@ -65,6 +67,8 @@ export function poolFactoryConfigToCell(config: PoolFactoryConfig): Cell {
                 .storeCoins(config.creationFee)
                 .storeRef(
                     beginCell()
+                        .storeAddress(config.adminAddress)
+                        .storeAddress(config.ownerAddress)
                         .storeDict(config.poolUninitedCodes, Dictionary.Keys.BigUint(32), Dictionary.Values.Cell())
                         .storeRef(config.poolInitedCode)
                         .storeRef(config.stakeWalletCode)
@@ -128,6 +132,22 @@ export class PoolFactory implements Contract {
         })
     }
 
+    async sendWithdrawTon(provider: ContractProvider, via: Sender) {
+        await provider.internal(via, {
+            value: toNano("0.01"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.WITHDRAW_TON, 32).storeUint(0, 64).endCell()
+        })
+    }
+
+    async sendWithdrawJetton(provider: ContractProvider, via: Sender, jettonWalletAddress: Address, jettonAmount: bigint) {
+        await provider.internal(via, {
+            value: toNano("0.1"),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(OpCodes.WITHDRAW_JETTON, 32).storeUint(0, 64).storeAddress(jettonWalletAddress).storeCoins(jettonAmount).storeUint(0, 32).storeStringTail("Withdraw fees").endCell(),
+        });
+    }
+    
     static getDeployPayload(lockWalletAddress: Address,
                              minDeposit: bigint | number, 
                              maxDeposit: bigint | number,
@@ -150,9 +170,9 @@ export class PoolFactory implements Contract {
 
     async getStorageData(provider: ContractProvider): Promise<PoolFactoryConfig> {
         let { stack } = await provider.get('get_storage_data', []);
-
         return { 
             adminAddress: stack.readAddress(),
+            ownerAddress: stack.readAddress(),
             nextPoolId: stack.readBigNumber(),
             collectionContent: stack.readCellOpt(),
             minRewardsCommission: stack.readBigNumber(),
