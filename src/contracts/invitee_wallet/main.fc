@@ -36,20 +36,30 @@
         else {
             storage::referrer_wallet_address = null_addr();
         }
+        storage::balance = 0;
         save_data();
         return ();
     }
 
     raw_reserve(tons::MIN_RESERVE, 2);
     if ((op == op::REQUEST_UPDATE_REFERRER) & (~ equal_slices(storage::referrer_wallet_address, null_addr()))) {
+        int balance_change = in_msg_body~load_coins();
+        storage::balance += balance_change;
+        if (storage::balance < 0) {
+            balance_change = balance_change - storage::balance;
+            storage::balance = 0;
+        }
+
         cell payload = begin_cell()
                         .store_uint(op, 32)
                         .store_uint(query_id, 64)
                         .store_slice(storage::owner_address)
                         .store_uint(pool_id, 32)
-                        .store_slice(in_msg_body)  ;; balance change (coins)
+                        .store_coins(balance_change)
                     .end_cell();
         send_cell_message(storage::referrer_wallet_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
+        
+        save_data();
         return ();
     }
 

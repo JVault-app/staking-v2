@@ -3,6 +3,7 @@ import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, 
 export type InviteeWalletConfig = {
     ownerAddress?: Address;
     referrerWalletAddress?: Address;
+    balance: bigint;
     init: boolean;
 };
 
@@ -10,6 +11,7 @@ export function invateeWalletConfigToCell(config: InviteeWalletConfig): Cell {
     return beginCell()
         .storeAddress(config.ownerAddress)
         .storeAddress(config.referrerWalletAddress)
+        .storeCoins(config.balance)
     .endCell();
 }
 
@@ -41,6 +43,7 @@ export class InviteeWallet implements Contract {
             init: stack.readBoolean(),
             ownerAddress: stack.readAddressOpt() ?? undefined,
             referrerWalletAddress: stack.readAddressOpt() ?? undefined,
+            balance: stack.readBigNumber(),
         };
     }
 }

@@ -20,6 +20,6 @@
 }
 
 () force_referrer_wallet(slice sender_address, slice referrer_address) impure inline {
-    cell tmp = calculate_referrer_wallet_state_init(referrer_address, REFERER_WALLET_CODE());
+    cell tmp = calculate_referrer_wallet_state_init(referrer_address, REFERRER_WALLET_CODE());
     throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
 }

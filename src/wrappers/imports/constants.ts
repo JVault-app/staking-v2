@@ -50,7 +50,7 @@ export const OpCodes = {
     UPDATE_CODES:          0x85c923cf,
     WITHDRAW_TON:          0X37726BDB,
     WITHDRAW_JETTON:       0X11C09682,  
-    SEND_WITHDRAW_TON:      0XE5B8268F,
+    SEND_WITHDRAW_TON:     0XE5B8268F,
 };
 
 export const Gas = {
@@ -59,8 +59,8 @@ export const Gas = {
     NOTIFICATION:           340000000n, 
     JETTON_TRANSFER:        55000000n,   
     BURN_JETTONS:           340000000n,   
-    STAKE_JETTONS:          340000000n,  
-    UNSTAKE_JETTONS:        340000000n, 
+    STAKE_JETTONS:          340000000n + 120000000n,  
+    UNSTAKE_JETTONS:        340000000n + 100000000n, 
     CANCEL_UNSTAKE:         340000000n, 
     SEND_COMMISSIONS:       340000000n,
     SIMPLE_UPDATE_REQUEST:  340000000n,
@@ -75,6 +75,7 @@ export type AddrList = Dictionary<Address, Boolean>;
 
 export const Dividers = {
     COMMISSION_DIVIDER: 10000n,
+    REVENUE_SHARE_DIVIDER: 10000n,
     REWARDS_DIVIDER: 1000,
     DISTRIBUTION_SPEED_DIVIDER: BigInt(24 * 60 * 60),
     DISTRIBUTED_REWARDS_DIVIDER: 100000000000000000000000000000000000000n,

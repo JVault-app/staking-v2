@@ -1,5 +1,6 @@
 global slice storage::owner_address;
 global slice storage::referrer_wallet_address;
+global int   storage::balance;
 global int   init?;
 
 () load_data() impure inline {
@@ -9,6 +10,7 @@ global int   init?;
     if (ds.slice_bits()) {
         init? = true;
         storage::referrer_wallet_address = ds~load_msg_addr();
+        storage::balance = ds~load_coins();
     }
 }
 
@@ -17,6 +19,7 @@ global int   init?;
         begin_cell()
             .store_slice(storage::owner_address)
             .store_slice(storage::referrer_wallet_address)
+            .store_coins(storage::balance)
         .end_cell()
     );
 }

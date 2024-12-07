@@ -12,28 +12,41 @@ int get_distributed_rewards(int distribution_speed, int start_time, int time_now
     cell state_init = calculate_invitee_wallet_state_init(invitee_address, INVITEE_WALLET_CODE());
     slice invitee_wallet_address = get_address_by_state_init(state_init);
     cell payload = begin_cell()
-                        .store_uint(0, 96)
+                        .store_uint(op::SET_DATA, 32)
+                        .store_uint(0, 64)
                         .store_uint(storage::pool_id, 32)
                         .store_maybe_ref(referrer_address_cell)
-                        .store_maybe_ref(cell_null?(referrer_address_cell) ? null() : INVITEE_WALLET_CODE())
+                        .store_maybe_ref(cell_null?(referrer_address_cell) ? null() : REFERRER_WALLET_CODE())
                     .end_cell();
     send_deploy_message(invitee_wallet_address, tons::DEPLOY_INVITEE_WALLET, state_init, payload, mode::SIMPLE);
     return ();
 }
 
 
-() update_referrer_wallet(int balance_change, slice stake_owner_address, int query_id) impure inline {
+() request_update_referrer(int balance_change, slice stake_owner_address, int query_id) impure inline {
     cell state_init = calculate_invitee_wallet_state_init(stake_owner_address, INVITEE_WALLET_CODE());
     slice invitee_wallet_address = get_address_by_state_init(state_init);
     cell payload = begin_cell()
                         .store_uint(op::REQUEST_UPDATE_REFERRER, 32)
                         .store_uint(query_id, 64)
-                        .store_slice(stake_owner_address)
                         .store_uint(storage::pool_id, 32)
                         .store_coins(balance_change)
                     .end_cell();
     send_cell_message(invitee_wallet_address, tons::UPDATE_REFERRER_WALLET, payload, mode::SIMPLE);
     return ();
+}
+
+
+int update_referrer(slice referrer_wallet_address, int balance_change, cell user_rewards_dict, slice response_address, int query_id) impure inline {
+    cell payload = begin_cell()
+                .store_uint(op::UPDATE_REFERRER, 32)
+                .store_uint(query_id, 64)
+                .store_uint(storage::pool_id, 32)
+                .store_int(balance_change, 121)
+                .store_dict(user_rewards_dict)
+                .store_slice(response_address)
+            .end_cell();
+    return send_cell_message(referrer_wallet_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
 }
 
 
@@ -70,11 +83,6 @@ cell update_rewards_dict(int reward_multiplier, int user_jetton_balance, int tvl
         storage::reward_jettons~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
         user_rewards_dict~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(user_unclaimed_rewards));
         (reward_jetton, rewards_info_slice, success) = storage::reward_jettons.dict_get_next?(267, reward_jetton);
-    }
-
-    if (tvl_change) {
-        storage::tvl += tvl_change;
-        storage::tvl_with_multipliers += muldiv(tvl_change, reward_multiplier, REWARD_MULTIPLIER_DIVIDER);
     }
 
     return user_rewards_dict;
@@ -140,17 +148,4 @@ cell update_rewards_dict(int reward_multiplier, int user_jetton_balance, int tvl
     }
 
     return (required_gas, user_rewards_dict);
-}
-
-
-int send_update_referrer_message(slice referrer_wallet_address, int balance_change, cell user_rewards_dict, slice response_address, int query_id) impure inline {
-    cell payload = begin_cell()
-                .store_uint(op::UPDATE_REFERRER, 32)
-                .store_uint(query_id, 64)
-                .store_uint(storage::pool_id, 32)
-                .store_int(balance_change, 121)
-                .store_dict(user_rewards_dict)
-                .store_slice(response_address)
-            .end_cell();
-    return send_cell_message(referrer_wallet_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
 }

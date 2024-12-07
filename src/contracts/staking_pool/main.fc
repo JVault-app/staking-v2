@@ -52,7 +52,7 @@
                     (_, int success) = storage::whitelist.dict_get?(267, from_address);
                     throw_unless(exc::INCORRECT_SENDER, success);
                 }
-
+                
                 int lock_period = payload~load_uint(32);
                 cell referrer_cell = payload~load_maybe_ref();
                 payload.end_parse();
@@ -132,6 +132,7 @@
 
             throw(exc::UNSUPPORTED_OP);
         } catch (_, n) {
+            ~dump(n);
             send_jettons(query_id, transferred_jettons, from_address, from_address, sender_address, 0, mode::CARRY_REMAINING_BALANCE,
                          1, begin_cell().store_uint(0, 32).store_slice("Error. Code ").store_number10(n).end_cell());  
             return ();
@@ -266,7 +267,7 @@
         int rewards_multiplier = 0;
         (int required_gas, cell user_rewards_dict) = send_rewards(in_msg_body, referrer_address, rewards_multiplier, query_id);
         
-        required_gas += send_update_referrer_message(sender_address, 0, user_rewards_dict, referrer_address, query_id);
+        required_gas += update_referrer(sender_address, 0, user_rewards_dict, referrer_address, query_id);
         throw_unless(exc::OUT_OF_GAS, msg_value >= required_gas);
 
         return ();
@@ -280,9 +281,10 @@
         int   balance_change    = in_msg_body~load_int(121);
         cell  user_rewards_dict = in_msg_body~load_dict();
         slice response_address  = in_msg_body~load_msg_addr();
+
         user_rewards_dict = update_rewards_dict(1, invitees_balance, balance_change, user_rewards_dict);
-        
-        send_update_referrer_message(sender_address, 0, user_rewards_dict, response_address, query_id);
+        storage::tvl_with_multipliers += balance_change;
+        update_referrer(sender_address, 0, user_rewards_dict, response_address, query_id);
         
         save_data();
         return ();
@@ -326,12 +328,15 @@
             sender_address       = in_msg_body~load_msg_addr();
             stake_owner_address  = in_msg_body~load_ref().begin_parse();
         }
+   
+        user_rewards_dict = update_rewards_dict(reward_multiplier, user_jetton_balance, tvl_change, user_rewards_dict);
 
         if (tvl_change) {
-            update_referrer_wallet(tvl_change, stake_owner_address, query_id);
+            storage::tvl += tvl_change;
+            int tvl_change_with_multiplier = muldiv(tvl_change, reward_multiplier, REWARD_MULTIPLIER_DIVIDER);
+            storage::tvl_with_multipliers += tvl_change_with_multiplier;
+            request_update_referrer(tvl_change_with_multiplier, stake_owner_address, query_id);
         }
-        
-        user_rewards_dict = update_rewards_dict(reward_multiplier, user_jetton_balance, tvl_change, user_rewards_dict);
 
         if (jettons_to_unstake) {
             if (commission) {
@@ -347,7 +352,6 @@
 
         builder payload = begin_cell().store_uint(op::UPDATE_REWARDS, 32).store_uint(query_id, 64).store_dict(user_rewards_dict).store_slice(stake_owner_address);
         send_cell_message(sender_address, 0, payload.end_cell(), mode::CARRY_REMAINING_BALANCE);
-        
         save_data();
         return ();
     }

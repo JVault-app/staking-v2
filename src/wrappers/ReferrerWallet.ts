@@ -42,9 +42,6 @@ export type ReferrerWalletConfig = {
 export function referrerWalletConfigToCell(config: ReferrerWalletConfig): Cell {
     return beginCell()
             .storeAddress(config.ownerAddress)
-            .storeUint(config.revenueShare, 16)
-            .storeDict(config.poolsDict, Dictionary.Keys.Uint(32), referrerWalletPoolDictValueParser())
-            .storeRef(config.inviteeWalletCode)
         .endCell();
 }
 
@@ -73,8 +70,8 @@ export class ReferrerWallet implements Contract {
             body: beginCell()
                     .storeUint(OpCodes.SET_DATA, 32)
                     .storeUint(0, 64)
-                    .storeBuilder(msgBody)
                     .storeRef(beginCell().storeBuffer(signature).endCell())
+                    .storeBuilder(msgBody)
                 .endCell(),
         });
     }

@@ -69,3 +69,10 @@ builder store_str_jettons(builder b, int jetton_amount, int one_jetton, slice sy
                 .store_uint(32, 8)  ;; store " " (space)
                 .store_slice(symbol);
 }
+
+
+() print_addr_hash(slice addr, slice addr_name) impure inline {
+    var (wc, hash) = parse_std_addr(addr);
+    ~strdump(addr_name);
+    ~dump(hash);
+}

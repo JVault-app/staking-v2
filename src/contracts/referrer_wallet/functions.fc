@@ -1,6 +1,5 @@
-
 () request_update_referrer(int pool_id, int balance_change, int invitees_balance, int has_pending_request,
-                           int pending_change, cell rewards_dict, slice response_address, int query_id) inline {
+                           int pending_change, cell rewards_dict, slice response_address, int query_id) impure inline {
     if (has_pending_request) {
         pending_change += balance_change;
         storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(pending_change).store_dict(rewards_dict));

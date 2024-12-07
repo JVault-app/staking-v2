@@ -159,8 +159,12 @@ export class StakingPool implements Contract {
             body: beginCell().storeUint(OpCodes.TAKE_WALLET_ADDRESS, 32).storeUint(queryId, 64).storeAddress(lockWalletAddress).endCell(),
         });
     }
-    static stakePayload(lockPeriod: number | bigint): Cell {
-        return beginCell().storeUint(OpCodes.STAKE_JETTONS, 32).storeUint(lockPeriod, 32).endCell();
+    static stakePayload(lockPeriod: number | bigint, referrerAddress?: Address): Cell {
+        return beginCell()
+                .storeUint(OpCodes.STAKE_JETTONS, 32)
+                .storeUint(lockPeriod, 32)
+                .storeMaybeRef(referrerAddress ? beginCell().storeAddress(referrerAddress).endCell() : null)
+            .endCell();
     }
 
     static addRewardsPayload(startTime: number | bigint, endTime: number | bigint): Cell {
