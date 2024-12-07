@@ -25,11 +25,11 @@
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
 
-    if (op == op::set_data) {
+    if (op == op::SET_DATA) {
         if (~ equal_slices(sender_address, FACTORY_ADDRESS)) {
-            throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::owner_address));
+            throw_unless(exc::INCORRECT_SENDER, equal_slices(sender_address, storage::owner_address));
             slice signature = in_msg_body~load_ref().begin_parse();
-            throw_unless(exc::wrong_signature, check_signature(slice_hash(in_msg_body), signature, REF_PUBLIC_KEY));
+            throw_unless(exc::WRONG_SIGNATURE, check_signature(slice_hash(in_msg_body), signature, REF_PUBLIC_KEY));
             in_msg_body~skip_bits(267);
 
             storage::revenue_share = in_msg_body~load_uint(16);
@@ -45,12 +45,12 @@
         return ();
     }
 
-    if (op == op::request_update_referrer) {
+    if (op == op::REQUEST_UPDATE_REFERRER) {
         slice invitee_address = in_msg_body~load_msg_addr();
         force_invitee_wallet(sender_address, invitee_address, storage::invitee_wallet_code);
 
         int pool_id = in_msg_body~load_uint(32);
-        int balance_change = muldiv(in_msg_body~load_coins(), storage::revenue_share, revenue_share_divider);
+        int balance_change = muldiv(in_msg_body~load_coins(), storage::revenue_share, REVENUE_SHARE_DIVIDER);
         
         ;; We can't just use pool's distributed rewards, because of the possible race condition. So we should send another request to pool :(
         (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
@@ -69,7 +69,7 @@
         return ();
     }
 
-    if (op == op::update_referrer) {
+    if (op == op::UPDATE_REFERRER) {
         int pool_id = in_msg_body~load_uint(32);
         force_pool(sender_address, pool_id);
 
@@ -92,22 +92,22 @@
         }
         else {
             storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(false, 1).store_coins(0).store_dict(rewards_dict));
-            if (msg_value >= tons::min_excess) {
-                send_excess(response_address, query_id, 0, mode::carry_remaining_gas);
+            if (msg_value >= tons::MIN_EXCESS) {
+                send_excess(response_address, query_id, 0, mode::CARRY_REMAINING_GAS);
             }
             save_data();
             return ();
         }        
     }
 
-    if (op == op::claim_rewards) {
+    if (op == op::CLAIM_REWARDS) {
         cell requests_dict = in_msg_body~load_dict();
 
         (int pool_id, slice request_info, int success) = requests_dict.udict_get_min?(32);
         while (success) {
             int coins_to_send = request_info~load_coins();
             int max_fwd_fee = muldiv(get_forward_fee(WORKCHAIN, UPDATE_MSG_BITS, UPDATE_MSG_CELLS), 3, 2); 
-            throw_unless(exc::out_of_gas, coins_to_send < claim_rewards_required_gas(max_fwd_fee) + tons::jetton_transfer);
+            throw_unless(exc::OUT_OF_GAS, coins_to_send < claim_rewards_required_gas(max_fwd_fee) + tons::JETTON_TRANSFER);
             msg_value -= coins_to_send;
 
             (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
@@ -118,30 +118,30 @@
             if (success) {
                 invitees_balance = pool_info~load_coins();
                 has_pending_request = pool_info~load_int(1);
-                throw_if(exc::has_pending_request, has_pending_request);
+                throw_if(exc::HAS_PENDING_REQUEST, has_pending_request);
                 pool_info~load_coins();
                 rewards_dict_slice = pool_info;
             }
             storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(0).store_slice(rewards_dict_slice));
             
             cell payload = begin_cell()
-                                .store_uint(op::send_referrer_rewards, 32)
+                                .store_uint(op::SEND_REFERRER_REWARDS, 32)
                                 .store_uint(query_id, 64)
                                 .store_slice(storage::owner_address)
                                 .store_coins(invitees_balance)
                                 .store_slice(rewards_dict_slice)
                                 .store_slice(request_info)
                             .end_cell();
-            send_cell_message(sender_address, coins_to_send, payload, mode::simple);
+            send_cell_message(sender_address, coins_to_send, payload, mode::SIMPLE);
 
             (pool_id, request_info, success) = requests_dict.udict_get_next?(32, pool_id);
         }
 
         msg_value -= get_compute_fee(WORKCHAIN, gas_consumed() + 1000);
 
-        throw_unless(exc::out_of_gas, msg_value > 0);
-        if (my_balance + msg_value - tons::min_reserve > tons::min_excess) {
-            send_excess(storage::owner_address, query_id, 0, mode::carry_remaining_balance);
+        throw_unless(exc::OUT_OF_GAS, msg_value > 0);
+        if (my_balance + msg_value - tons::MIN_RESERVE > tons::MIN_EXCESS) {
+            send_excess(storage::owner_address, query_id, 0, mode::CARRY_REMAINING_BALANCE);
         }
 
         save_data();

@@ -1,7 +1,7 @@
 () send_update_request(int jettons_to_send, int tvl_change, int commission, int query_id, int msg_value, int sending_mode) impure inline {
     storage::is_active = false;
     cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 124 + 124 = 889. Refs = 1.
-                        .store_uint(op::request_update_rewards, 32)
+                        .store_uint(op::REQUEST_UPDATE_REWARDS, 32)
                         .store_uint(query_id, 64)
                         .store_slice(storage::owner_address)
                         .store_uint(storage::lock_period, 32)
@@ -18,7 +18,7 @@
 (int) send_update_request_with_forward(int jetton_balance, cell rewards_dict, slice forward_address, slice from_address, int query_id, int msg_value, int sending_mode) impure inline {
     storage::is_active = false;
     cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 4 + 4 + 267 = 916. Refs = 2.
-                        .store_uint(op::request_update_rewards, 32)
+                        .store_uint(op::REQUEST_UPDATE_REWARDS, 32)
                         .store_uint(query_id, 64)
                         .store_slice(storage::owner_address)
                         .store_uint(storage::lock_period, 32)

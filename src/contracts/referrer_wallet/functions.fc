@@ -6,8 +6,8 @@
         storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(pending_change).store_dict(rewards_dict));
         save_data();
 
-        raw_reserve(tons::min_reserve + tons::update_referrer_wallet, 2);
-        send_excess(response_address, query_id, 0, mode::carry_remaining_balance | mode::ignore_errors);
+        raw_reserve(tons::MIN_RESERVE + tons::UPDATE_REFERRER_WALLET, 2);
+        send_excess(response_address, query_id, 0, mode::CARRY_REMAINING_BALANCE | mode::IGNORE_ERRORS);
 
         return ();
     }
@@ -16,7 +16,7 @@
     save_data();
 
     cell payload = begin_cell()
-                    .store_uint(op::request_update_referrer, 32)
+                    .store_uint(op::REQUEST_UPDATE_REFERRER, 32)
                     .store_uint(query_id, 64)
                     .store_slice(storage::owner_address)
                     .store_coins(invitees_balance)
@@ -26,8 +26,8 @@
                 .end_cell();
     cell  pool_state_init = calculate_pool_state_init(pool_id);
     slice pool_address = get_address_by_state_init(pool_state_init);
-    raw_reserve(tons::min_reserve, 2);
-    send_cell_message(pool_address, 0, payload, mode::carry_remaining_balance);
+    raw_reserve(tons::MIN_RESERVE, 2);
+    send_cell_message(pool_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
     
     return ();
 }

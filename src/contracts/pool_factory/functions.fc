@@ -15,7 +15,7 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
 
     int min_deposit = payload~load_coins();
     int max_deposit = payload~load_coins();
-    throw_unless(exc::more_than_max_deposit, max_deposit >= min_deposit);
+    throw_unless(exc::MORE_THAN_MAX_DEPOSIT, max_deposit >= min_deposit);
 
     cell lock_periods = payload~load_dict();
     (int lock_period, slice period_info, int success) = lock_periods.udict_get_min?(32);
@@ -38,15 +38,15 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
                                 .store_slice(minter_addresss);
         lock_periods~udict_set_builder(32, lock_period, dict_value);
 
-        gas_required += (send_deploy_message(minter_addresss, tons::deploy_minter, minter_state_init, null(), mode::pay_fees_separately)
-                         + tons::deploy_minter);
+        gas_required += (send_deploy_message(minter_addresss, tons::DEPLOY_MINTER, minter_state_init, null(), mode::PAY_FEES_SEPARATELY)
+                         + tons::DEPLOY_MINTER);
 
         (lock_period, period_info, success) = lock_periods.udict_get_next?(32, lock_period);
     }
     
     cell whitelist = payload~load_dict();
     int  rewards_commission = payload~load_uint(16);
-    throw_unless(exc::incorrect_rewards_commission, rewards_commission >= storage::min_rewards_commission);
+    throw_unless(exc::INCORRECT_REWARDS_COMMISSION, rewards_commission >= storage::min_rewards_commission);
     
     cell nft_content = payload~load_maybe_ref();
 

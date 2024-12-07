@@ -1,68 +1,68 @@
 {- EXCEPTIONS -}
 
-const int exc::out_of_gas                       = 13;
+const int exc::OUT_OF_GAS                       = 13;
 
-const int exc::wrong_signature                  = 35;
+const int exc::WRONG_SIGNATURE                  = 35;
 
-const int exc::less_than_min_deposit            = 41;
-const int exc::more_than_max_deposit            = 42;
-const int exc::incorrect_jetton                 = 43;
-const int exc::tvl_limit_exceeded               = 44;
-const int exc::not_enough_jettons               = 46;
-const int exc::incorrect_lock_period            = 47;
-const int exc::staking_not_started              = 48;
-const int exc::incorrect_sender                 = 50;
-const int exc::premint_closed                   = 52;
-const int exc::has_pending_request              = 56;
-const int exc::user_not_in_wl                   = 57;
-const int exc::incorrect_distribution_period    = 58;
-const int exc::already_inited                   = 59;
-const int exc::not_inited                       = 60;
-const int exc::hashmap_overflow                 = 61;
+const int exc::LESS_THAN_MIN_DEPOSIT            = 41;
+const int exc::MORE_THAN_MAX_DEPOSIT            = 42;
+const int exc::INCORRECT_JETTON                 = 43;
+const int exc::TVL_LIMIT_EXCEEDED               = 44;
+const int exc::NOT_ENOUGH_JETTONS               = 46;
+const int exc::INCORRECT_LOCK_PERIOD            = 47;
+const int exc::STAKING_NOT_STARTED              = 48;
+const int exc::INCORRECT_SENDER                 = 50;
+const int exc::PREMINT_CLOSED                   = 52;
+const int exc::HAS_PENDING_REQUEST              = 56;
+const int exc::USER_NOT_IN_WL                   = 57;
+const int exc::INCORRECT_DISTRIBUTION_PERIOD    = 58;
+const int exc::ALREADY_INITED                   = 59;
+const int exc::NOT_INITED                       = 60;
+const int exc::HASHMAP_OVERFLOW                 = 61;
 
-const int exc::incorrect_rewards_commission     = 45;
-const int exc::incorrect_lock_periods           = 62;
+const int exc::INCORRECT_REWARDS_COMMISSION     = 45;
+const int exc::INCORRECT_LOCK_PERIODS           = 62;
 
-const int exc::discovery_fee_not_matched        = 75;
+const int exc::DISCOVERY_FEE_NOT_MATCHED        = 75;
 
-const int exc::wrong_chain                      = 333;
-const int exc::unsupported_op                   = 0xffff;
+const int exc::WRONG_CHAIN                      = 333;
+const int exc::UNSUPPORTED_OP                   = 0xffff;
 
 
 {- CONST TON VALUES -}
 
-const int tons::min_reserve           = 15000000;   ;; 0.015 TON 
-const int tons::jetton_transfer       = 55000000;   ;; 0.055 TON 
-const int tons::burn_jettons          = 50000000;   ;; 0.05  TON 
+const int tons::MIN_RESERVE           = 15000000;   ;; 0.015 TON 
+const int tons::JETTON_TRANSFER       = 55000000;   ;; 0.055 TON 
+const int tons::BURN_JETTONS          = 50000000;   ;; 0.05  TON 
 
-const int tons::create_staking_pool   = 150000000;  ;; 0.150 TON 
-const int tons::min_excess            = 10000000;   ;; 0.01  TON 
-const int tons::deploy_pool           = 20000000;   ;; 0.02  TON 
-const int tons::deploy_minter         = 20000000;   ;; 0.02  TON 
+const int tons::CREATE_STAKING_POOL   = 150000000;  ;; 0.150 TON 
+const int tons::MIN_EXCESS            = 10000000;   ;; 0.01  TON 
+const int tons::DEPLOY_POOL           = 20000000;   ;; 0.02  TON 
+const int tons::DEPLOY_MINTER         = 20000000;   ;; 0.02  TON 
 
-const int tons::update_referrer_wallet = 100000000; ;; 0.10  TON 
-const int tons::deploy_invitee_wallet  = 20000000;  ;; 0.02  TON 
+const int tons::UPDATE_REFERRER_WALLET = 100000000; ;; 0.10  TON 
+const int tons::DEPLOY_INVITEE_WALLET  = 20000000;  ;; 0.02  TON 
 
 
 {- GAS -}
 
 ;; All gas consumtions were calculated for REWARD_JETTONS_MAX_COUNT = 76, REWARDS_DEPOSITS_MAX_COUNT = 16, UNSTAKE_REQUESTS_MAX_COUNT = 20 and slightly increased
 
-const int gas::stake_jettons          = 21500;   ;; Actually 21296
-const int gas::request_update_rewards = 510000;  ;; Actually 500012
-const int gas::add_rewards            = 21500;   ;; Actually 20784
-const int gas::claim_commissions      = 11000;   ;; Actually 10393
-const int gas::send_unstaked_jettons  = 8000;    ;; Actually 7480
-const int gas::send_claimed_rewards   = 235000;  ;; Actually 229745
+const int gas::STAKE_JETTONS          = 21500;   ;; Actually 21296
+const int gas::REQUEST_UPDATE_REWARDS = 510000;  ;; Actually 500012
+const int gas::ADD_REWARDS            = 21500;   ;; Actually 20784
+const int gas::CLAIM_COMMISSIONS      = 11000;   ;; Actually 10393
+const int gas::SEND_UNSTAKED_JETTONS  = 8000;    ;; Actually 7480
+const int gas::SEND_CLAIMED_REWARDS   = 235000;  ;; Actually 229745
 
-const int gas::receive_from_pool      = 13500;   ;; Actually 13124
-const int gas::receive_from_user      = 26000;   ;; Actually 24833
-const int gas::update_rewards         = 7500;    ;; Actually 7040
-const int gas::claim_rewards          = 16000;   ;; Actually 14887
-const int gas::unstake_request        = 20000;   ;; Actually 16812     
-const int gas::unstake_jettons        = 65000;   ;; Actually < 60055
-const int gas::cancel_unstake         = 65000;   ;; Actually 59271 
-const int gas::transfer_staked_jetton = 23000;   ;; Actually 21463 
+const int gas::RECEIVE_FROM_POOL      = 13500;   ;; Actually 13124
+const int gas::RECEIVE_FROM_USER      = 26000;   ;; Actually 24833
+const int gas::UPDATE_REWARDS         = 7500;    ;; Actually 7040
+const int gas::CLAIM_REWARDS          = 16000;   ;; Actually 14887
+const int gas::UNSTAKE_REQUEST        = 20000;   ;; Actually 16812     
+const int gas::UNSTAKE_JETTONS        = 65000;   ;; Actually < 60055
+const int gas::CANCEL_UNSTAKE         = 65000;   ;; Actually 59271 
+const int gas::TRANSFER_STAKED_JETTON = 23000;   ;; Actually 21463 
 
 const int UPDATE_MSG_BITS  = 11500;
 const int UPDATE_MSG_CELLS = 36;
@@ -70,82 +70,82 @@ const int UPDATE_MSG_CELLS = 36;
 {- OP-CODES -}
 
 ;; Common
-const int op::get_static_data        = 0x2fcb26a2;
-const int op::report_static_data     = 0x8b771735;
-const int op::get_storage_data       = 0x5b88e5cc;
-const int op::report_storage_data    = 0xaab4a8ef;
-const int op::excesses               = 0xd53276db;
+const int op::GET_STATIC_DATA        = 0x2fcb26a2;
+const int op::REPORT_STATIC_DATA     = 0x8b771735;
+const int op::GET_STORAGE_DATA       = 0x5b88e5cc;
+const int op::REPORT_STORAGE_DATA    = 0xaab4a8ef;
+const int op::EXCESSES               = 0xd53276db;
 
 ;; Jettons
-const int op::transfer_jetton        = 0x0f8a7ea5;
-const int op::transfer_notification  = 0x7362d09c;
-const int op::provide_wallet_address = 0x2c76b973;
-const int op::take_wallet_address    = 0xd1735400;
-const int op::burn_jetton            = 0x595f07bc;
+const int op::TRANSFER_JETTON        = 0x0f8a7ea5;
+const int op::TRANSFER_NOTIFICATION  = 0x7362d09c;
+const int op::PROVIDE_WALLET_ADDRESS = 0x2c76b973;
+const int op::TAKE_WALLET_ADDRESS    = 0xd1735400;
+const int op::BURN_JETTON            = 0x595f07bc;
 
 ;; Management
-const int op::send_any_message       = 0xa47d989c;
-const int op::set_code               = 0xe2d2d211;
-const int op::withdraw_ton           = 0x37726bdb;
-const int op::withdraw_jetton        = 0x11c09682;
-const int op::deactivate_wallet      = 0x4b14c485;
+const int op::SEND_ANY_MESSAGE       = 0xa47d989c;
+const int op::SET_CODE               = 0xe2d2d211;
+const int op::WITHDRAW_TON           = 0x37726bdb;
+const int op::WITHDRAW_JETTON        = 0x11c09682;
+const int op::DEACTIVATE_WALLET      = 0x4b14c485;
 
 ;; Staking pool
-const int op::stake_jettons          = 0xe3a06989;
-const int op::add_rewards            = 0xdb16ac95;
-const int op::send_claimed_rewards   = 0x44bc1fe3;
-const int op::send_unstaked_jettons  = 0xfb232bc3;
-const int op::approve_stake          = 0x919de781;
-const int op::cancel_stake           = 0x9eada1d9;
-const int op::add_reward_jettons     = 0x10676ae7;
-const int op::claim_commissions      = 0xbca8f067;
-const int op::request_update_rewards = 0xf5c5baa3;
+const int op::STAKE_JETTONS          = 0xe3a06989;
+const int op::ADD_REWARDS            = 0xdb16ac95;
+const int op::SEND_CLAIMED_REWARDS   = 0x44bc1fe3;
+const int op::SEND_UNSTAKED_JETTONS  = 0xfb232bc3;
+const int op::APPROVE_STAKE          = 0x919de781;
+const int op::CANCEL_STAKE           = 0x9eada1d9;
+const int op::ADD_REWARD_JETTONS     = 0x10676ae7;
+const int op::CLAIM_COMMISSIONS      = 0xbca8f067;
+const int op::REQUEST_UPDATE_REWARDS = 0xf5c5baa3;
 
 ;; Staked jetton wallet
-const int op::claim_rewards          = 0x78d9f109;
-const int op::receive_jettons        = 0xd68a4ac1;
-const int op::unstake_jettons        = 0x499a9262;
-const int op::unstake_request        = 0x0168d4b7;
-const int op::cancel_unstake_request = 0xa4910f1a;
-const int op::update_rewards         = 0xae9307ce;
-const int op::confirm_transfer       = 0xbc85eb11;
+const int op::CLAIM_REWARDS          = 0x78d9f109;
+const int op::RECEIVE_JETTONS        = 0xd68a4ac1;
+const int op::UNSTAKE_JETTONS        = 0x499a9262;
+const int op::UNSTAKE_REQUEST        = 0x0168d4b7;
+const int op::CANCEL_UNSTAKE_REQUEST = 0xa4910f1a;
+const int op::UPDATE_REWARDS         = 0xae9307ce;
+const int op::CONFIRM_TRANSFER       = 0xbc85eb11;
 
 ;; Referrer wallet
-const int op::request_update_referrer = 0x55c35b40;
-const int op::send_referrer_rewards   = 0xb80e71d2;
-const int op::update_referrer         = 0x076ee4e0;
-const int op::set_data                = 0x383411ea;
+const int op::REQUEST_UPDATE_REFERRER = 0x55c35b40;
+const int op::SEND_REFERRER_REWARDS   = 0xb80e71d2;
+const int op::UPDATE_REFERRER         = 0x076ee4e0;
+const int op::SET_DATA                = 0x383411ea;
 
 ;; Pool factory
-const int op::update_uninited_code   = 0x7c2e94e0;
-const int op::deploy_new_pool        = 0xda861f17;
-const int op::send_commissions       = 0xb96adaea;
-const int op::change_creation_fee    = 0x66d5528b;
-const int op::change_content         = 0x0ec29200;
-const int op::update_codes           = 0x85c923cf;
-const int op::send_withdraw_ton      = 0xe5b8268f;
+const int op::UPDATE_UNINITED_CODE   = 0x7c2e94e0;
+const int op::DEPLOY_NEW_POOL        = 0xda861f17;
+const int op::SEND_COMMISSIONS       = 0xb96adaea;
+const int op::CHANGE_CREATION_FEE    = 0x66d5528b;
+const int op::CHANGE_CONTENT         = 0x0ec29200;
+const int op::UPDATE_CODES           = 0x85c923cf;
+const int op::SEND_WITHDRAW_TON      = 0xe5b8268f;
 
 
 {- MESSAGE MODES -}
 
-const int mode::simple                  = 0;
-const int mode::carry_remaining_gas     = 64;
-const int mode::carry_remaining_balance = 128;
+const int mode::SIMPLE                  = 0;
+const int mode::CARRY_REMAINING_GAS     = 64;
+const int mode::CARRY_REMAINING_BALANCE = 128;
 
-const int mode::pay_fees_separately     = 1;
-const int mode::ignore_errors           = 2;
-const int mode::bounce_on_fail          = 16;
-const int mode::selfdestruct_on_empty   = 32;
+const int mode::PAY_FEES_SEPARATELY     = 1;
+const int mode::IGNORE_ERRORS           = 2;
+const int mode::BOUNCE_ON_FAIL          = 16;
+const int mode::SELFDESTRUCT_ON_EMPTY   = 32;
 
 
 {- OTHER -}
 
-const int commission_divider            = 10000;
-const int revenue_share_divider         = commission_divider;
-const int reward_multiplier_divider     = 1000;
-const int distribution_speed_divider    = 24 * 60 * 60;
-const int distributed_rewards_divider   = 100000000000000000000000000000000000000;
-const slice burn_address                = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
+const int COMMISSION_DIVIDER            = 10000;
+const int REVENUE_SHARE_DIVIDER         = COMMISSION_DIVIDER;
+const int REWARD_MULTIPLIER_DIVIDER     = 1000;
+const int DISTRIBUTION_SPEED_DIVIDER    = 24 * 60 * 60;
+const int DISTRIBUTED_REWARDS_DIVIDER   = 100000000000000000000000000000000000000;
+const slice BURN_ADDRESS                = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"a;
 const slice FACTORY_ADDRESS             = "EQAYS3AO2NaFr5-wl1CU8QMiCxrP0OEXYn82iqnuST9FKo9I"a;
 const int WORKCHAIN                     = 0;
 const int ONE_TON                       = 1000000000;

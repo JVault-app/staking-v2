@@ -22,7 +22,7 @@
 
     load_data();
 
-    if (op == op::transfer_notification) {  ;; someone sent jettons to this smc
+    if (op == op::TRANSFER_NOTIFICATION) {  ;; someone sent jettons to this smc
         int   transferred_jettons = in_msg_body~load_coins();
         slice from_address        = in_msg_body~load_msg_addr();
 
@@ -34,14 +34,14 @@
             }
             raw_reserve(storage_fees(), 4);
             
-            throw_unless(exc::out_of_gas, msg_value >= tons::create_staking_pool);
+            throw_unless(exc::OUT_OF_GAS, msg_value >= tons::CREATE_STAKING_POOL);
 
-            if (inner_op == op::deploy_new_pool) {
-                throw_unless(exc::incorrect_jetton, equal_slices(sender_address, storage::fees_wallet_address));
-                throw_unless(exc::not_enough_jettons, transferred_jettons == storage::creation_fee);
+            if (inner_op == op::DEPLOY_NEW_POOL) {
+                throw_unless(exc::INCORRECT_JETTON, equal_slices(sender_address, storage::fees_wallet_address));
+                throw_unless(exc::NOT_ENOUGH_JETTONS, transferred_jettons == storage::creation_fee);
                 
                 send_jettons(query_id, transferred_jettons, storage::admin_address, storage::admin_address, storage::fees_wallet_address, 
-                             tons::jetton_transfer, mode::simple, 1, begin_cell().store_uint(0, 32).store_slice("JVault commission").end_cell());
+                             tons::JETTON_TRANSFER, mode::SIMPLE, 1, begin_cell().store_uint(0, 32).store_slice("JVault commission").end_cell());
 
                 slice lock_wallet_address = payload~load_msg_addr();
                 
@@ -49,97 +49,97 @@
                 slice pool_address = get_address_by_state_init(pool_state_init);
                
                 (cell pool_data, int gas_required) = get_pool_data(payload, from_address, lock_wallet_address, pool_address);
-                gas_required += tons::jetton_transfer;
+                gas_required += tons::JETTON_TRANSFER;
 
                 cell pool_deploy_payload = begin_cell()
                                                 .store_slice(lock_wallet_address)
                                                 .store_ref(pool_data)
                                                 .store_ref(storage::pool_inited_code)
                                             .end_cell();
-                gas_required += send_deploy_message(pool_address, tons::deploy_pool, pool_state_init, pool_deploy_payload, mode::carry_remaining_balance);
+                gas_required += send_deploy_message(pool_address, tons::DEPLOY_POOL, pool_state_init, pool_deploy_payload, mode::CARRY_REMAINING_BALANCE);
 
                 storage::next_pool_id += 1;
                 save_data();
 
                 gas_required += get_compute_fee(WORKCHAIN, gas_consumed() + 200);
-                throw_unless(exc::out_of_gas, gas_required <= msg_value);
+                throw_unless(exc::OUT_OF_GAS, gas_required <= msg_value);
                 return ();
             }
         }
         catch (_, n) { ;; if something went wrong contract tries to return jettons back with corresponding error code as a comment
-            send_jettons(query_id, transferred_jettons, from_address, from_address, sender_address, 0, mode::carry_remaining_gas,
+            send_jettons(query_id, transferred_jettons, from_address, from_address, sender_address, 0, mode::CARRY_REMAINING_GAS,
                            1, begin_cell().store_uint(0, 32).store_slice("Error. Code ").store_number10(n).end_cell());  
             return ();
         }
     }
     
-    if ((op == 0) | (op == op::excesses)) {  ;; take unstake fee
+    if ((op == 0) | (op == op::EXCESSES)) {  ;; take unstake fee
         return ();
     }
 
     ;; Admin commands
-    throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::admin_address) | equal_slices(sender_address, storage::owner_address));
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(sender_address, storage::admin_address) | equal_slices(sender_address, storage::owner_address));
     
-    if (op == op::withdraw_ton) {
-        raw_reserve(tons::min_reserve, 0);
-        send_message_with_comment(storage::admin_address, 0, "TON withrawal", mode::carry_remaining_balance);
+    if (op == op::WITHDRAW_TON) {
+        raw_reserve(tons::MIN_RESERVE, 0);
+        send_message_with_comment(storage::admin_address, 0, "TON withrawal", mode::CARRY_REMAINING_BALANCE);
         return ();
     }
 
-    if (op == op::withdraw_jetton) {
+    if (op == op::WITHDRAW_JETTON) {
         slice jetton_to_withdraw = in_msg_body~load_msg_addr();
         int jetton_amount = in_msg_body~load_coins();
 
-        send_jettons(query_id, jetton_amount, storage::admin_address, storage::admin_address, jetton_to_withdraw, 0, mode::carry_remaining_gas,
-                     msg_value - tons::jetton_transfer, begin_cell().store_slice(in_msg_body).end_cell());
+        send_jettons(query_id, jetton_amount, storage::admin_address, storage::admin_address, jetton_to_withdraw, 0, mode::CARRY_REMAINING_GAS,
+                     msg_value - tons::JETTON_TRANSFER, begin_cell().store_slice(in_msg_body).end_cell());
         return ();
     }
 
-    if (op == op::send_withdraw_ton) {
+    if (op == op::SEND_WITHDRAW_TON) {
         slice pool_address = in_msg_body~load_msg_addr();
-        send_builder_message(pool_address, 0, begin_cell().store_uint(op::withdraw_ton, 32).store_uint(query_id, 64), mode::carry_remaining_gas);
+        send_builder_message(pool_address, 0, begin_cell().store_uint(op::WITHDRAW_TON, 32).store_uint(query_id, 64), mode::CARRY_REMAINING_GAS);
         return ();
     }
 
     ;; Owner commands
-    throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::owner_address));
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(sender_address, storage::owner_address));
 
-    if (op == op::take_wallet_address) { ;; change fees wallet address
+    if (op == op::TAKE_WALLET_ADDRESS) { ;; change fees wallet address
         storage::fees_wallet_address = in_msg_body~load_msg_addr();
         save_data();
         return ();
     }
 
-    if (op == op::change_creation_fee) {
+    if (op == op::CHANGE_CREATION_FEE) {
         storage::creation_fee = in_msg_body~load_coins();
         builder msg_body = begin_cell()
                                 .store_uint(0, 32)
                                 .store_slice("Creation fee was changed to ")
                                 .store_str_jettons(storage::creation_fee, 1000000000, "JVT");
-        send_cell_message(storage::admin_address, 0, msg_body.end_cell(), mode::carry_remaining_gas);
+        send_cell_message(storage::admin_address, 0, msg_body.end_cell(), mode::CARRY_REMAINING_GAS);
 
         save_data();
         return ();
     }
 
-    if (op == op::change_content) {
+    if (op == op::CHANGE_CONTENT) {
         storage::collection_content = in_msg_body~load_dict();
-        send_message_with_comment(storage::admin_address, 0, "Content was changed", mode::carry_remaining_gas);
+        send_message_with_comment(storage::admin_address, 0, "Content was changed", mode::CARRY_REMAINING_GAS);
         save_data();
         return ();
     }
 
-    if (op == op::update_codes) {
+    if (op == op::UPDATE_CODES) {
         storage::pool_inited_code = in_msg_body~load_ref();
         storage::stake_wallet_code = in_msg_body~load_ref();
         storage::jetton_minter_code = in_msg_body~load_ref();
         storage::version += 1;
-        send_excess(sender_address, query_id, 0, mode::carry_remaining_gas);
+        send_excess(sender_address, query_id, 0, mode::CARRY_REMAINING_GAS);
         save_data();
         return ();
     }
 
-    if (op == op::set_code) {
+    if (op == op::SET_CODE) {
         cell code = in_msg_body~load_ref();
         set_c3(code.begin_parse().bless());
         if (in_msg_body.slice_refs()) {
@@ -147,16 +147,16 @@
         }
         load_data();
         set_code(code);
-        send_message_with_comment(storage::owner_address, 0, "Code updated", mode::carry_remaining_gas);
+        send_message_with_comment(storage::owner_address, 0, "Code updated", mode::CARRY_REMAINING_GAS);
         return ();
     }
 
-    if (op == op::send_any_message) {
+    if (op == op::SEND_ANY_MESSAGE) {
         slice to_address = in_msg_body~load_msg_addr();
         cell paylaod = in_msg_body~load_ref();
-        send_cell_message(to_address, 0, paylaod, mode::carry_remaining_gas);
+        send_cell_message(to_address, 0, paylaod, mode::CARRY_REMAINING_GAS);
         return ();
     }
     
-    throw(exc::unsupported_op);
+    throw(exc::UNSUPPORTED_OP);
 }

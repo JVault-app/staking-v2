@@ -22,7 +22,7 @@ global cell  storage::whitelist;               ;; HashmapE. user_address (MsgAdd
 global int   storage::unstake_fee;             ;; Coins. Const JVault's TON fee
 global int   storage::collected_commissions;   ;; Coins. Commissions collected from instant unstakes  
 
-global int   storage::rewards_commission;      ;; Uint16. JVault's commission as percent of staking rewards. Commission rate = commission_factor / commission_divider.
+global int   storage::rewards_commission;      ;; Uint16. JVault's commission as percent of staking rewards. Commission rate = commission_factor / COMMISSION_DIVIDER.
 global int   storage::version;                 ;; Uint16. Version of the staking pool code
 
 
