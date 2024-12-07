@@ -1,30 +1,8 @@
-#include "imports/stdlib.fc";
-#include "imports/constants.fc";
-#include "imports/utils.fc";
-#include "imports/gas.fc";
+#include "../imports/all_imports.fc";
 
-global slice storage::owner_address;
-global slice storage::referrer_wallet_address;
-global int   init?;
+#include "storage.fc";
+#include "get_methods.fc";
 
-() load_data() impure inline {
-    slice ds = get_data().begin_parse();
-    storage::owner_address = ds~load_msg_addr();
-    init? = false;
-    if (ds.slice_bits()) {
-        init? = true;
-        storage::referrer_wallet_address = ds~load_msg_addr();
-    }
-}
-
-() save_data() impure inline {
-    set_data(
-        begin_cell()
-            .store_slice(storage::owner_address)
-            .store_slice(storage::referrer_wallet_address)
-        .end_cell()
-    );
-}
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     if (in_msg_body.slice_empty?()) { ;; ignore empty messages
@@ -77,9 +55,4 @@ global int   init?;
 
     send_excess(storage::owner_address, query_id, 0, mode::carry_remaining_balance);
     return ();
-}
-
-(int, slice, slice) get_storage_data() method_id {
-    load_data();
-    return (init?, storage::owner_address, storage::referrer_wallet_address);
 }

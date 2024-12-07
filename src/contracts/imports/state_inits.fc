@@ -1,0 +1,46 @@
+cell pack_state_init(cell code, cell data) inline {
+    return begin_cell()
+                .store_uint(0, 2)
+                .store_maybe_ref(code)
+                .store_maybe_ref(data)
+                .store_uint(0, 1)
+            .end_cell();
+}
+
+cell calculate_stake_wallet_state_init(slice pool_address, slice minter_address,
+                                       slice owner_address, int lock_period, cell stake_wallet_code) inline {
+    cell data = begin_cell()
+                    .store_slice(pool_address)
+                    .store_slice(minter_address)
+                    .store_slice(owner_address)
+                    .store_ref(
+                        begin_cell()
+                            .store_uint(lock_period, 32)
+                            .store_uint(1, 19)
+                        .end_cell()
+                    )
+                .end_cell();
+    return pack_state_init(stake_wallet_code, data);
+}
+
+cell calculate_pool_state_init(int pool_id) inline {
+    cell pool_data = begin_cell().store_slice(FACTORY_ADDRESS).store_uint(pool_id, 32).end_cell();
+    return pack_state_init(POOL_UNINITED_CODE(), pool_data);
+}
+
+cell calculate_invitee_wallet_state_init(slice invitee_address, cell invitee_wallet_code) inline {
+    cell data = begin_cell().store_slice(invitee_address).end_cell();
+    return pack_state_init(invitee_wallet_code, data);
+}   
+
+cell calculate_referrer_wallet_state_init(slice referrer_address, cell referrer_wallet_code) inline {
+    cell data = begin_cell().store_slice(referrer_address).end_cell();
+    return pack_state_init(referrer_wallet_code, data);
+}
+
+slice get_address_by_state_init(cell state_init) inline { 
+    return begin_cell()
+                .store_uint(1024, 11)
+                .store_uint(cell_hash(state_init), 256)
+            .end_cell().begin_parse();
+}

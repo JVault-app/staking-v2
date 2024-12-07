@@ -1,73 +1,8 @@
-#include "imports/stdlib.fc";
-#include "imports/constants.fc";
-#include "imports/utils.fc";
-#include "imports/gas.fc";
+#include "../imports/all_imports.fc";
 
-
-global slice storage::owner_address;       ;; MsgAddressStd. Address of the referrer
-global int   storage::revenue_share;       ;; Uint16. Part of invitees' revenue to be shared with referrer
-
-global cell  storage::pools_dict;          ;; HashmapE. pool_id (uint32) -> {invitees_balance (Coins), has_pending_request (Bool), pending_change (Coins), rewards_dict (HashmapE, reward jetton address (MsgAddressStd) -> last_distributed_rewards (uint256), unclaimed_rewards (coins))}
-
-global cell  storage::invitee_wallet_code;
-global int   init?;
-
-() load_data() impure inline {
-    slice ds = get_data().begin_parse();
-    storage::owner_address = ds~load_msg_addr();
-    init? = false;
-    if (ds.slice_bits()) {
-        init? = true;
-        storage::revenue_share = ds~load_uint(16);
-        storage::pools_dict = ds~load_dict();
-        storage::invitee_wallet_code = ds~load_ref();
-    }
-}
-
-() save_data() impure inline {
-    set_data(
-        begin_cell()
-            .store_slice(storage::owner_address)
-            .store_uint(storage::revenue_share, 16)
-            .store_dict(storage::pools_dict)
-            .store_ref(storage::invitee_wallet_code)
-        .end_cell()
-    );
-}
-
-
-() request_update_referrer(int pool_id, int balance_change, int invitees_balance, int has_pending_request,
-                           int pending_change, cell rewards_dict, slice response_address, int query_id) inline {
-    if (has_pending_request) {
-        pending_change += balance_change;
-        storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(pending_change).store_dict(rewards_dict));
-        save_data();
-
-        raw_reserve(tons::min_reserve + tons::update_referrer_wallet, 2);
-        send_excess(response_address, query_id, 0, mode::carry_remaining_balance | mode::ignore_errors);
-
-        return ();
-    }
-    
-    storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(0).store_dict(rewards_dict));
-    save_data();
-
-    cell payload = begin_cell()
-                    .store_uint(op::request_update_referrer, 32)
-                    .store_uint(query_id, 64)
-                    .store_slice(storage::owner_address)
-                    .store_coins(invitees_balance)
-                    .store_int(balance_change, 121)
-                    .store_dict(rewards_dict)
-                    .store_slice(response_address)
-                .end_cell();
-    cell  pool_state_init = calculate_pool_state_init(pool_id);
-    slice pool_address = get_address_by_state_init(pool_state_init);
-    raw_reserve(tons::min_reserve, 2);
-    send_cell_message(pool_address, 0, payload, mode::carry_remaining_balance);
-    
-    return ();
-}
+#include "storage.fc";
+#include "functions.fc";
+#include "get_methods.fc";
 
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -212,19 +147,4 @@ global int   init?;
         save_data();
         return ();
     }
-
-    ;; if (op == op::update_revenue_share) {
-    ;;     throw_unless(exc::incorrect_sender, equal_slices(sender_address, FACTORY_ADDRESS));
-    ;;     storage::revenue_share = in_msg_body~load_uint(16);
-    ;;     save_data();
-    ;;     return ();
-    ;; }
-}
-
-(slice, int, cell, cell) get_storage_data() method_id {
-    load_data();
-    if (init?) {
-        return (storage::owner_address, storage::revenue_share, storage::pools_dict, storage::invitee_wallet_code);
-    }
-    return (storage::owner_address, 0, null(), null());
 }

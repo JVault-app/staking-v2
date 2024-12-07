@@ -1,0 +1,30 @@
+global slice storage::owner_address;       ;; MsgAddressStd. Address of the referrer
+global int   storage::revenue_share;       ;; Uint16. Part of invitees' revenue to be shared with referrer
+
+global cell  storage::pools_dict;          ;; HashmapE. pool_id (uint32) -> {invitees_balance (Coins), has_pending_request (Bool), pending_change (Coins), rewards_dict (HashmapE, reward jetton address (MsgAddressStd) -> last_distributed_rewards (uint256), unclaimed_rewards (coins))}
+
+global cell  storage::invitee_wallet_code;
+global int   init?;
+
+() load_data() impure inline {
+    slice ds = get_data().begin_parse();
+    storage::owner_address = ds~load_msg_addr();
+    init? = false;
+    if (ds.slice_bits()) {
+        init? = true;
+        storage::revenue_share = ds~load_uint(16);
+        storage::pools_dict = ds~load_dict();
+        storage::invitee_wallet_code = ds~load_ref();
+    }
+}
+
+() save_data() impure inline {
+    set_data(
+        begin_cell()
+            .store_slice(storage::owner_address)
+            .store_uint(storage::revenue_share, 16)
+            .store_dict(storage::pools_dict)
+            .store_ref(storage::invitee_wallet_code)
+        .end_cell()
+    );
+}

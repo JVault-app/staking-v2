@@ -69,7 +69,6 @@ export function poolFactoryConfigToCell(config: PoolFactoryConfig): Cell {
                     beginCell()
                         .storeAddress(config.adminAddress)
                         .storeAddress(config.ownerAddress)
-                        .storeDict(config.poolUninitedCodes, Dictionary.Keys.BigUint(32), Dictionary.Values.Cell())
                         .storeRef(config.poolInitedCode)
                         .storeRef(config.stakeWalletCode)
                         .storeRef(config.jettonMinterCode)

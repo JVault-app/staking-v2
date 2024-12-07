@@ -1,0 +1,63 @@
+global slice storage::admin_address;             ;; MsgAddressStd. Admin of the factory (can collect fees)
+global slice storage::owner_address;             ;; MsgAddressStd. Owner of the factory (can update codes and send messages to pools)
+
+global int   storage::next_pool_id;              ;; Uint32. Next pool id
+global cell  storage::collection_content;        ;; Cell. NFT collection onchain content
+
+global int   storage::min_rewards_commission;    ;; Uint16. Min rewards service commission rate
+global int   storage::unstake_fee;               ;; Coins. Protocol fee for unstaking
+global slice storage::fees_wallet_address;       ;; MsgAddressStd. JVT jetton wallet's address 
+global int   storage::creation_fee;              ;; Coins. Pool creation fee in JVT
+
+global cell  storage::pool_inited_code;          ;; Cell. Code of the staking_pool.fc
+global cell  storage::stake_wallet_code;         ;; Cell. Code of the stake_wallet.fc
+global cell  storage::jetton_minter_code;        ;; Cell. Code of the jetton_minter.fc
+
+global int   storage::version;                   ;; Uint16. Current version of smart contract
+
+
+() load_data() impure {
+    slice ds = get_data().begin_parse();  ;; bits = 32 + 1 + 16 + 124 + 267 + 124 = 564; refs = 2;
+    storage::next_pool_id           = ds~load_uint(32);
+    storage::collection_content     = ds~load_dict();
+
+    storage::min_rewards_commission = ds~load_uint(16);
+    storage::unstake_fee            = ds~load_coins();
+    storage::fees_wallet_address    = ds~load_msg_addr();
+    storage::creation_fee           = ds~load_coins();
+
+    slice ds2 = ds~load_ref().begin_parse();  ;; bits = 267 + 267 + 16 = 550; refs = 3
+    ds.end_parse();
+    
+    storage::admin_address          = ds2~load_msg_addr();
+    storage::owner_address          = ds2~load_msg_addr();
+    storage::pool_inited_code       = ds2~load_ref();
+    storage::stake_wallet_code      = ds2~load_ref();
+    storage::jetton_minter_code     = ds2~load_ref();
+    storage::version                = ds2~load_uint(16);
+    
+    ds2.end_parse();
+}
+
+() save_data() impure inline {
+    set_data(
+        begin_cell()
+            .store_uint(storage::next_pool_id, 32)
+            .store_dict(storage::collection_content)
+            .store_uint(storage::min_rewards_commission, 16)
+            .store_coins(storage::unstake_fee)
+            .store_slice(storage::fees_wallet_address)
+            .store_coins(storage::creation_fee)
+            .store_ref(
+                begin_cell()
+                    .store_slice(storage::admin_address)
+                    .store_slice(storage::owner_address)
+                    .store_ref(storage::pool_inited_code)
+                    .store_ref(storage::stake_wallet_code)
+                    .store_ref(storage::jetton_minter_code)
+                    .store_uint(storage::version, 16)
+                .end_cell()
+            )
+        .end_cell()
+    );
+}

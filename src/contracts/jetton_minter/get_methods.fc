@@ -1,0 +1,11 @@
+(int, int, slice, cell, cell) get_jetton_data() method_id {
+    load_data();
+    return (storage::total_supply, -1, storage::staking_pool_address, storage::jetton_content, storage::stake_wallet_code);
+}
+
+
+slice get_wallet_address(slice owner_address) method_id {
+    load_data();
+    cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, my_address(), owner_address, storage::lock_period, storage::stake_wallet_code);
+    return get_address_by_state_init(state_init);
+}

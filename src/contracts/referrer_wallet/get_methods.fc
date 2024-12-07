@@ -1,0 +1,7 @@
+(slice, int, cell, cell) get_storage_data() method_id {
+    load_data();
+    if (init?) {
+        return (storage::owner_address, storage::revenue_share, storage::pools_dict, storage::invitee_wallet_code);
+    }
+    return (storage::owner_address, 0, null(), null());
+}

@@ -1,24 +1,7 @@
-#include "imports/stdlib.fc";
-#include "imports/constants.fc";
-#include "imports/utils.fc";
+#include "../imports/all_imports.fc";
 
-
-global int   storage::total_supply;
-global slice storage::staking_pool_address;
-global int   storage::lock_period;
-global cell  storage::jetton_content;
-global cell  storage::stake_wallet_code;
-
-
-() load_data() impure {
-    slice ds = get_data().begin_parse();
-    storage::total_supply = ds~load_coins();
-    storage::staking_pool_address = ds~load_msg_addr();
-    storage::lock_period = ds~load_uint(32);
-    storage::jetton_content = ds~load_dict();
-    storage::stake_wallet_code = ds~load_ref();
-    ds.end_parse();
-}
+#include "storage.fc";
+#include "get_methods.fc";
 
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -98,17 +81,4 @@ global cell  storage::stake_wallet_code;
     }
 
     throw(exc::unsupported_op);
-}
-
-
-(int, int, slice, cell, cell) get_jetton_data() method_id {
-    load_data();
-    return (storage::total_supply, -1, storage::staking_pool_address, storage::jetton_content, storage::stake_wallet_code);
-}
-
-
-slice get_wallet_address(slice owner_address) method_id {
-    load_data();
-    cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, my_address(), owner_address, storage::lock_period, storage::stake_wallet_code);
-    return get_address_by_state_init(state_init);
 }

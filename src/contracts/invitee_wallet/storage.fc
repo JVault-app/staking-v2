@@ -1,0 +1,22 @@
+global slice storage::owner_address;
+global slice storage::referrer_wallet_address;
+global int   init?;
+
+() load_data() impure inline {
+    slice ds = get_data().begin_parse();
+    storage::owner_address = ds~load_msg_addr();
+    init? = false;
+    if (ds.slice_bits()) {
+        init? = true;
+        storage::referrer_wallet_address = ds~load_msg_addr();
+    }
+}
+
+() save_data() impure inline {
+    set_data(
+        begin_cell()
+            .store_slice(storage::owner_address)
+            .store_slice(storage::referrer_wallet_address)
+        .end_cell()
+    );
+}
