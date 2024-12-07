@@ -35,6 +35,12 @@ export const OpCodes = {
     UPDATE_REWARDS:          0XAE9307CE,
     CONFIRM_TRANSFER:        0XBC85EB11,
     
+    // Referrer wallet,
+    REQUEST_UPDATE_REFERRER: 0X55C35B40,
+    SEND_REFERRER_REWARDS:   0XB80E71D2,
+    UPDATE_REFERRER:         0X076EE4E0,
+    SET_DATA:                0X383411EA,
+
     // Pools admin,
     DEPLOY_NEW_POOL:       0XDA861F17,
     SEND_COMMISSIONS:      0XB96ADAEA,
@@ -43,7 +49,8 @@ export const OpCodes = {
     CHANGE_CONTENT:        0x0ec29200,
     UPDATE_CODES:          0x85c923cf,
     WITHDRAW_TON:          0X37726BDB,
-    WITHDRAW_JETTON:       0X11C09682,    
+    WITHDRAW_JETTON:       0X11C09682,  
+    SEND_WITHDRAW_TON:      0XE5B8268F,
 };
 
 export const Gas = {
@@ -72,3 +79,6 @@ export const Dividers = {
     DISTRIBUTION_SPEED_DIVIDER: BigInt(24 * 60 * 60),
     DISTRIBUTED_REWARDS_DIVIDER: 100000000000000000000000000000000000000n,
 }
+
+
+export const PUBLIC_KEY = 0n;

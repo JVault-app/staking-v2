@@ -1,0 +1,85 @@
+#include "imports/stdlib.fc";
+#include "imports/constants.fc";
+#include "imports/utils.fc";
+#include "imports/gas.fc";
+
+global slice storage::owner_address;
+global slice storage::referrer_wallet_address;
+global int   init?;
+
+() load_data() impure inline {
+    slice ds = get_data().begin_parse();
+    storage::owner_address = ds~load_msg_addr();
+    init? = false;
+    if (ds.slice_bits()) {
+        init? = true;
+        storage::referrer_wallet_address = ds~load_msg_addr();
+    }
+}
+
+() save_data() impure inline {
+    set_data(
+        begin_cell()
+            .store_slice(storage::owner_address)
+            .store_slice(storage::referrer_wallet_address)
+        .end_cell()
+    );
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+        return ();
+    }
+
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+    slice sender_address = cs~load_msg_addr();
+
+    load_data();
+
+    if (flags & 1) { ;; bounced messages
+        ;; TODO
+    }
+
+    int op = in_msg_body~load_uint(32);
+    int query_id = in_msg_body~load_uint(64);
+
+    int pool_id = in_msg_body~load_uint(32);
+    force_pool(sender_address, pool_id);
+
+    if (~ init?) {  ;; op == op::set_data
+        int ref_exists = in_msg_body~load_int(1);
+        if (ref_exists) {
+            slice referrer_address = in_msg_body~load_ref().begin_parse();
+            cell referrer_wallet_code = in_msg_body~load_maybe_ref();
+            cell referrer_wallet_state_init = calculate_referrer_wallet_state_init(referrer_address, referrer_wallet_code);
+            storage::referrer_wallet_address = get_address_by_state_init(referrer_wallet_state_init);
+        }
+        else {
+            storage::referrer_wallet_address = null_addr();
+        }
+        save_data();
+        return ();
+    }
+
+    raw_reserve(tons::min_reserve, 2);
+    if ((op == op::request_update_referrer) & (~ equal_slices(storage::referrer_wallet_address, null_addr()))) {
+        cell payload = begin_cell()
+                        .store_uint(op, 32)
+                        .store_uint(query_id, 64)
+                        .store_slice(storage::owner_address)
+                        .store_uint(pool_id, 32)
+                        .store_slice(in_msg_body)  ;; balance change (coins)
+                    .end_cell();
+        send_cell_message(storage::referrer_wallet_address, 0, payload, mode::carry_remaining_balance);
+        return ();
+    }
+
+    send_excess(storage::owner_address, query_id, 0, mode::carry_remaining_balance);
+    return ();
+}
+
+(int, slice, slice) get_storage_data() method_id {
+    load_data();
+    return (init?, storage::owner_address, storage::referrer_wallet_address);
+}

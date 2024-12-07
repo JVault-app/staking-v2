@@ -71,12 +71,6 @@ global int   storage::version;                   ;; Uint16. Current version of s
 }
 
 
-cell calculate_pool_state_init(int pool_id, cell pool_code) {
-    cell pool_data = begin_cell().store_slice(my_address()).store_uint(pool_id, 32).end_cell();
-    return pack_state_init(pool_code, pool_data);
-}
-
-
 cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetton_content) {
     cell minter_data = begin_cell()
                             .store_coins(0)
@@ -245,6 +239,12 @@ cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetto
 
         send_jettons(query_id, jetton_amount, storage::admin_address, storage::admin_address, jetton_to_withdraw, 0, mode::carry_remaining_gas,
                      msg_value - tons::jetton_transfer, begin_cell().store_slice(in_msg_body).end_cell());
+        return ();
+    }
+
+    if (op == op::send_withdraw_ton) {
+        slice pool_address = in_msg_body~load_msg_addr();
+        send_builder_message(pool_address, 0, begin_cell().store_uint(op::withdraw_ton, 32).store_uint(query_id, 64), mode::carry_remaining_gas);
         return ();
     }
 

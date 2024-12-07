@@ -1,0 +1,230 @@
+#include "imports/stdlib.fc";
+#include "imports/constants.fc";
+#include "imports/utils.fc";
+#include "imports/gas.fc";
+
+
+global slice storage::owner_address;       ;; MsgAddressStd. Address of the referrer
+global int   storage::revenue_share;       ;; Uint16. Part of invitees' revenue to be shared with referrer
+
+global cell  storage::pools_dict;          ;; HashmapE. pool_id (uint32) -> {invitees_balance (Coins), has_pending_request (Bool), pending_change (Coins), rewards_dict (HashmapE, reward jetton address (MsgAddressStd) -> last_distributed_rewards (uint256), unclaimed_rewards (coins))}
+
+global cell  storage::invitee_wallet_code;
+global int   init?;
+
+() load_data() impure inline {
+    slice ds = get_data().begin_parse();
+    storage::owner_address = ds~load_msg_addr();
+    init? = false;
+    if (ds.slice_bits()) {
+        init? = true;
+        storage::revenue_share = ds~load_uint(16);
+        storage::pools_dict = ds~load_dict();
+        storage::invitee_wallet_code = ds~load_ref();
+    }
+}
+
+() save_data() impure inline {
+    set_data(
+        begin_cell()
+            .store_slice(storage::owner_address)
+            .store_uint(storage::revenue_share, 16)
+            .store_dict(storage::pools_dict)
+            .store_ref(storage::invitee_wallet_code)
+        .end_cell()
+    );
+}
+
+
+() request_update_referrer(int pool_id, int balance_change, int invitees_balance, int has_pending_request,
+                           int pending_change, cell rewards_dict, slice response_address, int query_id) inline {
+    if (has_pending_request) {
+        pending_change += balance_change;
+        storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(pending_change).store_dict(rewards_dict));
+        save_data();
+
+        raw_reserve(tons::min_reserve + tons::update_referrer_wallet, 2);
+        send_excess(response_address, query_id, 0, mode::carry_remaining_balance | mode::ignore_errors);
+
+        return ();
+    }
+    
+    storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(0).store_dict(rewards_dict));
+    save_data();
+
+    cell payload = begin_cell()
+                    .store_uint(op::request_update_referrer, 32)
+                    .store_uint(query_id, 64)
+                    .store_slice(storage::owner_address)
+                    .store_coins(invitees_balance)
+                    .store_int(balance_change, 121)
+                    .store_dict(rewards_dict)
+                    .store_slice(response_address)
+                .end_cell();
+    cell  pool_state_init = calculate_pool_state_init(pool_id);
+    slice pool_address = get_address_by_state_init(pool_state_init);
+    raw_reserve(tons::min_reserve, 2);
+    send_cell_message(pool_address, 0, payload, mode::carry_remaining_balance);
+    
+    return ();
+}
+
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+        return ();
+    }
+    
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+    slice sender_address = cs~load_msg_addr();
+
+    load_data();
+
+    if (flags & 1) {  ;; bounced messages
+        in_msg_body~skip_bits(32);
+        int op = in_msg_body~load_uint(32);
+        ;; TODO
+    }
+
+    int op = in_msg_body~load_uint(32);
+    int query_id = in_msg_body~load_uint(64);
+
+    if (op == op::set_data) {
+        if (~ equal_slices(sender_address, FACTORY_ADDRESS)) {
+            throw_unless(exc::incorrect_sender, equal_slices(sender_address, storage::owner_address));
+            slice signature = in_msg_body~load_ref().begin_parse();
+            throw_unless(exc::wrong_signature, check_signature(slice_hash(in_msg_body), signature, REF_PUBLIC_KEY));
+            in_msg_body~skip_bits(267);
+
+            storage::revenue_share = in_msg_body~load_uint(16);
+            storage::invitee_wallet_code = in_msg_body~load_ref();
+            ;; storage::pools_dict = null();
+        }
+        else {
+            storage::revenue_share = in_msg_body~load_uint(16);
+            storage::pools_dict = in_msg_body~load_dict();
+            storage::invitee_wallet_code = in_msg_body~load_ref();
+        }
+        save_data();
+        return ();
+    }
+
+    if (op == op::request_update_referrer) {
+        slice invitee_address = in_msg_body~load_msg_addr();
+        force_invitee_wallet(sender_address, invitee_address, storage::invitee_wallet_code);
+
+        int pool_id = in_msg_body~load_uint(32);
+        int balance_change = muldiv(in_msg_body~load_coins(), storage::revenue_share, revenue_share_divider);
+        
+        ;; We can't just use pool's distributed rewards, because of the possible race condition. So we should send another request to pool :(
+        (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
+        int invitees_balance = 0;
+        int has_pending_request = false;
+        int pending_change = 0;
+        cell rewards_dict = null();
+        if (success) {
+            invitees_balance = pool_info~load_coins();
+            has_pending_request = pool_info~load_int(1);
+            pending_change = pool_info~load_coins();
+            rewards_dict = pool_info~load_dict();
+        }
+        request_update_referrer(pool_id, balance_change, invitees_balance, has_pending_request, pending_change, rewards_dict, invitee_address, query_id);
+        
+        return ();
+    }
+
+    if (op == op::update_referrer) {
+        int pool_id = in_msg_body~load_uint(32);
+        force_pool(sender_address, pool_id);
+
+        (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
+        int invitees_balance = in_msg_body~load_int(121);
+        int has_pending_request = false;
+        int pending_change = 0;
+        cell rewards_dict = in_msg_body~load_dict();
+        if (success) {
+            invitees_balance += pool_info~load_coins();
+            has_pending_request = pool_info~load_int(1);
+            pending_change = pool_info~load_coins();
+        }
+
+        slice response_address = in_msg_body~load_msg_addr();
+
+        if (pending_change != 0) {
+            request_update_referrer(pool_id, invitees_balance, pending_change, false, 0, rewards_dict, response_address, query_id);
+            return ();
+        }
+        else {
+            storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(false, 1).store_coins(0).store_dict(rewards_dict));
+            if (msg_value >= tons::min_excess) {
+                send_excess(response_address, query_id, 0, mode::carry_remaining_gas);
+            }
+            save_data();
+            return ();
+        }        
+    }
+
+    if (op == op::claim_rewards) {
+        cell requests_dict = in_msg_body~load_dict();
+
+        (int pool_id, slice request_info, int success) = requests_dict.udict_get_min?(32);
+        while (success) {
+            int coins_to_send = request_info~load_coins();
+            int max_fwd_fee = muldiv(get_forward_fee(WORKCHAIN, UPDATE_MSG_BITS, UPDATE_MSG_CELLS), 3, 2); 
+            throw_unless(exc::out_of_gas, coins_to_send < claim_rewards_required_gas(max_fwd_fee) + tons::jetton_transfer);
+            msg_value -= coins_to_send;
+
+            (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
+            int invitees_balance = 0;
+            int has_pending_request = false;
+            ;; int pending_change = 0;
+            slice rewards_dict_slice = BIT_FALSE_SLICE();
+            if (success) {
+                invitees_balance = pool_info~load_coins();
+                has_pending_request = pool_info~load_int(1);
+                throw_if(exc::has_pending_request, has_pending_request);
+                pool_info~load_coins();
+                rewards_dict_slice = pool_info;
+            }
+            storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(0).store_slice(rewards_dict_slice));
+            
+            cell payload = begin_cell()
+                                .store_uint(op::send_referrer_rewards, 32)
+                                .store_uint(query_id, 64)
+                                .store_slice(storage::owner_address)
+                                .store_coins(invitees_balance)
+                                .store_slice(rewards_dict_slice)
+                                .store_slice(request_info)
+                            .end_cell();
+            send_cell_message(sender_address, coins_to_send, payload, mode::simple);
+
+            (pool_id, request_info, success) = requests_dict.udict_get_next?(32, pool_id);
+        }
+
+        msg_value -= get_compute_fee(WORKCHAIN, gas_consumed() + 1000);
+
+        throw_unless(exc::out_of_gas, msg_value > 0);
+        if (my_balance + msg_value - tons::min_reserve > tons::min_excess) {
+            send_excess(storage::owner_address, query_id, 0, mode::carry_remaining_balance);
+        }
+
+        save_data();
+        return ();
+    }
+
+    ;; if (op == op::update_revenue_share) {
+    ;;     throw_unless(exc::incorrect_sender, equal_slices(sender_address, FACTORY_ADDRESS));
+    ;;     storage::revenue_share = in_msg_body~load_uint(16);
+    ;;     save_data();
+    ;;     return ();
+    ;; }
+}
+
+(slice, int, cell, cell) get_storage_data() method_id {
+    load_data();
+    if (init?) {
+        return (storage::owner_address, storage::revenue_share, storage::pools_dict, storage::invitee_wallet_code);
+    }
+    return (storage::owner_address, 0, null(), null());
+}

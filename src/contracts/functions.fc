@@ -1,0 +1,156 @@
+int get_distributed_rewards(int distribution_speed, int start_time, int time_now) inline {
+    return (storage::tvl_with_multipliers ?
+            muldiv(
+                muldiv(distribution_speed, distributed_rewards_divider, distribution_speed_divider), 
+                time_now - start_time,
+                storage::tvl_with_multipliers
+            ) : 0);
+}
+
+
+() deploy_invitee_wallet(slice invitee_address, cell referrer_address_cell) impure inline {
+    cell state_init = calculate_invitee_wallet_state_init(invitee_address, INVITEE_WALLET_CODE());
+    slice invitee_wallet_address = get_address_by_state_init(state_init);
+    cell payload = begin_cell()
+                        .store_uint(0, 96)
+                        .store_uint(storage::pool_id, 32)
+                        .store_maybe_ref(referrer_address_cell)
+                        .store_maybe_ref(cell_null?(referrer_address_cell) ? null() : INVITEE_WALLET_CODE())
+                    .end_cell();
+    send_deploy_message(invitee_wallet_address, tons::deploy_invitee_wallet, state_init, payload, mode::simple);
+    return ();
+}
+
+
+() update_referrer_wallet(int balance_change, slice stake_owner_address, int query_id) impure inline {
+    cell state_init = calculate_invitee_wallet_state_init(stake_owner_address, INVITEE_WALLET_CODE());
+    slice invitee_wallet_address = get_address_by_state_init(state_init);
+    cell payload = begin_cell()
+                        .store_uint(op::request_update_referrer, 32)
+                        .store_uint(query_id, 64)
+                        .store_slice(stake_owner_address)
+                        .store_uint(storage::pool_id, 32)
+                        .store_coins(balance_change)
+                    .end_cell();
+    send_cell_message(invitee_wallet_address, tons::update_referrer_wallet, payload, mode::simple);
+    return ();
+}
+
+
+cell update_rewards_dict(int reward_multiplier, int user_jetton_balance, int tvl_change, cell user_rewards_dict) impure inline_ref {
+    int time_now = now();
+    (slice reward_jetton, slice rewards_info_slice, int success) = storage::reward_jettons.dict_get_min?(267);
+    while (success) {
+        int distributed_rewards = rewards_info_slice~load_uint(256);
+        cell rewards_deposits = rewards_info_slice~load_dict();
+
+        (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
+        while (success2) {
+            int distribution_speed = rewards_deposit_slice~load_coins();
+            int start_time         = rewards_deposit_slice~load_uint(32);
+            if (start_time < time_now) {
+                int end_time = rewards_deposit_slice~load_uint(32);
+                if (end_time <= time_now) {
+                    rewards_deposits~udict_delete?(32, index);
+                    storage::rewards_deposits_count -= 1;
+                    distributed_rewards += get_distributed_rewards(distribution_speed, start_time, end_time);
+                }
+                else {
+                    rewards_deposits~udict_set_builder(32, index, begin_cell().store_coins(distribution_speed).store_uint(time_now, 32).store_uint(end_time, 32));
+                    distributed_rewards += get_distributed_rewards(distribution_speed, start_time, time_now);
+                }
+            }
+            (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
+        }
+
+        (slice user_rewards_slice, int success3) = user_rewards_dict.dict_get?(267, reward_jetton);
+        (int user_distributed_rewards, int user_unclaimed_rewards) = success3 ? (user_rewards_slice~load_uint(256), user_rewards_slice~load_coins()) : (0, 0);
+        user_unclaimed_rewards += muldiv(muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_divider), reward_multiplier, reward_multiplier_divider);
+
+        storage::reward_jettons~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
+        user_rewards_dict~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(user_unclaimed_rewards));
+        (reward_jetton, rewards_info_slice, success) = storage::reward_jettons.dict_get_next?(267, reward_jetton);
+    }
+
+    if (tvl_change) {
+        storage::tvl += tvl_change;
+        storage::tvl_with_multipliers += muldiv(tvl_change, reward_multiplier, reward_multiplier_divider);
+    }
+
+    return user_rewards_dict;
+}
+
+
+(int, cell) send_rewards(slice in_msg_body, slice stake_owner_address, int reward_multiplier, int query_id) impure inline_ref {
+    int  user_jetton_balance = in_msg_body~load_coins();
+    cell user_rewards_dict   = in_msg_body~load_dict();
+    cell jettons_to_claim    = in_msg_body~load_dict();  ;; HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
+
+    (slice reward_jetton, _, int success) = jettons_to_claim.dict_get_min?(267);
+    int required_gas = 0;
+
+    int time_now = now();
+    int should_update_rewards = false;  ;; should we delete elements from storage::reward_jettons? 
+    while (success) {
+        (slice rewards_info_slice, int jetton_exists) = storage::reward_jettons.dict_get?(267, reward_jetton);
+        if (jetton_exists) {
+            int should_update_rewards2 = false;
+            int distributed_rewards = rewards_info_slice~load_uint(256);
+            cell rewards_deposits = rewards_info_slice~load_dict();
+
+            (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
+            while (success2) {
+                int distribution_speed = rewards_deposit_slice~load_coins();
+                int start_time         = rewards_deposit_slice~load_uint(32);
+                if (start_time < time_now) {
+                    int end_time = rewards_deposit_slice~load_uint(32);
+                    if (end_time <= time_now) {
+                        rewards_deposits~udict_delete?(32, index);
+                        storage::rewards_deposits_count -= 1;
+                        time_now = end_time;
+                        should_update_rewards = true;
+                        should_update_rewards2 = true;
+                    }
+                    distributed_rewards += get_distributed_rewards(distribution_speed, start_time, end_time <= time_now ? end_time : time_now);
+                }
+                (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
+            }
+            
+            (slice user_rewards_slice, int success3) = user_rewards_dict~dict_set_get_builder?(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(0));
+            int user_distributed_rewards = 0;
+            int prev_user_unclaimed_rewards = 0;
+            if (success3) {
+                user_distributed_rewards = user_rewards_slice~load_uint(256);
+                prev_user_unclaimed_rewards = user_rewards_slice~load_coins();
+            }
+            int new_user_rewards = muldiv(muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, distributed_rewards_divider), reward_multiplier, reward_multiplier_divider);
+            
+            required_gas += send_jettons(query_id, new_user_rewards + prev_user_unclaimed_rewards, stake_owner_address, stake_owner_address, reward_jetton, 
+                                            tons::jetton_transfer, mode::pay_fees_separately, 1, begin_cell().store_uint(0, 32).store_slice("Claim staking rewards").end_cell());
+            required_gas += tons::jetton_transfer;
+            if (should_update_rewards2) {
+                storage::reward_jettons~dict_set_builder(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_dict(rewards_deposits));
+            }
+        }
+        (reward_jetton, _, success) = jettons_to_claim.dict_get_next?(267, reward_jetton);
+    }
+
+    if (should_update_rewards) {
+        save_data();
+    }
+
+    return (required_gas, user_rewards_dict);
+}
+
+
+int send_update_referrer_message(slice referrer_wallet_address, int balance_change, cell user_rewards_dict, slice response_address, int query_id) impure inline {
+    cell payload = begin_cell()
+                .store_uint(op::update_referrer, 32)
+                .store_uint(query_id, 64)
+                .store_uint(storage::pool_id, 32)
+                .store_int(balance_change, 121)
+                .store_dict(user_rewards_dict)
+                .store_slice(response_address)
+            .end_cell();
+    return send_cell_message(referrer_wallet_address, 0, payload, mode::carry_remaining_balance);
+}

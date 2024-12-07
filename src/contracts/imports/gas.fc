@@ -4,8 +4,8 @@ int update_request_required_gas(int fwd_fee) inline {
 }
 
 int stake_required_gas(int fwd_fee) inline {
-    ;; stake_jettons -> receive_jettons -> request_update_rewards -> update_rewards -> excess [optional]
-    return 3 * fwd_fee + tons::min_reserve + get_compute_fee(WORKCHAIN, gas::stake_jettons + gas::receive_from_pool + gas::request_update_rewards + gas::update_rewards);
+    ;; stake_jettons -> receive_jettons & deploy_invitee_wallet -> request_update_rewards -> update_rewards -> request_update_referrer (invitee_wallet) -> request_update_referrer (referrer_wallet) -> request_update_referrer (staking_pool) -> update_referrer -> excess [optional]
+    return 3 * fwd_fee + tons::min_reserve + tons::deploy_invitee_wallet + tons::update_referrer_wallet + get_compute_fee(WORKCHAIN, gas::stake_jettons + gas::receive_from_pool  + gas::request_update_rewards + gas::update_rewards);
 }
 
 int add_rewards_required_gas(int fwd_fee) inline {
