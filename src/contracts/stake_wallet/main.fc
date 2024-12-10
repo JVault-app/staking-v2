@@ -169,7 +169,6 @@
                             .store_slice(in_msg_body)   ;; in_msg_body = HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
                         .end_cell();
     
-                     
         send_cell_message(storage::staking_pool_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
         
         storage::is_active = false;

@@ -30,7 +30,7 @@ int get_distributed_rewards(int distribution_speed, int start_time, int time_now
                         .store_uint(op::REQUEST_UPDATE_REFERRER, 32)
                         .store_uint(query_id, 64)
                         .store_uint(storage::pool_id, 32)
-                        .store_coins(balance_change)
+                        .store_int(balance_change, 121)
                     .end_cell();
     send_cell_message(invitee_wallet_address, tons::UPDATE_REFERRER_WALLET, payload, mode::SIMPLE);
     return ();

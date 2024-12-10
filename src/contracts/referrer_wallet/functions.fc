@@ -2,7 +2,7 @@
                            int pending_change, cell rewards_dict, slice response_address, int query_id) impure inline {
     if (has_pending_request) {
         pending_change += balance_change;
-        storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(pending_change).store_dict(rewards_dict));
+        storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_int(pending_change, 121).store_dict(rewards_dict));
         save_data();
 
         raw_reserve(tons::MIN_RESERVE + tons::UPDATE_REFERRER_WALLET, 2);
@@ -11,7 +11,7 @@
         return ();
     }
     
-    storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_coins(0).store_dict(rewards_dict));
+    storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_int(0, 121).store_dict(rewards_dict));
     save_data();
 
     cell payload = begin_cell()

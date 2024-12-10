@@ -1,4 +1,4 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, DictionaryValue, Sender, SendMode, toNano } from '@ton/core';
 import { UserRewardsDictValue, userRewardsDictValueParser } from './StakeWallet';
 import { AddrList, Gas, OpCodes } from './imports/constants';
 import { sign, KeyPair } from '@ton/crypto';
@@ -8,6 +8,11 @@ export type ReferrerWalletPoolDictValue = {
     hasPendingRequest: boolean;
     pendingChange: bigint;
     rewardsDict: Dictionary<Address, UserRewardsDictValue>;
+}
+
+export type RewardsRequestDictValue = {
+    coinsToSend: bigint;
+    jettonWallets: AddrList;
 }
 
 export function referrerWalletPoolDictValueParser(): DictionaryValue<ReferrerWalletPoolDictValue> {
@@ -21,13 +26,13 @@ export function referrerWalletPoolDictValueParser(): DictionaryValue<ReferrerWal
     }
 }
 
-export function rewardsRequestDictValueParser(): DictionaryValue<AddrList> {
+export function rewardsRequestDictValueParser(): DictionaryValue<RewardsRequestDictValue> {
     return {
         serialize: (src, buidler) => {
-            buidler.storeDict(src, Dictionary.Keys.Address(), Dictionary.Values.Bool()).endCell();
+            buidler.storeCoins(src.coinsToSend).storeDict(src.jettonWallets, Dictionary.Keys.Address(), Dictionary.Values.Bool()).endCell();
         },
         parse: (src) => {
-            return src.loadDict(Dictionary.Keys.Address(), Dictionary.Values.Bool());
+            return {coinsToSend: src.loadCoins(), jettonWallets: src.loadDict(Dictionary.Keys.Address(), Dictionary.Values.Bool())};
         }
     }
 }
@@ -76,10 +81,14 @@ export class ReferrerWallet implements Contract {
         });
     }
 
-    async sendClaimRewards(provider: ContractProvider, via: Sender, value: bigint, rewardsToClaim: Dictionary<number, AddrList>, queryId?: number) {
-        let requiredGas = 0n;
+    async sendClaimRewards(provider: ContractProvider, via: Sender, rewardsToClaim: Dictionary<number, AddrList>, queryId?: number) {
+        let requiredGas = toNano('0.1');
+        let tmp = Dictionary.empty(Dictionary.Keys.Uint(32), rewardsRequestDictValueParser());
         for (let poolId of rewardsToClaim.keys()) {
-            requiredGas += BigInt(rewardsToClaim.get(poolId)!!.size) * Gas.JETTON_TRANSFER + Gas.SIMPLE_UPDATE_REQUEST;
+            let jettonWallets = rewardsToClaim.get(poolId)!!;
+            let coinsToSend = BigInt(jettonWallets.size) * Gas.JETTON_TRANSFER + Gas.SIMPLE_UPDATE_REQUEST;
+            tmp.set(poolId, {coinsToSend, jettonWallets});
+            requiredGas += coinsToSend;
         }
         await provider.internal(via, {
             value: requiredGas,
@@ -87,7 +96,7 @@ export class ReferrerWallet implements Contract {
             body: beginCell()
                     .storeUint(OpCodes.CLAIM_REWARDS, 32)
                     .storeUint(queryId ?? 0, 64)
-                    .storeDict(rewardsToClaim, Dictionary.Keys.Uint(32), rewardsRequestDictValueParser())
+                    .storeDict(tmp, Dictionary.Keys.Uint(32), rewardsRequestDictValueParser())
                 .endCell()
         });
     }
