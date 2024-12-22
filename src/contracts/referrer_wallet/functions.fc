@@ -19,7 +19,7 @@
                     .store_uint(query_id, 64)
                     .store_slice(storage::owner_address)
                     .store_coins(invitees_balance)
-                    .store_int(balance_change, 121)
+                    .store_int(balance_change + pending_change, 121)
                     .store_dict(rewards_dict)
                     .store_slice(response_address)
                 .end_cell();

@@ -49,17 +49,19 @@
             balance_change = storage::balance - balance_change;
             storage::balance = 0;
         }
-
-        cell payload = begin_cell()
-                        .store_uint(op, 32)
-                        .store_uint(query_id, 64)
-                        .store_slice(storage::owner_address)
-                        .store_uint(pool_id, 32)
-                        .store_int(balance_change, 121)
-                    .end_cell();
-        send_cell_message(storage::referrer_wallet_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
         
-        save_data();
+        if (balance_change != 0) {
+            cell payload = begin_cell()
+                            .store_uint(op, 32)
+                            .store_uint(query_id, 64)
+                            .store_slice(storage::owner_address)
+                            .store_uint(pool_id, 32)
+                            .store_int(balance_change, 121)
+                        .end_cell();
+            send_cell_message(storage::referrer_wallet_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
+            
+            save_data();
+        }
         return ();
     }
 
