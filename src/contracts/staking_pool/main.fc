@@ -284,6 +284,8 @@
 
         user_rewards_dict = update_rewards_dict(REWARD_MULTIPLIER_DIVIDER, invitees_balance, balance_change, user_rewards_dict);
         storage::tvl_with_multipliers += balance_change;
+
+        raw_reserve(storage_fees(), 4);
         update_referrer(sender_address, balance_change, user_rewards_dict, response_address, query_id);
         
         save_data();

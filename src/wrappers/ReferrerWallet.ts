@@ -63,14 +63,14 @@ export class ReferrerWallet implements Contract {
         return new ReferrerWallet(contractAddress(workchain, init), init);
     }
 
-    async sendDeploy(provider: ContractProvider, via: Sender, value: bigint, referrerAddress: Address, revenueShare: number, inviteeWalletCode: Cell, privateKey: Buffer) {
+    async sendDeploy(provider: ContractProvider, via: Sender, referrerAddress: Address, revenueShare: number, inviteeWalletCode: Cell, privateKey: Buffer) {
         let msgBody = beginCell()
                         .storeAddress(referrerAddress)
                         .storeUint(revenueShare, 16)
                         .storeRef(inviteeWalletCode);
         let signature = sign(msgBody.endCell().hash(), privateKey);
         await provider.internal(via, {
-            value,
+            value: toNano('0.15'),
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
                     .storeUint(OpCodes.SET_DATA, 32)
@@ -97,6 +97,24 @@ export class ReferrerWallet implements Contract {
                     .storeUint(OpCodes.CLAIM_REWARDS, 32)
                     .storeUint(queryId ?? 0, 64)
                     .storeDict(tmp, Dictionary.Keys.Uint(32), rewardsRequestDictValueParser())
+                .endCell()
+        });
+    }
+
+    async sendUpgradeReferrerWallet(provider: ContractProvider, via: Sender, newRevenueShare: number, ownerAddress: Address, signTime: number, privateKey: Buffer, queryId?: number) {
+        let msgBody = beginCell()
+                        .storeAddress(ownerAddress)
+                        .storeUint(signTime, 32)
+                        .storeUint(newRevenueShare, 16);
+        let signature = sign(msgBody.endCell().hash(), privateKey);
+        await provider.internal(via, {
+            value: toNano('0.2'),
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                    .storeUint(OpCodes.UPGRADE_REFERRER_WALLET, 32)
+                    .storeUint(queryId ?? 0, 64)
+                    .storeRef(beginCell().storeBuffer(signature).endCell())
+                    .storeBuilder(msgBody)
                 .endCell()
         });
     }
