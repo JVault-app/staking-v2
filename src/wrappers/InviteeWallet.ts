@@ -1,9 +1,9 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, Sender, SendMode } from '@ton/core';
 
 export type InviteeWalletConfig = {
     ownerAddress?: Address;
     referrerWalletAddress?: Address;
-    balance: bigint;
+    balances?: Dictionary<number, bigint>;
     init: boolean;
 };
 
@@ -11,7 +11,7 @@ export function invateeWalletConfigToCell(config: InviteeWalletConfig): Cell {
     return beginCell()
         .storeAddress(config.ownerAddress)
         .storeAddress(config.referrerWalletAddress)
-        .storeCoins(config.balance)
+        .storeDict(config.balances, Dictionary.Keys.Uint(32), Dictionary.Values.BigVarUint(4))
     .endCell();
 }
 
@@ -22,8 +22,8 @@ export class InviteeWallet implements Contract {
         return new InviteeWallet(address);
     }
 
-    static createFromConfig(config: InviteeWalletConfig, code: Cell, workchain = 0) {
-        const data = invateeWalletConfigToCell(config);
+    static createFromConfig(ownerAddress: Address, code: Cell, workchain = 0) {
+        const data = beginCell().storeAddress(ownerAddress).endCell();
         const init = { code, data };
         return new InviteeWallet(contractAddress(workchain, init), init);
     }
@@ -43,7 +43,7 @@ export class InviteeWallet implements Contract {
             init: stack.readBoolean(),
             ownerAddress: stack.readAddressOpt() ?? undefined,
             referrerWalletAddress: stack.readAddressOpt() ?? undefined,
-            balance: stack.readBigNumber(),
+            balances: beginCell().storeMaybeRef(stack.readCellOpt()).asSlice().loadDict(Dictionary.Keys.Uint(32), Dictionary.Values.BigVarUint(4))
         };
     }
 }

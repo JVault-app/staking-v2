@@ -1,6 +1,6 @@
 global slice storage::owner_address;
 global slice storage::referrer_wallet_address;
-global int   storage::balance;
+global cell  storage::balances;  ;; HashmapE. pool_id (uint32) -> balance (coins)
 global int   init?;
 
 () load_data() impure inline {
@@ -10,7 +10,7 @@ global int   init?;
     if (ds.slice_bits()) {
         init? = true;
         storage::referrer_wallet_address = ds~load_msg_addr();
-        storage::balance = ds~load_coins();
+        storage::balances = ds~load_dict();
     }
 }
 
@@ -19,7 +19,7 @@ global int   init?;
         begin_cell()
             .store_slice(storage::owner_address)
             .store_slice(storage::referrer_wallet_address)
-            .store_coins(storage::balance)
+            .store_dict(storage::balances)
         .end_cell()
     );
 }

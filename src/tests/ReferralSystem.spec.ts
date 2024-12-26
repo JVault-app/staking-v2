@@ -110,8 +110,11 @@ describe('StakingPool', () => {
         poolCreator = await blockchain.treasury('poolCreator');
         referrer = await blockchain.treasury('user1');
         invitees = [];
+        inviteeWallets = [];
+        inviteeWalletConfigs = [];
         for (let i = 2; i < 5; i++) {
             invitees.push(await blockchain.treasury(`user${i}`));
+            inviteeWallets.push(await blockchain.openContract(InviteeWallet.createFromConfig(invitees[i - 2].address, inviteeWalletCode)));
         }
         
         stakingPool = blockchain.openContract(StakingPool.createFromConfig({poolId: 1n, factoryAddress: poolAdmin.address}, stakingPoolUninitedCode));
@@ -263,6 +266,7 @@ describe('StakingPool', () => {
         refStakeWalletConfig = await refStakeWallet.getStorageData();
         expect(refStakeWalletConfig.isActive).toBeTruthy();
         expect(refStakeWalletConfig.jettonBalance).toEqual(jettonsToStake1 - commission1);
+
     });
 
     it('should deploy', async () => {
@@ -292,7 +296,7 @@ describe('StakingPool', () => {
             to: invitees[0].address,
             op: OpCodes.EXCESSES
         });
-
+        
         // Check staking pool
         let poolLockBalance = await poolLockWallet.getJettonBalance()
         expect(poolLockBalance).toEqual(jettonsToStake1 + jettonsToStake2); // 40000n + 5000n = 45000n
@@ -303,8 +307,12 @@ describe('StakingPool', () => {
         expect(stakingPoolConfig.tvl).toEqual(jettonsToStake1 - commission1 + jettonsToStake2 - commission2);
         expect(stakingPoolConfig.tvlWithMultipliers).toEqual(jettonsToStake1 - commission1 + (jettonsToStake2 - commission2) * 2n + referrerBalance);
         expect(stakingPoolConfig.collectedCommissions).toEqual(commission1 + commission2);
- 
-        // Check invitee wallet
+        
+        // Check invitee's wallet
+        inviteeWalletConfigs.push(await inviteeWallets[0].getStorageData());
+        expect(inviteeWalletConfigs[0].balances?.get(1)!!).toEqual(2n * (jettonsToStake2 - commission2));
+
+        // Check invitee's stake wallet
         let inviteeStakeWalletConfig = await stakeWallets[0].getStorageData();
         expect(inviteeStakeWalletConfig.isActive).toBeTruthy();
         expect(inviteeStakeWalletConfig.jettonBalance).toEqual(jettonsToStake2 - commission2);
@@ -389,7 +397,10 @@ describe('StakingPool', () => {
         prevTvlWithMultipliers = stakingPoolConfig.tvlWithMultipliers
         prevDistributedRewards = tmp.distributedRewards;
 
-
+        // Check invitee's wallet
+        inviteeWalletConfigs[0] = await inviteeWallets[0].getStorageData();
+        expect(inviteeWalletConfigs[0].balances?.get(1)!!).toEqual(jettonsToStake2 - commission2);
+        
         // Check referrer wallet
         referrerWalletConfig = await referrerWallet.getStorageData();
         poolInfo = referrerWalletConfig.poolsDict!!.get(1)!!;
@@ -436,6 +447,10 @@ describe('StakingPool', () => {
         tmp = stakingPoolConfig.rewardJettons!!.get(poolRewardsWallet.address)!!;
         expect(tmp.distributedRewards / 10n).toEqual((prevDistributedRewards + Dividers.DISTRIBUTED_REWARDS_DIVIDER * rewardsToAdd / (5n * prevTvlWithMultipliers)) / 10n);
         
+        // Check invitee's wallet
+        inviteeWalletConfigs.push(await inviteeWallets[1].getStorageData());
+        expect(inviteeWalletConfigs[1].balances?.get(1)!!).toEqual(2n * (jettonsToStake3 - commission3));
+
         // Check referrer wallet
         referrerWalletConfig = await referrerWallet.getStorageData();
         poolInfo = referrerWalletConfig.poolsDict!!.get(1)!!;
@@ -462,6 +477,10 @@ describe('StakingPool', () => {
         expect(stakingPoolConfig.tvlWithMultipliers).toEqual(prevTvlWithMultipliers - (jettonsToStake3 - commission3) * 2n - referrerBalance * 3n);
         tmp = stakingPoolConfig.rewardJettons!!.get(poolRewardsWallet.address)!!;
         expect(tmp.distributedRewards / 10n).toEqual((prevDistributedRewards + Dividers.DISTRIBUTED_REWARDS_DIVIDER * rewardsToAdd / (10n * prevTvlWithMultipliers)) / 10n);
+
+        // Check invitee's wallet
+        inviteeWalletConfigs[1] = await inviteeWallets[1].getStorageData();
+        expect(inviteeWalletConfigs[1].balances?.get(1)!!).toEqual(0n);
 
         // Check referrer wallet
         referrerWalletConfig = await referrerWallet.getStorageData();
