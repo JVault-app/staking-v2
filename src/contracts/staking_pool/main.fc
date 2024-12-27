@@ -54,7 +54,10 @@
                 }
                 
                 int lock_period = payload~load_uint(32);
-                cell referrer_cell = payload~load_maybe_ref();
+                cell referrer_cell = null();
+                if (payload.slice_bits()) {
+                    referrer_cell = payload~load_maybe_ref();
+                }
                 payload.end_parse();
 
                 (slice period_info_slice, int success) = storage::lock_periods.udict_get?(32, lock_period);

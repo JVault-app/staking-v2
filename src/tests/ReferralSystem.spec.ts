@@ -99,8 +99,7 @@ describe('StakingPool', () => {
     let rewardJettonsList: AddrList;
     let transactionRes: SendMessageResult;
 
-    const publicKey = Buffer.from("6580630b8e03d33193195e28fa60cff750c608dbb8a2dd9f1196425b353ee2c8", 'hex');
-    const privateKey = Buffer.from("a697139dab71a6ec0e2abf3232c4ebe2ba5c383c18a0229e9e3705aacfa3d9c96580630b8e03d33193195e28fa60cff750c608dbb8a2dd9f1196425b353ee2c8", 'hex');
+    const privateKey = Buffer.from(process.env.REF_PRIVATE_KEY!!, 'hex');
     
     beforeEach(async () => {
         blockchain = await Blockchain.create();

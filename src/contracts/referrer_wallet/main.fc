@@ -34,7 +34,7 @@
             throw_unless(exc::WRONG_SIGNATURE, check_signature(slice_hash(in_msg_body), signature, REF_PUBLIC_KEY));
             throw_unless(exc::WRONG_SIGNATURE, equal_slices(sender_address, in_msg_body~load_msg_addr()));
 
-            storage::revenue_share = in_msg_body~load_uint(16);
+            storage::revenue_share       = in_msg_body~load_uint(16);
             storage::invitee_wallet_code = in_msg_body~load_ref();
             ;; storage::pools_dict = null();
 
