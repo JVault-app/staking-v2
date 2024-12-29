@@ -23,7 +23,7 @@
                     .store_dict(rewards_dict)
                     .store_slice(response_address)
                 .end_cell();
-    cell  pool_state_init = calculate_pool_state_init(pool_id);
+    cell  pool_state_init = calculate_pool_state_init(FACTORY_ADDRESS, pool_id);
     slice pool_address = get_address_by_state_init(pool_state_init);
     raw_reserve(tons::MIN_RESERVE, 2);
     send_cell_message(pool_address, 0, payload, mode::CARRY_REMAINING_BALANCE);

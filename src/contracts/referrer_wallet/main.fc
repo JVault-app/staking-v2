@@ -77,7 +77,7 @@
 
     if (op == op::UPDATE_REFERRER) {
         int pool_id = in_msg_body~load_uint(32);
-        force_pool(sender_address, pool_id);
+        force_pool(FACTORY_ADDRESS, sender_address, pool_id);
 
         (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
         int invitees_balance = in_msg_body~load_int(121);
@@ -130,7 +130,7 @@
             }
             storage::pools_dict~udict_set_builder(32, pool_id, begin_cell().store_coins(invitees_balance).store_int(true, 1).store_int(0, 121).store_slice(rewards_dict_slice));
             
-            slice pool_address = get_address_by_state_init(calculate_pool_state_init(pool_id));
+            slice pool_address = get_address_by_state_init(calculate_pool_state_init(FACTORY_ADDRESS, pool_id));
             cell payload = begin_cell()
                                 .store_uint(op::SEND_REFERRER_REWARDS, 32)
                                 .store_uint(query_id, 64)
@@ -148,6 +148,7 @@
 
         throw_unless(exc::OUT_OF_GAS, msg_value > 0);
         if (my_balance + msg_value - tons::MIN_RESERVE > tons::MIN_EXCESS) {
+            raw_reserve(tons::MIN_RESERVE, 2);
             send_excess(storage::owner_address, query_id, 0, mode::CARRY_REMAINING_BALANCE);
         }
 

@@ -23,8 +23,8 @@ cell calculate_stake_wallet_state_init(slice pool_address, slice minter_address,
     return pack_state_init(stake_wallet_code, data);
 }
 
-cell calculate_pool_state_init(int pool_id) inline {
-    cell pool_data = begin_cell().store_slice(FACTORY_ADDRESS).store_uint(pool_id, 32).end_cell();
+cell calculate_pool_state_init(slice factory_address, int pool_id) inline {
+    cell pool_data = begin_cell().store_slice(factory_address).store_uint(pool_id, 32).end_cell();
     return pack_state_init(POOL_UNINITED_CODE(), pool_data);
 }
 

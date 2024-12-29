@@ -9,8 +9,8 @@
     throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
 }
 
-() force_pool(slice sender_address, int pool_id) impure inline {
-    cell tmp = calculate_pool_state_init(pool_id);
+() force_pool(slice factory_address, slice sender_address, int pool_id) impure inline {
+    cell tmp = calculate_pool_state_init(factory_address, pool_id);
     throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
 }
 

@@ -45,7 +45,7 @@
 
                 slice lock_wallet_address = payload~load_msg_addr();
                 
-                cell pool_state_init = calculate_pool_state_init(storage::next_pool_id);
+                cell pool_state_init = calculate_pool_state_init(my_address(), storage::next_pool_id);
                 slice pool_address = get_address_by_state_init(pool_state_init);
                
                 (cell pool_data, int gas_required) = get_pool_data(payload, from_address, lock_wallet_address, pool_address);

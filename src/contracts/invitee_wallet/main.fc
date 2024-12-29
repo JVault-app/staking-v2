@@ -9,6 +9,7 @@
         return ();
     }
 
+    ~dump(123);
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     slice sender_address = cs~load_msg_addr();
@@ -23,7 +24,7 @@
     int query_id = in_msg_body~load_uint(64);
 
     int pool_id = in_msg_body~load_uint(32);
-    force_pool(sender_address, pool_id);
+    force_pool(FACTORY_ADDRESS, sender_address, pool_id);
 
     if (~ init?) {  ;; op == op::SET_DATA
         int ref_exists = in_msg_body~load_int(1);
