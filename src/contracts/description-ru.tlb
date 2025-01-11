@@ -450,3 +450,6 @@ claim_commissions_msg#bca8f067 query_id:uint64 = InternalMsgBody;
 // На контракте стейкинг-пула проверяется, что сообщение пришло от создателя пула, после чего обнуляется переменная
 // collected_commissions и отправляются собранные комиссии:
 _ _:(JettonTransferMsg Cell) = InternalMsgBody;
+
+
+// TODO -- описание реферальной системы
