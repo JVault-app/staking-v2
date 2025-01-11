@@ -33,7 +33,7 @@
     raw_reserve(tons::MIN_RESERVE, 2);
 
     if (op == op::RECEIVE_JETTONS) {
-        ;; not in state_init so this variables can be changed after deployment
+        ;; not in state_init so these variables can be changed after deployment
         storage::min_deposit        = in_msg_body~load_coins();
         storage::max_deposit        = in_msg_body~load_coins();
         storage::unstake_commission = in_msg_body~load_uint(16);
