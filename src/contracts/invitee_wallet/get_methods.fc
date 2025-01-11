@@ -1,0 +1,4 @@
+(int, slice, slice, cell) get_storage_data() method_id {
+    load_data();
+    return (init?, storage::owner_address, storage::referrer_wallet_address, storage::balances);
+}

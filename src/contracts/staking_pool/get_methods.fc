@@ -1,0 +1,66 @@
+(int, int, slice, slice, cell) get_nft_data() method_id {
+    load_data();
+    ifnot(null?(storage::nft_content)) {
+        slice content_cs = storage::nft_content.begin_parse();
+        cell loaded_dict = content_cs~load_ref();
+        (cell uri, int success) = loaded_dict.udict_get_ref?(256, "uri"H);
+        if (success) {
+            loaded_dict~udict_set_ref(256, "uri"H, begin_cell().store_slice(uri.begin_parse()).store_number10(storage::pool_id).end_cell());
+        }
+        return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, begin_cell().store_uint(0, 8).store_dict(loaded_dict).end_cell());
+    }
+    return (storage::init?, storage::pool_id, storage::admin_address, storage::creator_address, storage::nft_content);
+}
+
+slice get_authority_address() method_id {
+    return null_addr();
+}
+
+int get_revoked_time() method_id {
+    return 0;
+}
+
+slice get_stake_wallet_address(slice owner_address, int lock_period) method_id {
+    load_data();
+    ifnot (null?(storage::whitelist)) {
+        (_, int success) = storage::whitelist.dict_get?(267, owner_address);
+        ifnot (success) {
+            return null_addr();
+        }
+    }
+    (slice period_info_slice, int success) = storage::lock_periods.udict_get?(32, lock_period);
+    ifnot(success) {
+        return null_addr();
+    }
+    period_info_slice~load_coins();
+    period_info_slice~load_coins();
+    period_info_slice~skip_bits(48);
+    slice minter_address = period_info_slice~load_msg_addr();
+    cell state_init = calculate_stake_wallet_state_init(my_address(), minter_address, owner_address, lock_period, storage::stake_wallet_code);
+    return get_address_by_state_init(state_init);
+}
+
+(int, int, slice, slice, cell, slice, int, int, int, int, cell, int, int, cell, cell, int, int, int, int) get_storage_data() method_id {
+    load_data();
+    return (
+        storage::init?,
+        storage::pool_id,
+        storage::admin_address,
+        storage::creator_address,
+        storage::stake_wallet_code,
+        storage::lock_wallet_address,
+        storage::tvl,
+        storage::tvl_with_multipliers,
+        storage::min_deposit,
+        storage::max_deposit,
+        storage::reward_jettons,
+        storage::reward_jettons_count,
+        storage::rewards_deposits_count,
+        storage::lock_periods,
+        storage::whitelist,
+        storage::unstake_fee,
+        storage::collected_commissions,
+        storage::rewards_commission,
+        storage::version
+    );
+}

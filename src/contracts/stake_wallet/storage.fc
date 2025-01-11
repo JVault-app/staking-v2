@@ -1,0 +1,79 @@
+global slice storage::staking_pool_address;     ;; MsgAddressStd. Address of the staking pool
+global slice storage::owner_address;            ;; MsgAddressStd. Address of the owner
+global int   storage::lock_period;              ;; Uint32. Time to wait for free withdrawal
+            
+global int   storage::jetton_balance;           ;; Coins. Free staked jettons (not requested for unstake) 
+global cell  storage::rewards_dict;             ;; HashmapE. reward jetton address (MsgAddressStd) -> last_distributed_rewards (uint256), unclaimed_rewards (coins)
+
+global cell  storage::unstake_requests;         ;; HashmapE. request_time (uint32) -> jettons_to_unstake (coins)
+global int   storage::requests_count;           ;; Uint8. Current number of unstake requests
+global int   storage::total_requested_jettons;  ;; Coins. Total amount of jettons requested for unstake
+
+global int   storage::is_active;                ;; Bool. Does this wallet allow actions?
+
+global int   storage::unstake_commission;       ;; Uint16. Commission rate for instant unstakes
+global int   storage::unstake_fee;              ;; Coins. Const TON fee for instant withdrawal
+        
+global int   storage::min_deposit;              ;; Coins. Minimal stake amount
+global int   storage::max_deposit;              ;; Coins. Maximum stake amount
+global cell  storage::whitelist;                ;; HashmapE. user_address (MsgAddressStd) -> nothing (int1)
+global slice storage::minter_address;           ;; MsgAddressStd. Address of the jetton minter (master). Is used only for TEP-74 compatibility
+
+global int  init?;
+
+
+() load_data() impure inline {
+    slice ds = get_data().begin_parse();  ;; Bits = 267 + 267 + 267 = 801. Refs = 1.
+    storage::staking_pool_address    = ds~load_msg_addr();
+    storage::minter_address          = ds~load_msg_addr();
+    storage::owner_address           = ds~load_msg_addr(); 
+
+    slice ds2 = ds~load_ref().begin_parse();  ;; Bits = 32 + 124 + 1 + 1 + 8 + 124 + 1 + 16 + 124 + 124 + 124 + 1 = 680. Refs = 3.
+    ds.end_parse();
+
+    storage::lock_period             = ds2~load_uint(32); 
+    storage::jetton_balance          = ds2~load_coins();
+    storage::rewards_dict            = ds2~load_dict();              
+    storage::unstake_requests        = ds2~load_dict();
+    storage::requests_count          = ds2~load_uint(8);
+    storage::total_requested_jettons = ds2~load_coins();
+    storage::is_active               = ds2~load_int(1);
+
+    init? = false;
+    if (ds2.slice_bits()) {
+        init? = true;
+        storage::unstake_commission      = ds2~load_uint(16);
+        storage::unstake_fee             = ds2~load_coins();
+        storage::min_deposit             = ds2~load_coins();
+        storage::max_deposit             = ds2~load_coins();
+        storage::whitelist               = ds2~load_dict();
+    }
+
+    ds2.end_parse();
+}
+
+() save_data() impure inline {
+    set_data(
+        begin_cell()
+            .store_slice(storage::staking_pool_address)
+            .store_slice(storage::minter_address)
+            .store_slice(storage::owner_address)
+            .store_ref(
+                begin_cell()
+                    .store_uint(storage::lock_period, 32)
+                    .store_coins(storage::jetton_balance)
+                    .store_dict(storage::rewards_dict)
+                    .store_dict(storage::unstake_requests)
+                    .store_uint(storage::requests_count, 8)
+                    .store_coins(storage::total_requested_jettons)
+                    .store_int(storage::is_active, 1)
+                    .store_uint(storage::unstake_commission, 16)
+                    .store_coins(storage::unstake_fee)
+                    .store_coins(storage::min_deposit)
+                    .store_coins(storage::max_deposit)
+                    .store_dict(storage::whitelist)
+                .end_cell()
+            )
+        .end_cell()
+    );
+}

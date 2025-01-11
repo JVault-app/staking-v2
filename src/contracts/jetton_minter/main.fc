@@ -1,24 +1,7 @@
-#include "imports/stdlib.fc";
-#include "imports/constants.fc";
-#include "imports/utils.fc";
+#include "../imports/all_imports.fc";
 
-
-global int   storage::total_supply;
-global slice storage::staking_pool_address;
-global int   storage::lock_period;
-global cell  storage::jetton_content;
-global cell  storage::stake_wallet_code;
-
-
-() load_data() impure inline {
-    slice ds = get_data().begin_parse();
-    storage::total_supply = ds~load_coins();
-    storage::staking_pool_address = ds~load_msg_addr();
-    storage::lock_period = ds~load_uint(32);
-    storage::jetton_content = ds~load_dict();
-    storage::stake_wallet_code = ds~load_ref();
-    ds.end_parse();
-}
+#include "storage.fc";
+#include "get_methods.fc";
 
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -35,12 +18,12 @@ global cell  storage::stake_wallet_code;
 
     ;; update tvl
     int op = in_msg_body~load_uint(32);
-    if (op == op::report_storage_data) {
+    if (op == op::REPORT_STORAGE_DATA) {
         slice ds = get_data().begin_parse();
 
         ds~load_coins();
         slice staking_pool_address = ds~load_msg_addr();
-        throw_unless(exc::incorrect_sender, equal_slices(staking_pool_address, sender_address));
+        throw_unless(exc::INCORRECT_SENDER, equal_slices(staking_pool_address, sender_address));
         int lock_period = ds.preload_uint(32);
         slice pool_data = in_msg_body~load_ref().begin_parse();
         pool_data~skip_bits(1 + 32 + 267 * 3);
@@ -63,24 +46,24 @@ global cell  storage::stake_wallet_code;
         );
         
         int query_id = in_msg_body~load_uint(64);
-        send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::carry_remaining_gas);
+        send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::CARRY_REMAINING_GAS);
         return ();
     }
 
-    if (op == op::provide_wallet_address) {
+    if (op == op::PROVIDE_WALLET_ADDRESS) {
         cs~load_msg_addr(); ;; skip dst
         cs~load_coins(); ;; skip value
         cs~skip_bits(1); ;; skip extracurrency collection
         cs~load_coins(); ;; skip ihr_fee
         int fwd_fee = muldiv(cs~load_coins(), 3, 2); ;; we use message fwd_fee for estimation of forward_payload costs
 
-        throw_unless(exc::discovery_fee_not_matched, msg_value > fwd_fee + 5000000);
+        throw_unless(exc::DISCOVERY_FEE_NOT_MATCHED, msg_value > fwd_fee + 5000000);
         int query_id = in_msg_body~load_uint(64);
         slice owner_address = in_msg_body~load_msg_addr();
         int include_address? = in_msg_body~load_uint(1);
 
         builder msg_body = begin_cell()
-                                .store_uint(op::take_wallet_address, 32)
+                                .store_uint(op::TAKE_WALLET_ADDRESS, 32)
                                 .store_uint(query_id, 64);
 
         (int wc, _) = parse_std_addr(owner_address);
@@ -93,22 +76,9 @@ global cell  storage::stake_wallet_code;
             msg_body = msg_body.store_slice(get_address_by_state_init(state_init));
         }
         msg_body = include_address? ? msg_body.store_maybe_ref(begin_cell().store_slice(owner_address).end_cell()) : msg_body.store_int(0, 1);
-        send_cell_message(owner_address, 0, msg_body.end_cell(), mode::carry_remaining_gas);
+        send_cell_message(owner_address, 0, msg_body.end_cell(), mode::CARRY_REMAINING_GAS);
         return ();
     }
 
-    throw(exc::unsupported_op);
-}
-
-
-(int, int, slice, cell, cell) get_jetton_data() method_id {
-    load_data();
-    return (storage::total_supply, -1, storage::staking_pool_address, storage::jetton_content, storage::stake_wallet_code);
-}
-
-
-slice get_wallet_address(slice owner_address) method_id {
-    load_data();
-    cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, my_address(), owner_address, storage::lock_period, storage::stake_wallet_code);
-    return get_address_by_state_init(state_init);
+    throw(exc::UNSUPPORTED_OP);
 }

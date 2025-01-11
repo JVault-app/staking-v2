@@ -1,0 +1,334 @@
+#include "../imports/all_imports.fc";
+
+#include "storage.fc";
+#include "functions.fc";
+#include "get_methods.fc";
+
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+        return ();
+    }
+    
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+    slice sender_address = cs~load_msg_addr();
+    int max_fwd_fee = muldiv(get_forward_fee(WORKCHAIN, UPDATE_MSG_BITS, UPDATE_MSG_CELLS), 3, 2); 
+
+    if (flags & 1) {  ;; bounced messages
+        in_msg_body~skip_bits(32);
+        int op = in_msg_body~load_uint(32);
+        if (op == op::SEND_CLAIMED_REWARDS) {
+            storage::is_active = true;
+            save_data();
+        }
+        send_excess(storage::owner_address, 0, 0, mode::CARRY_REMAINING_GAS | mode::IGNORE_ERRORS);
+    }
+    
+    load_data();
+
+    int op = in_msg_body~load_uint(32);
+    int query_id = in_msg_body~load_uint(64);
+
+    raw_reserve(tons::MIN_RESERVE, 2);
+
+    if (op == op::RECEIVE_JETTONS) {
+        ;; not in state_init so these variables can be changed after deployment
+        storage::min_deposit        = in_msg_body~load_coins();
+        storage::max_deposit        = in_msg_body~load_coins();
+        storage::unstake_commission = in_msg_body~load_uint(16);
+        storage::unstake_fee        = in_msg_body~load_coins();
+        storage::whitelist          = in_msg_body~load_dict();
+
+        int received_jettons        = in_msg_body~load_coins();
+        int deposit_commission      = in_msg_body~load_coins();
+
+        if ((storage::jetton_balance + received_jettons + storage::total_requested_jettons > storage::max_deposit) | (~ storage::is_active)) {
+            
+            cell cancel_payload = begin_cell()
+                                .store_uint(op::CANCEL_STAKE, 32)
+                                .store_uint(query_id, 64)
+                                .store_slice(storage::owner_address)
+                                .store_uint(storage::lock_period, 32)
+                                .store_coins(received_jettons)
+                                .store_coins(deposit_commission)
+                            .end_cell();          
+            send_cell_message(sender_address, 0, cancel_payload, mode::CARRY_REMAINING_BALANCE);
+    
+            return ();
+        }
+        
+        ifnot (equal_slices(sender_address, storage::staking_pool_address)) {
+            slice from_address = in_msg_body~load_msg_addr();
+            force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, my_code());
+            slice payload = in_msg_body~load_ref().begin_parse();
+            slice response_address = payload~load_msg_addr();
+            int   forward_amount   = payload~load_coins();
+            int   sender_balance   = payload~load_coins();
+            cell  sender_rewards   = payload~load_dict();
+
+            ;; this order of update messages is used for preventing race condition
+            int request_update_tons = update_request_required_gas(max_fwd_fee);
+            send_update_request_with_forward(sender_balance, sender_rewards, sender_address, response_address, query_id, request_update_tons, mode::PAY_FEES_SEPARATELY);
+            send_update_request_with_forward(0, storage::rewards_dict, my_address(), response_address, query_id, request_update_tons, mode::PAY_FEES_SEPARATELY);
+            
+            if (forward_amount) {
+                cell notification_payload = begin_cell()
+                                                .store_uint(op::TRANSFER_NOTIFICATION, 32)
+                                                .store_uint(query_id, 64)
+                                                .store_coins(received_jettons)
+                                                .store_slice(from_address)
+                                                .store_slice(payload)  ;;forward_payload:(Either Cell ^Cell)
+                                            .end_cell();
+                send_cell_message(storage::owner_address, forward_amount, notification_payload, mode::PAY_FEES_SEPARATELY);
+            }
+    
+            send_excess(response_address, query_id, 0, mode::CARRY_REMAINING_BALANCE | mode::IGNORE_ERRORS);
+        }
+        else {  
+            send_update_request(0, received_jettons, deposit_commission, query_id, 0, mode::CARRY_REMAINING_BALANCE);
+        }
+
+        storage::jetton_balance += received_jettons;
+        save_data();
+        return ();
+    }
+
+    if (op == op::CANCEL_STAKE) {
+        slice from_address = in_msg_body~load_msg_addr();
+        force_stake_wallet(sender_address, storage::staking_pool_address, storage::minter_address, from_address, storage::lock_period, my_code());
+        in_msg_body~skip_bits(32);
+
+        send_message_with_comment(storage::owner_address, 0, "Transfer was unsuccessful", mode::CARRY_REMAINING_BALANCE);
+        
+        storage::jetton_balance += in_msg_body~load_coins();
+        storage::is_active = true;
+
+        save_data();
+        return (); 
+    }
+    
+    if (equal_slices(sender_address, storage::staking_pool_address)) {
+        if (op == op::UPDATE_REWARDS) {
+            ;; throw_unless(exc::INCORRECT_SENDER, equal_slices(sender_address, storage::staking_pool_address));
+            storage::rewards_dict = in_msg_body~load_dict();
+            send_excess(in_msg_body~load_msg_addr(), query_id, 0, mode::CARRY_REMAINING_BALANCE | mode::IGNORE_ERRORS);
+            storage::is_active = true;
+            
+            save_data();
+            return ();
+        }
+
+        if (op == op::DEACTIVATE_WALLET) {  ;; this OpCode will be removed after passing an audit in September.
+            storage::is_active = false;
+            save_data();
+            return ();
+        }
+
+        if (op == op::SET_CODE) {
+            set_code(in_msg_body~load_ref());
+            if (in_msg_body.slice_refs()) {
+                set_data(in_msg_body~load_ref());
+            }
+            return ();
+        }
+    }
+
+    if (op == op::GET_STORAGE_DATA) {
+        slice to_address = in_msg_body~load_msg_addr();
+        var msg = begin_cell()
+                    .store_uint(0x10, 6)
+                    .store_slice(to_address)
+                    .store_coins(0)
+                    .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                    .store_uint(op::REPORT_STORAGE_DATA, 32)
+                    .store_uint(query_id, 64)
+                    .store_slice(sender_address)
+                    .store_uint(now(), 32)
+                    .store_ref(get_data())
+                    .store_slice(in_msg_body);
+
+        send_raw_message(msg.end_cell(), mode::CARRY_REMAINING_BALANCE);
+        return ();
+    }
+
+    ;; owner's operations
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(sender_address, storage::owner_address));
+
+    if (op == op::CLAIM_REWARDS) {
+        throw_unless(exc::OUT_OF_GAS, msg_value >= claim_rewards_required_gas(max_fwd_fee) + tons::JETTON_TRANSFER);
+        throw_unless(exc::HAS_PENDING_REQUEST, storage::is_active);
+        
+        cell payload = begin_cell()
+                            .store_uint(op::SEND_CLAIMED_REWARDS, 32)
+                            .store_uint(query_id, 64)
+                            .store_slice(storage::owner_address)
+                            .store_uint(storage::lock_period, 32)
+                            .store_coins(storage::jetton_balance)
+                            .store_dict(storage::rewards_dict)
+                            .store_slice(in_msg_body)   ;; in_msg_body = HashmapE. jetton_address (MsgAddressStd) -> nothing (int1)
+                        .end_cell();
+    
+        send_cell_message(storage::staking_pool_address, 0, payload, mode::CARRY_REMAINING_BALANCE);
+        
+        storage::is_active = false;
+        save_data();
+        return ();
+    }
+
+    if (op == op::UNSTAKE_REQUEST) {
+        throw_unless(exc::OUT_OF_GAS, msg_value >= unstake_request_required_gas(max_fwd_fee));
+        throw_unless(exc::HAS_PENDING_REQUEST, storage::is_active);
+        throw_unless(exc::HASHMAP_OVERFLOW, storage::requests_count < UNSTAKE_REQUESTS_MAX_COUNT);
+
+        int jettons_to_unstake = in_msg_body~load_coins();
+        in_msg_body.end_parse();
+
+        send_update_request(0,  - jettons_to_unstake, 0, query_id, 0, mode::CARRY_REMAINING_BALANCE);
+
+        storage::jetton_balance -= jettons_to_unstake;
+        storage::total_requested_jettons += jettons_to_unstake;
+        throw_unless(exc::NOT_ENOUGH_JETTONS, storage::jetton_balance >= 0);
+
+        (slice requested_jettons_slice, int success) = storage::unstake_requests.udict_get?(32, now());
+        if (success) {
+            jettons_to_unstake += requested_jettons_slice~load_coins();
+        }
+        else {
+            storage::requests_count += 1;
+        }
+        storage::unstake_requests~udict_set_builder(32, now(), begin_cell().store_coins(jettons_to_unstake));
+
+        save_data();
+        return ();
+    }
+
+    if (op == op::UNSTAKE_JETTONS) {
+        throw_unless(exc::HAS_PENDING_REQUEST, storage::is_active);
+
+        int jettons_to_unstake = in_msg_body~load_coins();
+        int force_unstake = in_msg_body~load_uint(1);
+        in_msg_body.end_parse();
+
+        throw_unless(exc::OUT_OF_GAS, msg_value >= unstake_jettons_required_gas(max_fwd_fee) + force_unstake * storage::unstake_fee);
+        throw_unless(exc::NOT_ENOUGH_JETTONS, jettons_to_unstake <= storage::total_requested_jettons + force_unstake * storage::jetton_balance);
+
+        int jettons_to_send = 0;
+        int forced_jettons = jettons_to_unstake;
+        (int request_time, slice requested_jettons_slice, int success) = storage::unstake_requests.udict_get_preveq?(32, now() - storage::lock_period);
+        while (success & forced_jettons) {
+            int requested_jettons = requested_jettons_slice~load_coins();
+            if (requested_jettons <= forced_jettons) {
+                storage::unstake_requests~udict_delete?(32, request_time);
+                (request_time, requested_jettons_slice, success) = storage::unstake_requests.udict_get_prev?(32, request_time);
+                storage::requests_count -= 1;
+            } else {
+                storage::unstake_requests~udict_set_builder(32, request_time, begin_cell().store_coins(requested_jettons - forced_jettons));
+                requested_jettons = forced_jettons;
+            }
+            forced_jettons -= requested_jettons;
+            jettons_to_send += requested_jettons;
+        }
+
+        int commission = 0;
+        if (forced_jettons) {
+            commission = muldiv(forced_jettons, storage::unstake_commission, COMMISSION_DIVIDER);
+            jettons_to_send += forced_jettons - commission;
+        }
+
+        (request_time, requested_jettons_slice, success) = storage::unstake_requests.udict_get_max?(32);
+        while (forced_jettons > storage::jetton_balance) {
+            int requested_jettons = requested_jettons_slice~load_coins();
+            if (requested_jettons <= forced_jettons) {
+                forced_jettons -= requested_jettons;
+                storage::unstake_requests~udict_delete?(32, request_time);
+                (request_time, requested_jettons_slice, success) = storage::unstake_requests.udict_get_prev?(32, request_time);
+                storage::requests_count -= 1;
+            } else {
+                forced_jettons = 0;
+                storage::unstake_requests~udict_set_builder(32, request_time, begin_cell().store_coins(requested_jettons - forced_jettons));
+            }
+        } 
+        
+        send_update_request(jettons_to_send, - forced_jettons, commission, query_id, 0, mode::CARRY_REMAINING_BALANCE);
+        
+        storage::total_requested_jettons -= (jettons_to_unstake - forced_jettons);
+        storage::jetton_balance -= forced_jettons;
+        save_data();
+        return ();
+    }
+
+    if (op == op::CANCEL_UNSTAKE_REQUEST) { 
+        throw_unless(exc::OUT_OF_GAS, msg_value >= cancel_unstake_required_gas(max_fwd_fee));
+        throw_unless(exc::HAS_PENDING_REQUEST, storage::is_active);
+
+        int jettons_to_cancel = 0;
+        cell requests_to_cancel = in_msg_body~load_dict();
+        (int request_time, _, int success) = requests_to_cancel.udict_get_min?(32);
+        while (success) {
+            (slice requested_jettons_slice, int success2) = storage::unstake_requests~udict_delete_get?(32, request_time);
+            if (success2) {
+                jettons_to_cancel += requested_jettons_slice~load_coins();
+                storage::requests_count -= 1;
+            }
+            (request_time, _, success) = requests_to_cancel.udict_get_next?(32, request_time);
+        }
+
+        
+        send_update_request(0, jettons_to_cancel, 0, query_id, 0, mode::CARRY_REMAINING_BALANCE); 
+    
+        storage::jetton_balance += jettons_to_cancel;
+        storage::total_requested_jettons -= jettons_to_cancel;
+        save_data();
+        return ();
+    }
+
+    if (op == op::TRANSFER_JETTON) {
+        throw_unless(exc::HAS_PENDING_REQUEST, storage::is_active);
+        int jetton_amount = in_msg_body~load_coins();
+        throw_unless(exc::NOT_ENOUGH_JETTONS, jetton_amount <= storage::jetton_balance);
+        throw_unless(exc::LESS_THAN_MIN_DEPOSIT, jetton_amount >= storage::min_deposit);
+
+        slice recipient = in_msg_body~load_msg_addr();
+        ifnot (null?(storage::whitelist)) {
+            (_, int success) = storage::whitelist.dict_get?(267, recipient);
+            throw_unless(exc::USER_NOT_IN_WL, success);
+        }
+        slice response_address = in_msg_body~load_msg_addr();
+        in_msg_body~skip_dict();
+        int forward_ton_amount = in_msg_body~load_coins();
+        throw_unless(exc::OUT_OF_GAS, msg_value >= jetton_transfer_required_gas(max_fwd_fee, forward_ton_amount));
+                
+        cell transfer_payload = begin_cell()  ;; Bits = 32 + 64 + 124 + 124 + 16 + 124 + 1 + 124 + 4 + 267 = 880
+                                    .store_uint(op::RECEIVE_JETTONS, 32)
+                                    .store_uint(query_id, 64)
+                                    .store_coins(storage::min_deposit)
+                                    .store_coins(storage::max_deposit)
+                                    .store_uint(storage::unstake_commission, 16)
+                                    .store_coins(storage::unstake_fee)
+                                    .store_dict(storage::whitelist)
+                                    .store_coins(jetton_amount)
+                                    .store_coins(0)
+                                    .store_slice(storage::owner_address)
+                                    .store_ref(
+                                        begin_cell()
+                                            .store_slice(response_address)
+                                            .store_coins(forward_ton_amount)
+                                            .store_coins(storage::jetton_balance)
+                                            .store_dict(storage::rewards_dict)
+                                            .store_slice(in_msg_body)  ;; forward payload
+                                        .end_cell()
+                                    )
+                                .end_cell();
+        cell state_init = calculate_stake_wallet_state_init(storage::staking_pool_address, storage::minter_address, recipient, storage::lock_period, my_code());
+
+        send_deploy_message(get_address_by_state_init(state_init), 0, state_init, transfer_payload, mode::CARRY_REMAINING_BALANCE);
+        
+        storage::jetton_balance -= jetton_amount;
+        storage::is_active = false;
+        save_data();
+        return ();
+    }
+    
+    throw(0xffff);
+}

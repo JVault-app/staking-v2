@@ -1,0 +1,40 @@
+(int, cell, slice) get_collection_data() method_id {
+    load_data();
+    return (storage::next_pool_id, storage::collection_content, storage::admin_address);
+}
+
+
+cell get_nft_content(int index, cell individual_content) method_id {
+    return individual_content;
+}
+
+
+slice get_nft_address_by_index(int index) method_id {
+    load_data();
+    ;; (_, slice pool_code_slice, _) = storage::pool_uninited_codes.udict_get_preveq?(32, index);
+    ;; cell pool_code = pool_code_slice~load_ref();
+    cell state_init = calculate_pool_state_init(my_address(), index);
+    return get_address_by_state_init(state_init);
+}
+
+
+(slice, slice, int, cell, int, int, slice, int, cell, cell, cell, cell, int) get_storage_data() method_id {
+    load_data();
+    cell pool_uninited_codes = new_dict();
+    pool_uninited_codes~udict_set_ref(32, 0, POOL_UNINITED_CODE());
+    return (
+        storage::admin_address,
+        storage::owner_address,
+        storage::next_pool_id,
+        storage::collection_content,
+        storage::min_rewards_commission,
+        storage::unstake_fee,
+        storage::fees_wallet_address,
+        storage::creation_fee,
+        pool_uninited_codes,
+        storage::pool_inited_code,
+        storage::stake_wallet_code,
+        storage::jetton_minter_code,
+        storage::version
+    );
+}

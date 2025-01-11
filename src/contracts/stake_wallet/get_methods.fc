@@ -1,0 +1,32 @@
+
+
+(int, slice, slice, cell) get_wallet_data() method_id {
+    load_data();
+    return (
+        storage::jetton_balance,
+        storage::owner_address,
+        storage::minter_address,
+        my_code()
+    );
+}
+
+(slice, slice, int, int, cell, cell, int, int, int, int, int, int, int, cell, slice) get_storage_data() method_id {
+    load_data();
+    return (
+        storage::staking_pool_address,
+        storage::owner_address,
+        storage::lock_period,
+        storage::jetton_balance,
+        storage::rewards_dict,
+        storage::unstake_requests,
+        storage::requests_count,
+        storage::total_requested_jettons,
+        storage::is_active,
+        storage::unstake_commission,
+        storage::unstake_fee,
+        storage::min_deposit,
+        storage::max_deposit,
+        storage::whitelist,
+        storage::minter_address
+    );
+}

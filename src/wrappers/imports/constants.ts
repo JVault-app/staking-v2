@@ -35,6 +35,13 @@ export const OpCodes = {
     UPDATE_REWARDS:          0XAE9307CE,
     CONFIRM_TRANSFER:        0XBC85EB11,
     
+    // Referrer wallet,
+    REQUEST_UPDATE_REFERRER: 0X55C35B40,
+    SEND_REFERRER_REWARDS:   0XB80E71D2,
+    UPDATE_REFERRER:         0X076EE4E0,
+    SET_DATA:                0X383411EA,
+    UPGRADE_REFERRER_WALLET: 0X96C40718,
+
     // Pools admin,
     DEPLOY_NEW_POOL:       0XDA861F17,
     SEND_COMMISSIONS:      0XB96ADAEA,
@@ -43,7 +50,8 @@ export const OpCodes = {
     CHANGE_CONTENT:        0x0ec29200,
     UPDATE_CODES:          0x85c923cf,
     WITHDRAW_TON:          0X37726BDB,
-    WITHDRAW_JETTON:       0X11C09682,    
+    WITHDRAW_JETTON:       0X11C09682,  
+    SEND_WITHDRAW_TON:     0XE5B8268F,
 };
 
 export const Gas = {
@@ -52,8 +60,8 @@ export const Gas = {
     NOTIFICATION:           340000000n, 
     JETTON_TRANSFER:        55000000n,   
     BURN_JETTONS:           340000000n,   
-    STAKE_JETTONS:          340000000n,  
-    UNSTAKE_JETTONS:        340000000n, 
+    STAKE_JETTONS:          340000000n + 120000000n,  
+    UNSTAKE_JETTONS:        340000000n + 120000000n, 
     CANCEL_UNSTAKE:         340000000n, 
     SEND_COMMISSIONS:       340000000n,
     SIMPLE_UPDATE_REQUEST:  340000000n,
@@ -68,7 +76,16 @@ export type AddrList = Dictionary<Address, Boolean>;
 
 export const Dividers = {
     COMMISSION_DIVIDER: 10000n,
+    REVENUE_SHARE_DIVIDER: 10000n,
     REWARDS_DIVIDER: 1000,
     DISTRIBUTION_SPEED_DIVIDER: BigInt(24 * 60 * 60),
     DISTRIBUTED_REWARDS_DIVIDER: 100000000000000000000000000000000000000n,
 }
+
+export const Addresses = {
+    FACTORY_ADDRESS: Address.parse("EQCteI8q19GsYeBcoaxHFdOg5ZPkNTqdnWere_HRDSTe06ro"),
+    BURN_ADDRESS: Address.parse("EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c"),
+}
+
+
+export const PUBLIC_KEY = 0n;

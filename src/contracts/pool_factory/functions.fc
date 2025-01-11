@@ -1,0 +1,78 @@
+cell calculate_minter_state_init(slice pool_address, int lock_period, cell jetton_content) {
+    cell minter_data = begin_cell()
+                            .store_coins(0)
+                            .store_slice(pool_address)
+                            .store_uint(lock_period, 32)
+                            .store_dict(jetton_content)
+                            .store_ref(storage::stake_wallet_code)
+                        .end_cell();
+    return pack_state_init(storage::jetton_minter_code, minter_data);
+}
+
+
+(cell, int) get_pool_data(slice payload, slice from_address, slice lock_wallet_address, slice pool_address) {
+    int gas_required = 0;
+
+    int min_deposit = payload~load_coins();
+    int max_deposit = payload~load_coins();
+    throw_unless(exc::MORE_THAN_MAX_DEPOSIT, max_deposit >= min_deposit);
+
+    cell lock_periods = payload~load_dict();
+    (int lock_period, slice period_info, int success) = lock_periods.udict_get_min?(32);
+    while (success) {
+        int  tvl_limit          = period_info~load_coins();
+        int  reward_multiplier  = period_info~load_uint(16);
+        int  deposit_commission = period_info~load_uint(16);
+        int  unstake_commission = period_info~load_uint(16);
+        cell jetton_content     = period_info~load_dict();
+
+        cell minter_state_init = calculate_minter_state_init(pool_address, lock_period, jetton_content);
+        slice minter_addresss = get_address_by_state_init(minter_state_init);
+        
+        builder dict_value = begin_cell()
+                                .store_coins(0)
+                                .store_coins(tvl_limit)
+                                .store_uint(reward_multiplier, 16)
+                                .store_uint(deposit_commission, 16)
+                                .store_uint(unstake_commission, 16)
+                                .store_slice(minter_addresss);
+        lock_periods~udict_set_builder(32, lock_period, dict_value);
+
+        gas_required += (send_deploy_message(minter_addresss, tons::DEPLOY_MINTER, minter_state_init, null(), mode::PAY_FEES_SEPARATELY)
+                         + tons::DEPLOY_MINTER);
+
+        (lock_period, period_info, success) = lock_periods.udict_get_next?(32, lock_period);
+    }
+    
+    cell whitelist = payload~load_dict();
+    int  rewards_commission = payload~load_uint(16);
+    throw_unless(exc::INCORRECT_REWARDS_COMMISSION, rewards_commission >= storage::min_rewards_commission);
+    
+    cell nft_content = payload~load_maybe_ref();
+
+    cell pool_data =  begin_cell()
+                        .store_int(0, 1)                            ;; init?
+                        .store_uint(storage::next_pool_id, 32)
+                        .store_slice(my_address())
+                        .store_slice(from_address)
+                        .store_slice(lock_wallet_address)
+                        .store_maybe_ref(nft_content)
+                        .store_ref(storage::stake_wallet_code)  
+                        .store_ref(
+                            begin_cell()
+                                .store_coins(0)                     ;; tvl
+                                .store_coins(0)                     ;; tvl_with_multipliers
+                                .store_coins(min_deposit)
+                                .store_coins(max_deposit)
+                                .store_int(0, 17)                   ;; rewards & counters
+                                .store_dict(lock_periods)
+                                .store_dict(whitelist)
+                                .store_coins(storage::unstake_fee)  
+                                .store_coins(0)                     ;; collected commissions
+                                .store_uint(rewards_commission, 16)
+                                .store_uint(storage::version, 16)
+                            .end_cell()
+                        )
+                    .end_cell();
+    return (pool_data, gas_required);
+}

@@ -1,0 +1,25 @@
+() force_same_workchain(slice addr) impure inline {
+    (int wc, _) = parse_std_addr(addr);
+    throw_unless(exc::WRONG_CHAIN, wc == WORKCHAIN);
+}
+
+() force_stake_wallet(slice sender_address, slice pool_address, slice minter_address, 
+                      slice stake_owner_address, int lock_period, cell stake_wallet_code) impure inline {
+    cell tmp = calculate_stake_wallet_state_init(pool_address, minter_address, stake_owner_address, lock_period, stake_wallet_code);
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
+}
+
+() force_pool(slice factory_address, slice sender_address, int pool_id) impure inline {
+    cell tmp = calculate_pool_state_init(factory_address, pool_id);
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
+}
+
+() force_invitee_wallet(slice sender_address, slice invitee_address, cell invitee_wallet_code) impure inline {
+    cell tmp = calculate_invitee_wallet_state_init(invitee_address, invitee_wallet_code);
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
+}
+
+() force_referrer_wallet(slice sender_address, slice referrer_address) impure inline {
+    cell tmp = calculate_referrer_wallet_state_init(referrer_address, REFERRER_WALLET_CODE());
+    throw_unless(exc::INCORRECT_SENDER, equal_slices(get_address_by_state_init(tmp), sender_address));
+}
