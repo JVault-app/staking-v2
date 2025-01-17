@@ -9,7 +9,6 @@
         return ();
     }
 
-    ~dump(123);
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     slice sender_address = cs~load_msg_addr();
@@ -65,8 +64,8 @@
             
             storage::balances~udict_set_builder(32, pool_id, begin_cell().store_coins(balance));
             save_data();
+            return ();
         }
-        return ();
     }
 
     send_excess(storage::owner_address, query_id, 0, mode::CARRY_REMAINING_BALANCE);
