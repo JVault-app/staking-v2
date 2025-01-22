@@ -715,6 +715,8 @@ describe('StakingPool', () => {
         transactionRes = await stakeWallet1_1.sendClaimRewards(user1.getSender(), rewardJettonsList);
         let user1RewardsBalance = await user1RewardsWallet.getJettonBalance();
         expect(user1RewardsBalance).toEqual(3216n);
+        stakingPoolConfig = await stakingPool.getStorageData();
+        expect(stakingPoolConfig.tvl).toEqual(360n - 240n + 80n);
     });
 
     it('should make jetton transfer', async () => {

@@ -19,10 +19,12 @@
         in_msg_body~skip_bits(32);
         int op = in_msg_body~load_uint(32);
         if (op == op::SEND_CLAIMED_REWARDS) {
+            load_data();
             storage::is_active = true;
             save_data();
         }
         send_excess(storage::owner_address, 0, 0, mode::CARRY_REMAINING_GAS | mode::IGNORE_ERRORS);
+        return ();
     }
     
     load_data();
@@ -245,8 +247,8 @@
                 (request_time, requested_jettons_slice, success) = storage::unstake_requests.udict_get_prev?(32, request_time);
                 storage::requests_count -= 1;
             } else {
-                forced_jettons = 0;
                 storage::unstake_requests~udict_set_builder(32, request_time, begin_cell().store_coins(requested_jettons - forced_jettons));
+                forced_jettons = 0;
             }
         } 
         

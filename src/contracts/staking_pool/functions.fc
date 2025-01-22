@@ -98,12 +98,13 @@ cell update_rewards_dict(int reward_multiplier, int user_jetton_balance, int tvl
     int required_gas = 0;
 
     int time_now = now();
-    int should_update_rewards = false;  ;; should we delete elements from storage::reward_jettons? 
+    int should_update_rewards = false;  ;; should we save storage::reward_jettons because a deposit fully expired?
     while (success) {
         (slice rewards_info_slice, int jetton_exists) = storage::reward_jettons.dict_get?(267, reward_jetton);
         if (jetton_exists) {
             int should_update_rewards2 = false;
-            int distributed_rewards = rewards_info_slice~load_uint(256);
+            int distributed_rewards = rewards_info_slice~load_uint(256);  ;; persisted cumulative: full-period contributions only
+            int partial_extra       = 0;                                  ;; local: in-flight partial windows, never persisted
             cell rewards_deposits = rewards_info_slice~load_dict();
 
             (int index, slice rewards_deposit_slice, int success2) = rewards_deposits.udict_get_min?(32);
@@ -115,25 +116,28 @@ cell update_rewards_dict(int reward_multiplier, int user_jetton_balance, int tvl
                     if (end_time <= time_now) {
                         rewards_deposits~udict_delete?(32, index);
                         storage::rewards_deposits_count -= 1;
-                        time_now = end_time;
+                        distributed_rewards += get_distributed_rewards(distribution_speed, start_time, end_time);
                         should_update_rewards = true;
                         should_update_rewards2 = true;
                     }
-                    distributed_rewards += get_distributed_rewards(distribution_speed, start_time, end_time <= time_now ? end_time : time_now);
+                    else {
+                        partial_extra += get_distributed_rewards(distribution_speed, start_time, time_now);
+                    }
                 }
                 (index, rewards_deposit_slice, success2) = rewards_deposits.udict_get_next?(32, index);
             }
-            
-            (slice user_rewards_slice, int success3) = user_rewards_dict~dict_set_get_builder?(267, reward_jetton, begin_cell().store_uint(distributed_rewards, 256).store_coins(0));
+
+            int distributed_rewards_view = distributed_rewards + partial_extra;
+            (slice user_rewards_slice, int success3) = user_rewards_dict~dict_set_get_builder?(267, reward_jetton, begin_cell().store_uint(distributed_rewards_view, 256).store_coins(0));
             int user_distributed_rewards = 0;
             int prev_user_unclaimed_rewards = 0;
             if (success3) {
                 user_distributed_rewards = user_rewards_slice~load_uint(256);
                 prev_user_unclaimed_rewards = user_rewards_slice~load_coins();
             }
-            int new_user_rewards = muldiv(muldiv(distributed_rewards - user_distributed_rewards, user_jetton_balance, DISTRIBUTED_REWARDS_DIVIDER), reward_multiplier, REWARD_MULTIPLIER_DIVIDER);
-            
-            required_gas += send_jettons(query_id, new_user_rewards + prev_user_unclaimed_rewards, stake_owner_address, stake_owner_address, reward_jetton, 
+            int new_user_rewards = muldiv(muldiv(distributed_rewards_view - user_distributed_rewards, user_jetton_balance, DISTRIBUTED_REWARDS_DIVIDER), reward_multiplier, REWARD_MULTIPLIER_DIVIDER);
+
+            required_gas += send_jettons(query_id, new_user_rewards + prev_user_unclaimed_rewards, stake_owner_address, stake_owner_address, reward_jetton,
                                             tons::JETTON_TRANSFER, mode::PAY_FEES_SEPARATELY, 1, begin_cell().store_uint(0, 32).store_slice("Claim staking rewards").end_cell());
             required_gas += tons::JETTON_TRANSFER;
             if (should_update_rewards2) {

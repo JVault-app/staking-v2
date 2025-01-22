@@ -86,6 +86,7 @@ describe('StakingPool', () => {
     let inviteeRewardsWallets: Array<SandboxContract<JettonWallet>> = [];
     let creatorRewardsWallet: SandboxContract<JettonWallet>;
     let adminRewardsWallet: SandboxContract<JettonWallet>;
+    let referrerRewardsWallet: SandboxContract<JettonWallet>;
     
     let stakingPoolConfig: StakingPoolConfig;
     let referrerWalletConfig: ReferrerWalletConfig;
@@ -142,6 +143,7 @@ describe('StakingPool', () => {
         creatorRewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(poolCreator.address)));
         poolRewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(stakingPool.address)));
         adminRewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(poolAdmin.address)));
+        referrerRewardsWallet = blockchain.openContract(JettonWallet.createFromAddress(await jettonMinterDefault2.getWalletAddress(referrer.address)));
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -288,6 +290,7 @@ describe('StakingPool', () => {
             invitees[0].getSender(), jettonsToStake2, stakingPool.address, invitees[0].address, Gas.STAKE_JETTONS,
             StakingPool.stakePayload(lockPeriod2, referrer.address)
         );        
+        printTransactionFees(transactionRes.transactions);
         stakeWallets.push(blockchain.openContract(StakeWallet.createFromAddress((await stakingPool.getWalletAddress(invitees[0].address, lockPeriod2))!!)));
         let referrerBalance = 2n * (jettonsToStake2 - commission2) * BigInt(referrerWalletConfig.revenueShare) / Dividers.REVENUE_SHARE_DIVIDER;
         expect(transactionRes.transactions).toHaveTransaction({
@@ -499,7 +502,6 @@ describe('StakingPool', () => {
         // upgrade referrer wallet
         const newRevenueShare = Math.ceil(referrerWalletConfig.revenueShare * 3 / 2);
         transactionRes = await referrerWallet.sendUpgradeReferrerWallet(referrer.getSender(), newRevenueShare, referrer.address, blockchain.now!!, privateKey);
-        printTransactionFees(transactionRes.transactions);
         expect(transactionRes.transactions).toHaveTransaction({
             from: referrerWallet.address,
             to: referrer.address,
@@ -536,16 +538,33 @@ describe('StakingPool', () => {
         referrerBalance = 2n * (jettonsToStake3 - commission3) * BigInt(newRevenueShare) / Dividers.REVENUE_SHARE_DIVIDER + referrerBalance * 3n / 2n;
         expect(poolInfo.inviteesBalance).toEqual(referrerBalance);
         
+        
+        // claim referrer rewards
+        let prevRewards = await referrerRewardsWallet.getJettonBalance();
         blockchain.now!! += distributionPeriod / 10;
-        transactionRes = await inviteeLockWallets[1].sendTransfer(
-            invitees[1].getSender(), jettonsToStake3, stakingPool.address, invitees[1].address, Gas.STAKE_JETTONS,
-            StakingPool.stakePayload(lockPeriod3, referrer.address)
-        );
-        referrerWalletConfig = await referrerWallet.getStorageData();
-        poolInfo = referrerWalletConfig.poolsDict!!.get(1)!!;
-        rewardsDictValue = poolInfo.rewardsDict!!.get(poolRewardsWallet.address)!!;
-        expect(rewardsDictValue.unclaimedRewards).toEqual(prevUnclaimedRewards + rewardsToAdd * referrerBalance / (10n * prevTvlWithMultipliers));
-        expect(poolInfo.inviteesBalance).toEqual(referrerBalance + 2n * (jettonsToStake3 - commission3) * BigInt(newRevenueShare) / Dividers.REVENUE_SHARE_DIVIDER);
+        let refRewardsToClaim = Dictionary.empty(Dictionary.Keys.Uint(32), Dictionary.Values.Dictionary(Dictionary.Keys.Address(), Dictionary.Values.Bool()));
+        let tmp2 = Dictionary.empty(Dictionary.Keys.Address(), Dictionary.Values.Bool());
+        tmp2.set(poolRewardsWallet.address, false);
+        refRewardsToClaim.set(1, tmp2);
+        transactionRes = await referrerWallet.sendClaimRewards(referrer.getSender(), refRewardsToClaim);
+        // printTransactionFees(transactionRes.transactions);
+        expect(transactionRes.transactions).toHaveTransaction({
+            from: referrerWallet.address,
+            to: stakingPool.address,
+            op: OpCodes.SEND_REFERRER_REWARDS,
+            success: true
+        });
+        let referrerJettonBalance = await referrerRewardsWallet.getJettonBalance();
+        expect(referrerJettonBalance).toEqual(prevRewards + prevUnclaimedRewards + rewardsToAdd * referrerBalance / (10n * prevTvlWithMultipliers));
+        // transactionRes = await inviteeLockWallets[1].sendTransfer(
+        //     invitees[1].getSender(), jettonsToStake3, stakingPool.address, invitees[1].address, Gas.STAKE_JETTONS,
+        //     StakingPool.stakePayload(lockPeriod3, referrer.address)
+        // );
+        // referrerWalletConfig = await referrerWallet.getStorageData();
+        // poolInfo = referrerWalletConfig.poolsDict!!.get(1)!!;
+        // rewardsDictValue = poolInfo.rewardsDict!!.get(poolRewardsWallet.address)!!;
+        // expect(rewardsDictValue.unclaimedRewards).toEqual(prevUnclaimedRewards + rewardsToAdd * referrerBalance / (10n * prevTvlWithMultipliers));
+        // expect(poolInfo.inviteesBalance).toEqual(referrerBalance + 2n * (jettonsToStake3 - commission3) * BigInt(newRevenueShare) / Dividers.REVENUE_SHARE_DIVIDER);
 
     });
 });

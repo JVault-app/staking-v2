@@ -17,6 +17,7 @@
 
     if (flags & 1) { ;; bounced messages
         ;; TODO
+        return ();
     }
 
     int op = in_msg_body~load_uint(32);
