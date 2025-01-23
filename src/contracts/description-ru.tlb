@@ -1,3 +1,8 @@
+// ❗️❗️❗️ ВАЖНО ❗️❗️❗️
+// Этот файл создавался для старой версии кода, и информация в нем может быть во многом неактуальна. Например, здесь нет описания сообщений, относящихся к реферальной системе.
+// При взаимодействии с контрактами лучше опираться на их исходный код.
+
+
 //=======================================================================
 /// BASIC
 // https://github.com/ton-blockchain/ton/blob/master/crypto/block/block.tlb
@@ -269,8 +274,6 @@ _ _:ExcessMsg = InternalMsgBody;
 // Пользователь может в любой момент заклеймить накопившиеся награды. Для этого он отправляет claim_rewards_msg на адрес своего stake_wallet:
 claim_rewards_msg#78d9f109
     query_id:uint64
-    owner_address:MsgAddressStd
-    lock_period:uint32
     jettons_to_claim:(HashmapE 267 Bit)  // jetton_wallet_address (MsgAddressStd -> nothing (int1))
 = InternalMsgBody;
 // На контракте stake_wallet.fc проверяется, что

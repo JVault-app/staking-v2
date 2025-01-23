@@ -208,7 +208,9 @@ export class StakingPool implements Contract {
         return beginCell().storeUint(OpCodes.CANCEL_STAKE, 32).storeUint(queryId ?? 0, 64).storeCoins(jettonsToReturn).endCell()
     }
 
-    static requestUpdateRewardsMessage(userJettonBalance: bigint, 
+    static requestUpdateRewardsMessage(ownerAddress: Address,
+                                        lockPeriod: number,
+                                        userJettonBalance: bigint, 
                                         tvlChange: bigint, 
                                         userRewardsDict: Dictionary<Address, UserRewardsDictValue>,
                                         jettonsToSend?: bigint,
@@ -218,14 +220,14 @@ export class StakingPool implements Contract {
         let res = beginCell()
                         .storeUint(OpCodes.REQUEST_UPDATE_REWARDS, 32)
                         .storeUint(queryId ?? 0, 64)
+                        .storeAddress(ownerAddress)
+                        .storeUint(lockPeriod, 32)
                         .storeCoins(userJettonBalance)
                         .storeInt(tvlChange, 121)
                         .storeDict(userRewardsDict, Dictionary.Keys.Address(), userRewardsDictValueParser())
                         .storeCoins(jettonsToSend ?? 0)
-        if (jettonsToSend) {
-            res = res.storeCoins(commission ?? 0);
-        }
-        else if (forwardAddress) {
+                        .storeCoins(commission ?? 0);
+        if (forwardAddress) {
             res = res.storeAddress(forwardAddress)
         }
         return res.endCell()
@@ -234,10 +236,14 @@ export class StakingPool implements Contract {
     static requestSendClaimedRewardsMessage(userJettonBalance: bigint, 
                                             userRewardsDict: Dictionary<Address, UserRewardsDictValue>,
                                             jettonsToClaim: AddrList,
+                                            ownerAddress: Address,
+                                            lockPeriod: number,
                                             queryId?: number): Cell {
         return beginCell()
                     .storeUint(OpCodes.REQUEST_UPDATE_REWARDS, 32)
                     .storeUint(queryId ?? 0, 64)
+                    .storeAddress(ownerAddress)
+                    .storeUint(lockPeriod, 32)
                     .storeCoins(userJettonBalance)
                     .storeDict(userRewardsDict, Dictionary.Keys.Address(), userRewardsDictValueParser())
                     .storeDict(jettonsToClaim, Dictionary.Keys.Address(), Dictionary.Values.Bool())
