@@ -338,7 +338,11 @@
 
         if (tvl_change) {
             storage::tvl += tvl_change;
-            int tvl_change_with_multiplier = muldiv(tvl_change, reward_multiplier, REWARD_MULTIPLIER_DIVIDER);
+            int tvl_change_with_multiplier = tvl_change * reward_multiplier;
+            if (tvl_change_with_multiplier < 0) {
+                tvl_change_with_multiplier += REWARD_MULTIPLIER_DIVIDER - 1;
+            }
+            tvl_change_with_multiplier /= REWARD_MULTIPLIER_DIVIDER;
             storage::tvl_with_multipliers += tvl_change_with_multiplier;
             request_update_referrer(tvl_change_with_multiplier, stake_owner_address, query_id);
         }

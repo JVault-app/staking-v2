@@ -16,10 +16,9 @@
 
     load_data();
 
-    if (flags & 1) {  ;; bounced messages
-        in_msg_body~skip_bits(32);
-        int op = in_msg_body~load_uint(32);
-        ;; TODO
+    if (flags & 1) {
+        ;; TODO: handle bounced messages
+        return ();
     }
 
     int op = in_msg_body~load_uint(32);
@@ -57,7 +56,11 @@
         force_invitee_wallet(sender_address, invitee_address, storage::invitee_wallet_code);
 
         int pool_id = in_msg_body~load_uint(32);
-        int balance_change = muldiv(in_msg_body~load_int(121), storage::revenue_share, REVENUE_SHARE_DIVIDER);
+        int balance_change = in_msg_body~load_int(121) * storage::revenue_share;
+        if (balance_change < 0) {
+            balance_change += REVENUE_SHARE_DIVIDER - 1;
+        }
+        balance_change /= REVENUE_SHARE_DIVIDER;
         ;; We can't just use pool's distributed rewards, because of the possible race condition. So we should send another request to pool :(
         (slice pool_info, int success) = storage::pools_dict.udict_get?(32, pool_id);
         int invitees_balance = 0;
