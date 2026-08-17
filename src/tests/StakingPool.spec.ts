@@ -723,6 +723,7 @@ describe('StakingPool', () => {
         blockchain.now!! += 100;  // cur_rewards_1 = 100 + 80 = 180, cur_rewards_2 = 0
 
         expect((await stakeWallet1_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet1_1.getStorageData()).minDeposit)
+        const poolBeforeTransfer = await stakingPool.getStorageData();
 
         let transactionRes = await stakeWallet1_1.sendTransfer( // 0
             user1.getSender(), 80n, user2.address, user1.address, toNano(0.1),
@@ -758,6 +759,25 @@ describe('StakingPool', () => {
             op: OpCodes.RECEIVE_JETTONS,
             success: true
         })
+        const referralUpdates = transactionRes.transactions
+            .filter((tx: any) => tx.inMessage?.info?.src?.equals(stakingPool.address) && tx.inMessage?.body)
+            .map((tx: any) => {
+                const body = tx.inMessage.body.beginParse();
+                if (body.preloadUint(32) !== OpCodes.REQUEST_UPDATE_REFERRER) {
+                    return null;
+                }
+                body.loadUint(32);
+                body.loadUintBig(64);
+                body.loadUint(32);
+                return { dest: tx.inMessage.info.dest, delta: body.loadIntBig(121) };
+            })
+            .filter((x: any) => x !== null)
+            .sort((a: any, b: any) => a.delta < b.delta ? -1 : a.delta > b.delta ? 1 : 0);
+        expect(referralUpdates.map((x: any) => x.delta)).toEqual([-80n, 80n]);
+        expect(referralUpdates[0]!.dest.equals(referralUpdates[1]!.dest)).toBeFalsy();
+        const poolAfterTransfer = await stakingPool.getStorageData();
+        expect(poolAfterTransfer.tvl).toEqual(poolBeforeTransfer.tvl);
+        expect(poolAfterTransfer.tvlWithMultipliers).toEqual(poolBeforeTransfer.tvlWithMultipliers);
         expect(transactionRes.transactions).toHaveTransaction({ // 3
             from: stakeWallet2_1.address,
             to: stakingPool.address,
@@ -824,5 +844,33 @@ describe('StakingPool', () => {
 
         expect((await stakeWallet1_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet1_1.getStorageData()).minDeposit)
         expect((await stakeWallet2_1.getStorageData()).jettonBalance).toBeGreaterThanOrEqual((await stakeWallet2_1.getStorageData()).minDeposit)
+    });
+
+    it('should move referral weight by owners even when response address differs', async () => {
+        const poolBeforeTransfer = await stakingPool.getStorageData();
+        const transactionRes = await stakeWallet1_1.sendTransfer(
+            user1.getSender(), 80n, user2.address, poolCreator.address, toNano(0.1),
+            beginCell().storeUint(0, 32).endCell()
+        );
+
+        const referralUpdates = transactionRes.transactions
+            .filter((tx: any) => tx.inMessage?.info?.src?.equals(stakingPool.address) && tx.inMessage?.body)
+            .map((tx: any) => {
+                const body = tx.inMessage.body.beginParse();
+                if (body.preloadUint(32) !== OpCodes.REQUEST_UPDATE_REFERRER) {
+                    return null;
+                }
+                body.loadUint(32);
+                body.loadUintBig(64);
+                body.loadUint(32);
+                return { dest: tx.inMessage.info.dest, delta: body.loadIntBig(121) };
+            })
+            .filter((x: any) => x !== null)
+            .sort((a: any, b: any) => a.delta < b.delta ? -1 : a.delta > b.delta ? 1 : 0);
+
+        expect(referralUpdates.map((x: any) => x.delta)).toEqual([-80n, 80n]);
+        expect(referralUpdates[0]!.dest.equals(referralUpdates[1]!.dest)).toBeFalsy();
+        expect((await stakingPool.getStorageData()).tvl).toEqual(poolBeforeTransfer.tvl);
+        expect((await stakingPool.getStorageData()).tvlWithMultipliers).toEqual(poolBeforeTransfer.tvlWithMultipliers);
     });
 });

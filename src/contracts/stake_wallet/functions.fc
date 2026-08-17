@@ -15,9 +15,13 @@
 }
 
 
-(int) send_update_request_with_forward(int jetton_balance, cell rewards_dict, slice forward_address, slice from_address, int query_id, int msg_value, int sending_mode) impure inline {
+(int) send_update_request_with_forward(int jetton_balance, cell rewards_dict, int referral_change, slice forward_address, slice excess_address, slice old_owner, int query_id, int msg_value, int sending_mode) impure inline {
     storage::is_active = false;
-    cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 4 + 4 + 267 = 916. Refs = 2.
+    builder extra = begin_cell().store_slice(excess_address);
+    if (referral_change) {
+        extra = extra.store_slice(old_owner);
+    }
+    cell payload = begin_cell()  ;; Bits = 32 + 64 + 267 + 32 + 124 + 121 + 1 + 8 + 121 + 267. Refs = 2.
                         .store_uint(op::REQUEST_UPDATE_REWARDS, 32)
                         .store_uint(query_id, 64)
                         .store_slice(storage::owner_address)
@@ -26,8 +30,9 @@
                         .store_int(0, 121)
                         .store_dict(rewards_dict)
                         .store_uint(0, 8)  ;; == store_coins(0).store_coins(0)
+                        .store_int(referral_change, 121)
                         .store_slice(forward_address)
-                        .store_ref(begin_cell().store_slice(from_address).end_cell())
+                        .store_ref(extra.end_cell())
                     .end_cell();
     return send_cell_message(storage::staking_pool_address, msg_value, payload, sending_mode);
 }

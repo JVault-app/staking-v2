@@ -339,9 +339,18 @@
         cell user_rewards_dict   = in_msg_body~load_dict();
         int  jettons_to_unstake  = in_msg_body~load_coins();
         int  commission          = in_msg_body~load_coins();
+        int referral_change = 0;
+        slice excess_address = stake_owner_address;
+        slice new_referral_owner = stake_owner_address;
+        slice old_referral_owner = null_addr();
         if (in_msg_body.slice_bits()) {  ;; update request with forward
-            sender_address       = in_msg_body~load_msg_addr();
-            stake_owner_address  = in_msg_body~load_ref().begin_parse();
+            referral_change = in_msg_body~load_int(121);
+            sender_address = in_msg_body~load_msg_addr();
+            slice extra = in_msg_body~load_ref().begin_parse();
+            excess_address = extra~load_msg_addr();
+            if (referral_change) {
+                old_referral_owner = extra~load_msg_addr();
+            }
         }
    
         user_rewards_dict = update_rewards_dict(reward_multiplier, user_jetton_balance, tvl_change, user_rewards_dict);
@@ -358,6 +367,13 @@
             request_update_referrer(tvl_change_with_multiplier, stake_owner_address, query_id);
         }
 
+        if (referral_change) {
+            int weighted_referral_change = referral_change * reward_multiplier + REWARD_MULTIPLIER_DIVIDER - 1;
+            weighted_referral_change /= REWARD_MULTIPLIER_DIVIDER;
+            request_update_referrer(weighted_referral_change, old_referral_owner, query_id);
+            request_update_referrer(- weighted_referral_change, new_referral_owner, query_id);
+        }
+
         if (jettons_to_unstake) {
             if (commission) {
                 send_message_with_comment(storage::admin_address, storage::unstake_fee, "Unstake fee", mode::SIMPLE);
@@ -370,7 +386,7 @@
         }
         storage::collected_commissions += commission;
 
-        builder payload = begin_cell().store_uint(op::UPDATE_REWARDS, 32).store_uint(query_id, 64).store_dict(user_rewards_dict).store_slice(stake_owner_address);
+        builder payload = begin_cell().store_uint(op::UPDATE_REWARDS, 32).store_uint(query_id, 64).store_dict(user_rewards_dict).store_slice(excess_address);
         send_cell_message(sender_address, 0, payload.end_cell(), mode::CARRY_REMAINING_BALANCE);
         save_data();
         return ();
